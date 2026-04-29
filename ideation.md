@@ -17,7 +17,9 @@ Desgin section - dragable elements (e.g. main stats, skills, inventory, gold, fe
 - **Storage Strategy (Hybrid Relational/JSON):**
   - **Relational Tables:** Used for top-level entities (Users, Characters) to ensure referential integrity.
   - **JSON Blob Storage:** The complex "Data Forge" and "Canvas Layout" will be stored as structured JSON objects. This allows for high-performance "single-load" of the entire character state, avoiding complex JOINs.
+- **State Management:** **Zustand** - Acts as the "Single Source of Truth" in the browser. It ensures that any change in the Data Forge (e.g., updating a stat) reactively and instantly updates all linked widgets on the Canvas.
 - **Styling & UI:** **shadcn/ui** (with **Tailwind CSS**) - For a modern, accessible UI and rapid component development.
+- **Drag-and-Drop:** **dnd-kit** - A modular, accessible drag-and-drop library for React that will handle widget placement and reordering on the grid.
 - **Authentication:** NextAuth.js or Clerk (TBD) for account-based character management.
 
 ---
@@ -401,17 +403,16 @@ The **Canvas** is the layout engine that transforms data from the Forge into a p
 ### 11.1 The Grid-Based Workspace
 
 - **Print-Safe Boundaries:** Represents physical paper (A4/Letter) with "Safe Zones" for home printers.
+- **Fixed-Column Grid:** The canvas uses a **12 or 24 column fixed grid**. This ensures that the layout remains consistent and predictable when scaling from the web preview to the final print output.
 - **Snap-to-Grid:** Background grid for widget alignment with adjustable sensitivity.
 - **Multi-Page Support:** Ability to add multiple pages for overflow or dedicated sections (e.g., a full page for Spells).
 
 ### 11.2 The Widget System
 
 Widgets are UI components linked to Data Forge fields.
-
-- **Atomic Widgets:** Single-value boxes (e.g., Str Modifier).
-- **Composite Widgets:** Grouped data (e.g., Saving Throw list, Combat Header).
-- **Dynamic List Widgets:** Containers that expand based on data (e.g., Inventory, Features).
-- **Drag-and-Drop:** A palette of widgets categorized by Forge section for easy placement and resizing.
+- **Initial Phase (Dedicated Widgets):** We will build specialized components for each Forge section (e.g., `StrWidget`, `SkillsWidget`, `HPWidget`). These are pre-styled and hard-linked to their respective data paths for rapid development.
+- **Future Improvement (Generic/Custom Widgets):** Users will eventually be able to create "Custom Widgets" by choosing a container (Box, Circle, List) and binding it to any data point in the Forge.
+- **Drag-and-Drop:** A palette of widgets categorized by Forge section for easy placement and resizing using **dnd-kit**.
 
 ### 11.3 Data Sync & "Wipe-Out" Logic
 
@@ -424,3 +425,185 @@ Widgets are UI components linked to Data Forge fields.
 
 - **Templates:** Supports pre-designed global layouts and user-created presets.
 - **Exporting:** High-quality PDF generation or direct browser printing.
+
+---
+
+## 12. Character Data Schema (JSON Blob)
+
+The following structure represents the single JSON object stored in the database. It is split into `forge` (mechanical data) and `canvas` (layout data).
+
+```json
+{
+  "version": "1.0.0",
+  "identity": {
+    "name": "string",
+    "race": "string",
+    "classLabels": "string",
+    "background": "string",
+    "alignment": "string",
+    "deity": "string",
+    "level": 1,
+    "classes": [
+      { "name": "string", "level": 1 }
+    ]
+  },
+  "attributes": {
+    "str": { "base": 10, "stack": [], "override": null },
+    "dex": { "base": 10, "stack": [], "override": null },
+    "con": { "base": 10, "stack": [], "override": null },
+    "int": { "base": 10, "stack": [], "override": null },
+    "wis": { "base": 10, "stack": [], "override": null },
+    "cha": { "base": 10, "stack": [], "override": null }
+  },
+  "saves": {
+    "str": { "proficient": false, "stack": [], "override": null },
+    "dex": { "proficient": false, "stack": [], "override": null },
+    "con": { "proficient": false, "stack": [], "override": null },
+    "int": { "proficient": false, "stack": [], "override": null },
+    "wis": { "proficient": false, "stack": [], "override": null },
+    "cha": { "proficient": false, "stack": [], "override": null }
+  },
+  "skills": {
+    "athletics": { "state": "None|Proficient|Expertise", "override": null },
+    "acrobatics": { "state": "None", "override": null },
+    "slight_of_hand": { "state": "None", "override": null },
+    "stealth": { "state": "None", "override": null },
+    "arcana": { "state": "None", "override": null },
+    "history": { "state": "None", "override": null },
+    "investigation": { "state": "None", "override": null },
+    "nature": { "state": "None", "override": null },
+    "religion": { "state": "None", "override": null },
+    "animal_handling": { "state": "None", "override": null },
+    "insight": { "state": "None", "override": null },
+    "medicine": { "state": "None", "override": null },
+    "perception": { "state": "None", "override": null },
+    "survival": { "state": "None", "override": null },
+    "deception": { "state": "None", "override": null },
+    "intimidation": { "state": "None", "override": null },
+    "performance": { "state": "None", "override": null },
+    "persuasion": { "state": "None", "override": null }
+  },
+  "other_proficiencies": [
+    {
+      "id": "uuid",
+      "name": "string",
+      "category": "Tool|Language|Vehicle|Weapon|Armor",
+      "training": "Proficient|Expertise",
+      "stat": "str|dex|con|int|wis|cha|null",
+      "override": null
+    }
+  ],
+  "combat": {
+    "ac": {
+      "mode": "Standard|Formula|Override",
+      "base": 10,
+      "statA": "string|null",
+      "statB": "string|null",
+      "override": null
+    },
+    "initiative": { "stack": [], "override": null },
+    "speed": { "base": 30, "stack": [], "override": null },
+    "hp": {
+      "max": 10,
+      "misc": 0,
+      "hitDice": [
+        { "count": 1, "dieType": "d8", "class": "string" }
+      ]
+    }
+  },
+  "inventory": [
+    {
+      "id": "uuid",
+      "name": "string",
+      "weight": 0.0,
+      "category": "string",
+      "equipped": false,
+      "modifiers": [
+        { "target": "string", "value": 0, "type": "Bonus|Set To" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "uuid",
+      "name": "string",
+      "mode": "Standard|Fixed|Manual",
+      "fixedValue": null,
+      "damageStack": [
+        { "formula": "string", "type": "string", "active": true }
+      ],
+      "notes": "string"
+    }
+  ],
+  "features": [
+    {
+      "id": "uuid",
+      "name": "string",
+      "source": "string",
+      "description": "markdown"
+    }
+  ],
+  "trackers": [
+    {
+      "id": "uuid",
+      "name": "string",
+      "base": 0,
+      "stack": [],
+      "reset": "Short Rest|Long Rest|Dawn|Special",
+      "override": null
+    }
+  ],
+  "spells": {
+    "slots": {
+      "1": { "base": 0, "stack": [], "override": null },
+      "2": { "base": 0, "stack": [], "override": null }
+    },
+    "list": [
+      {
+        "id": "uuid",
+        "name": "string",
+        "level": 0,
+        "school": "string",
+        "castingTime": "string",
+        "range": "string",
+        "duration": "string",
+        "rollType": "Attack|Save|Utility",
+        "hitDCMode": "Standard|Fixed|Manual",
+        "damageStack": [],
+        "description": "string",
+        "tags": { "ritual": false, "concentration": false, "prepared": true }
+      }
+    ]
+  },
+  "canvas": {
+    "pages": [
+      {
+        "id": "uuid",
+        "widgets": [
+          {
+            "id": "uuid",
+            "type": "StrWidget|HPWidget|etc",
+            "x": 0,
+            "y": 0,
+            "w": 1,
+            "h": 1,
+            "printState": "Calculated|Blank"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Shared Objects Reference
+
+**The Modifier Stack Entry:**
+```json
+{
+  "id": "uuid",
+  "source": "string",
+  "value": number,
+  "isActive": boolean
+}
+```
