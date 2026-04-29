@@ -9,9 +9,18 @@ Desgin section - dragable elements (e.g. main stats, skills, inventory, gold, fe
 
 ## Technical
 
-online tool - self-hosted
-account based - characters per user
-Save characters in relational db
+- **Framework:** Next.js (App Router) - Provides a unified stack for Frontend (React) and Backend (API Routes/Server Actions).
+- **ORM:** Drizzle ORM - Type-safe, lightweight, and supports both SQLite and PostgreSQL.
+- **Database:**
+  - **Development:** SQLite (Local file-based, fast iteration).
+  - **Production:** PostgreSQL (Robust, scalable).
+- **Storage Strategy (Hybrid Relational/JSON):**
+  - **Relational Tables:** Used for top-level entities (Users, Characters) to ensure referential integrity.
+  - **JSON Blob Storage:** The complex "Data Forge" and "Canvas Layout" will be stored as structured JSON objects. This allows for high-performance "single-load" of the entire character state, avoiding complex JOINs.
+- **Styling & UI:** **shadcn/ui** (with **Tailwind CSS**) - For a modern, accessible UI and rapid component development.
+- **Authentication:** NextAuth.js or Clerk (TBD) for account-based character management.
+
+---
 
 ## 1. Identity & Scaling (Top-Level Selection)
 
@@ -21,11 +30,13 @@ This section acts as the primary character header and the "engine" for proficien
 
 Standard string inputs for character documentation. These do not affect mechanics but are mapped to the Canvas widgets:
 
-- **Character Name**, **Alignment**, **Deity/Patron**, **Background Name**.
+- **Character Name**, **Alignment**, **Deity/Patron**, **Background Name**, **Race**, **Class**.
+- **Initial Phase:** All fields are manual text inputs.
+- **Future Improvement:** Race and Class fields will link to the compendium.
 
 ### 1.2 Level & Class Scaling
 
-- **Character Level (Integer):** \* Automatically calculates **Proficiency Bonus**: `2 + floor((Level - 1) / 4)`.
+- **Character Level (Integer):** Automatically calculates **Proficiency Bonus**: `2 + floor((Level - 1) / 4)`.
 - **Class Management:**
   - Supports multi-classing via an "Add Class" interface.
   - Each entry stores `Class Name` and `Class Level`.
@@ -33,8 +44,9 @@ Standard string inputs for character documentation. These do not affect mechanic
 
 ### 1.3 Selection Logic
 
-- **Compendium Hooks:** Selecting a Race or Class from the compendium automatically triggers the injection of relevant modifiers into the **Attribute Modifier Stacks & Saving Throw Modifier Stack** (Section 2).
-- **Custom/Homebrew:** Users can bypass compendium logic by selecting "Custom," allowing for manual entry of all identity-based bonuses.
+- **Initial Phase:** User manually types Race and Class. No automated injection occurs.
+- **Future Improvement (Compendium Hooks):** Selecting a Race or Class from the compendium automatically triggers the injection of relevant modifiers into the **Attribute Modifier Stacks & Saving Throw Modifier Stack** (Section 2).
+- **Custom/Homebrew:** Users can always bypass compendium logic by selecting "Custom," allowing for manual entry of all identity-based bonuses (this remains the default in the Initial Phase).
 
 ---
 
@@ -68,7 +80,8 @@ Each of the six stats (Str, Dex, Con, Int, Wis, Cha) and their corresponding Sav
 
 - **Transparent Math:** Clicking (or hover over) any Total Score expands the stack to show exactly where every +1 originates.
 - **Instant Overwrite:** Typing into a "Ghost Value" field enables the `Manual Override`.
-- **Smart Item Link:** Equipped items that grant +1 to All Saves or specific Stats automatically push labeled entries to the relevant stacks (similar to the race and background functioning).
+- **Initial Phase:** Users manually add all entries to the stack (e.g., "+2 Racial").
+- **Future Improvement (Smart Item Link):** Equipped items that grant +1 to All Saves or specific Stats automatically push labeled entries to the relevant stacks.
 - **Sync/Revert:** A one-click icon to clear manual overrides and snap back to the "Standard" math.
 
 ---
@@ -97,9 +110,13 @@ The system displays a "Ghost Number" based on the following:
 
 ### 3.3 User Interaction
 
-- **Simple Toggles:** Users manually select their proficiency level based on their Class/Background choices.
+- **Simple Toggles:** Users manually select their proficiency level.
+- **Initial Phase:** All toggles are manual based on the user's knowledge of their Class/Background.
+- **Future Improvement:** Auto-toggling based on Class/Background choices.
 - **Re-binding (Optional/Edge Case):** While skills are linked to default attributes, users wanting "Strength (Intimidation)" should use the **Manual Override** to set the correct total for that specific printout.
 - **Sync/Revert:** A one-click icon to clear manual overrides and snap back to the "Standard" math.
+
+---
 
 ## 4. Tools & Other Proficiencies
 
@@ -116,12 +133,10 @@ Each entry in this list is a standalone object containing:
 - **Modifier (Integer):** Modifier value based on training state and selected stat to be used.
 - **Manual Override (Nullable Integer):** For custom or situational bonuses (similar to stats & skills).
 
-### 4.2 Entry Logic (Manual-First)
+### 4.2 Entry Logic
 
-To bypass complex "Choice" logic (e.g., "Pick 1 of 3 gaming sets"), the system follows these rules:
-
-- **Auto-Population:** Selecting a Race or Class from the compendium pushes **Hard-Set** proficiencies to this list (e.g., a Rogue automatically gets "Thieves' Tools").
-- **User-Driven Choices:** For any "Choose X" feature, the user simply hits an "Add New" button, types the name, and selects the state.
+- **Initial Phase (Manual-First):** The user simply hits an "Add New" button, types the name, and selects the state/stat.
+- **Future Improvement (Auto-Population):** Selecting a Race or Class from the compendium pushes **Hard-Set** proficiencies to this list (e.g., a Rogue automatically gets "Thieves' Tools").
 - **No Validation:** The tool does not limit how many proficiencies are added, allowing for total homebrew and "Variant Rule" support.
 
 ### 4.3 User Interaction
@@ -129,6 +144,8 @@ To bypass complex "Choice" logic (e.g., "Pick 1 of 3 gaming sets"), the system f
 - **Dynamic List:** Users can add, edit, or delete entries at any time.
 - **The "Ghost" Bonus:** The UI displays the calculated Proficiency Bonus (from Section 1) next to the entry.
 - **Canvas Output:** For the Print Canvas, these are aggregated into a single "Proficiencies & Languages" text block, grouped by Category.
+
+---
 
 ## 5. Combat Stats
 
@@ -146,29 +163,36 @@ AC is the most complex calculation, requiring three distinct modes to handle var
   - _Example (Plate Armor):_ `18 + null + null`.
 - **Mode C: Manual Override:**
   - A single integer field that bypasses all formulas.
+- **Initial Phase:** User manually selects and configures the Mode.
+- **Future Improvement:** Equipped armor from Section 6 will automatically trigger Mode selection.
 
 ### 5.2 Initiative & Speed
 
 - **Initiative:**
-  - **Ghost Value:** Calculated as the `Dexterity Modifier`. Adds a tiebreaker using the `Dexterity Stat`
+  - **Ghost Value:** Calculated as the `Dexterity Modifier`. Adds a tiebreaker using the `Dexterity Stat`.
   - **Modifier Stack:** Similar to Core Attributes, users can add labeled bonuses (e.g., "Alert Feat: +5").
 - **Speed:**
   - **Base Value:** Set by the selected Race (e.g., 30ft).
+  - **Initial Phase:** Manual input for Base Value.
+  - **Future Improvement:** Auto-set from Race selection.
   - **Modifier Stack:** For items or features (e.g., "Barbarian Fast Movement: +10").
 
 ### 5.3 Health Points (HP)
 
 - **Max HP:**
   - **Formula:** `(Class Hit Die + Con) + ((Level - 1) * (Avg Die Roll + Con))`.
-  - **Manual Adjustment:** A "Misc HP" field to account for the "Tough" feat or manual rolls that differ from the average.
+  - **Initial Phase:** Users can use this formula manually or simply use the "Misc HP" field to account for manual rolls or feats like "Tough".
+  - **Future Improvement:** Full automation based on Class and Level.
 - **Hit Dice:**
-  - Tracks total quantity and die type (e.g., 3d8) based on Class and Level. Supports multiclassing (e.g. 2d8 - cleric, 1d8 bard)
+  - Tracks total quantity and die type (e.g., 3d8) based on Class and Level. Supports multiclassing (e.g. 2d8 - cleric, 1d8 bard).
 
 ### 5.4 User Interaction
 
 - **Live Updates:** Changing the Dexterity score in Section 2 immediately updates the Ghost Values for AC (if in Mode A) and Initiative.
 - **Visual Clarity:** Overridden values are highlighted to remind the user the "Auto-Math" is currently disabled.
 - **Sync/Revert:** A one-click icon to clear manual overrides and snap back to the "Standard" math.
+
+---
 
 ## 6. Inventory & Equipment
 
@@ -197,8 +221,9 @@ This is the core integration between the Inventory and the rest of the Data Forg
 
 ### 6.3 Automation vs. Manual
 
-- **Compendium Items:** Adding a "Shield" from the compendium automatically populates the Modifier Stack with `Target: AC, Value: +2`.
-- **Custom Items:** Users can create an item from scratch, name it "Homebrew Boots," and manually add a modifier like `Target: Speed, Value: +10`.
+- **Initial Phase:** Users manually create items and define their Modifier Stacks.
+- **Future Improvement (Compendium Items):** Adding a "Shield" from the compendium automatically populates the Modifier Stack with `Target: AC, Value: +2`.
+- **Custom Items:** Users can always create an item from scratch, name it "Homebrew Boots," and manually add a modifier like `Target: Speed, Value: +10`.
 
 ### 6.4 Inventory Calculations
 
@@ -210,6 +235,8 @@ This is the core integration between the Inventory and the rest of the Data Forg
 - **Add/Delete:** Standard list management.
 - **The "Equip" Toggle:** A prominent checkbox next to each item. Weapons and Armor are the most common users of this toggle.
 - **Modifier Modal:** A sub-menu within the item to add or edit the modifiers it grants to the character.
+
+---
 
 ## 7. Attacks & Spell Actions
 
@@ -251,6 +278,9 @@ By using a **Damage Stack**, a single attack can resolve multiple lines of math 
 - **Override Toggle:** A simple switch on each action to move from "Standard" (Auto-calc) to "Fixed" (for items like the _Spider Staff_ that have their own DC).
 - **Stack Management:** Users can add as many damage lines as needed to an attack.
 - **Ghost Values:** Calculations update in real-time as Section 1 (Level) or Section 2 (Stats) change.
+- **Future Improvement:** Auto-generating attack actions from equipped weapons in Inventory.
+
+---
 
 ## 8. Features & Traits
 
@@ -266,7 +296,8 @@ Each entry is a standardized block containing:
 
 ### 8.2 Logic & Auto-Population
 
-- **Compendium Injection:** When a user selects a Race or Class in Section 1, the Data Forge automatically "pushes" the corresponding features into this list.
+- **Initial Phase:** Fully manual text entry for all features.
+- **Future Improvement (Compendium Injection):** When a user selects a Race or Class in Section 1, the Data Forge automatically "pushes" the corresponding features into this list.
 - **Manual Additions:** A "New Feature" button allows users to manually type in homebrew abilities or specific Feats they’ve chosen.
 - **Item-Linked Features:** If a "Smart Item" from Section 6 is equipped and has a unique passive ability, that description is mirrored here automatically.
 
@@ -274,6 +305,8 @@ Each entry is a standardized block containing:
 
 - **Categorization:** Features are visually grouped by their source (e.g., all "Racial Traits" together) for easier browsing.
 - **Editability:** Even auto-populated features can be edited by the user to shorten text or add personal notes.
+
+---
 
 ## 9. Usage Counters & Resource Tracking
 
@@ -305,6 +338,10 @@ Each tracker entry contains:
 - **Standard Stack Toggles:** Users can add or remove modifiers to build the resource total (e.g., "Base 0" + "Level 5" + "Wis Mod 3" = 8).
 - **Instant Overwrite:** Typing directly into the total field enables the `Manual Override`, bypassing the stack math.
 - **Sync/Revert:** A one-click icon to clear the `Manual Override` and snap the tracker back to the calculated Ghost Number.
+- **Initial Phase:** All tracker setups are manual.
+- **Future Improvement:** Automated tracking for Ki, Sorcery Points, etc., based on Class and Level.
+
+---
 
 ## 10. Spellcasting & Spellbook
 
@@ -345,12 +382,13 @@ Each spell entry is a comprehensive object designed to generate a "Spell Card" i
 
 ### 10.3 Automation & Logic
 
-- **Slot Auto-Fill:** Selecting a Class and Level in Section 1 populates the `Base Value` for the slot grid according to the 5e multiclassing or single-class tables.
+- **Initial Phase:** Manual entry of spell slot counts and manual creation of spell cards.
+- **Future Improvement (Slot Auto-Fill):** Selecting a Class and Level in Section 1 populates the `Base Value` for the slot grid according to the 5e multiclassing or single-class tables.
 - **The "Spellcasting Ability" Link:** Spells default to the Global Spell Casting stat defined in Section 7, but each spell can be individually swapped to a different attribute (for feats like Magic Initiate).
 
 ### 10.4 User Interaction
 
-- **Add Spell:** Opens a searchable compendium or a blank template for homebrew.
+- **Add Spell:** Opens a searchable compendium (Future) or a blank template for homebrew (Initial).
 - **Slot Management:** A simple table view where users can toggle the "Modifier Stack" to account for specialized items or multiclassing quirks.
 - **Sync/Revert:** Standard reset buttons on every slot level and spell-specific DC to return to the calculated baseline.
 
@@ -369,6 +407,7 @@ The **Canvas** is the layout engine that transforms data from the Forge into a p
 ### 11.2 The Widget System
 
 Widgets are UI components linked to Data Forge fields.
+
 - **Atomic Widgets:** Single-value boxes (e.g., Str Modifier).
 - **Composite Widgets:** Grouped data (e.g., Saving Throw list, Combat Header).
 - **Dynamic List Widgets:** Containers that expand based on data (e.g., Inventory, Features).
@@ -378,11 +417,10 @@ Widgets are UI components linked to Data Forge fields.
 
 - **Live Preview:** Forge updates (e.g., leveling up) reflect instantly on the Canvas.
 - **The "Print Override":** To allow for pencil tracking during play, widgets have a "Print State":
-    - **Calculated:** Prints the current value (e.g., "Max HP: 45").
-    - **Blank/Underlined:** Prints an empty space or underline for manual tracking (e.g., "Current HP: _____").
+  - **Calculated:** Prints the current value (e.g., "Max HP: 45").
+  - **Blank/Underlined:** Prints an empty space or underline for manual tracking (e.g., "Current HP: **\_**").
 
 ### 11.4 Layout Templates & Export
 
 - **Templates:** Supports pre-designed global layouts and user-created presets.
 - **Exporting:** High-quality PDF generation or direct browser printing.
-
