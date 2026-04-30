@@ -42,7 +42,6 @@ Standard string inputs for character documentation. These do not affect mechanic
 - **Class Management:**
   - Supports multi-classing via an "Add Class" interface.
   - Each entry stores `Class Name` and `Class Level`.
-  - **System Check:** A non-blocking warning appears if the sum of Class Levels ≠ Character Level.
 
 ### 1.3 Selection Logic
 
@@ -410,6 +409,7 @@ The **Canvas** is the layout engine that transforms data from the Forge into a p
 ### 11.2 The Widget System
 
 Widgets are UI components linked to Data Forge fields.
+
 - **Initial Phase (Dedicated Widgets):** We will build specialized components for each Forge section (e.g., `StrWidget`, `SkillsWidget`, `HPWidget`). These are pre-styled and hard-linked to their respective data paths for rapid development.
 - **Future Improvement (Generic/Custom Widgets):** Users will eventually be able to create "Custom Widgets" by choosing a container (Box, Circle, List) and binding it to any data point in the Forge.
 - **Drag-and-Drop:** A palette of widgets categorized by Forge section for easy placement and resizing using **dnd-kit**.
@@ -443,9 +443,7 @@ The following structure represents the single JSON object stored in the database
     "alignment": "string",
     "deity": "string",
     "level": 1,
-    "classes": [
-      { "name": "string", "level": 1 }
-    ]
+    "classes": [{ "name": "string", "level": 1 }]
   },
   "attributes": {
     "str": { "base": 10, "stack": [], "override": null },
@@ -506,9 +504,7 @@ The following structure represents the single JSON object stored in the database
     "hp": {
       "max": 10,
       "misc": 0,
-      "hitDice": [
-        { "count": 1, "dieType": "d8", "class": "string" }
-      ]
+      "hitDice": [{ "count": 1, "dieType": "d8", "class": "string" }]
     }
   },
   "inventory": [
@@ -518,9 +514,7 @@ The following structure represents the single JSON object stored in the database
       "weight": 0.0,
       "category": "string",
       "equipped": false,
-      "modifiers": [
-        { "target": "string", "value": 0, "type": "Bonus|Set To" }
-      ]
+      "modifiers": [{ "target": "string", "value": 0, "type": "Bonus|Set To" }]
     }
   ],
   "actions": [
@@ -599,6 +593,7 @@ The following structure represents the single JSON object stored in the database
 ### Shared Objects Reference
 
 **The Modifier Stack Entry:**
+
 ```json
 {
   "id": "uuid",

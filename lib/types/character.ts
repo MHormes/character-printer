@@ -132,6 +132,7 @@ export type CharacterData = {
   };
   attributes: Record<AttributeKey, AttributeData>;
   saves: Record<AttributeKey, SaveData>;
+  saveGlobalStack: ModifierEntry[];
   skills: Record<string, SkillData>;
   otherProficiencies: OtherProficiency[];
   combat: CombatData;
