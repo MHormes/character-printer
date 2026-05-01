@@ -19,6 +19,9 @@ type CharacterStore = {
   setSkillState: (key: string, state: SkillState) => void;
   setSkillOverride: (key: string, override: number | null) => void;
   setClasses: (classes: CharacterData["identity"]["classes"]) => void;
+  setOtherProficiencies: (list: CharacterData["otherProficiencies"]) => void;
+  setGlobalSkillStack: (stack: CharacterData["skillGlobalStack"]) => void;
+  setJackOfAllTrades: (value: boolean) => void;
 };
 
 export const useCharacterStore = create<CharacterStore>()(
@@ -111,6 +114,27 @@ export const useCharacterStore = create<CharacterStore>()(
         if (!state.character) return;
         state.character.identity.classes = classes;
         state.character.identity.level = classes.reduce((sum, c) => sum + c.level, 0) || 1;
+        state.isDirty = true;
+      }),
+
+    setOtherProficiencies: (list) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.otherProficiencies = list;
+        state.isDirty = true;
+      }),
+
+    setGlobalSkillStack: (stack) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.skillGlobalStack = stack;
+        state.isDirty = true;
+      }),
+
+    setJackOfAllTrades: (value) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.jackOfAllTrades = value;
         state.isDirty = true;
       }),
   }))

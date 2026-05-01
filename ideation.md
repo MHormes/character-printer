@@ -100,18 +100,28 @@ Each Skill (e.g., Athletics, Stealth) contains:
 - **Manual Override (Nullable Integer):** A priority field for the final bonus (auto enables override toggle).
 - **Override Toggle (Boolean):** Flag to bypass automation.
 
+`CharacterData` also stores two skill-wide settings:
+
+- **Jack of All Trades (Boolean):** When enabled, adds `floor(Proficiency Bonus / 2)` to all skills in `None` state (Bard class feature). Does not affect `Proficient` or `Expertise` skills.
+- **Skill Global Modifier Stack (List of ModifierEntry):** A shared bonus applied to every skill's ghost value (e.g., a Ring of Skill). Works identically to the Saving Throw global stack in Section 2.
+
 ### 3.2 Calculation Logic
 
 The system displays a "Ghost Number" based on the following:
 
 1.  **Base:** The current **Resolved Attribute Modifier** from Section 2.
-2.  **Proficiency:** \* If `Proficient` → Add `Proficiency Bonus`.
+2.  **Proficiency:**
+    - If `Proficient` → Add `Proficiency Bonus`.
     - If `Expertise` → Add `Proficiency Bonus * 2`.
-3.  **Resolution:** If `Override Toggle` is TRUE, use the `Manual Override`; otherwise, use the calculated sum.
+    - If `None` and **Jack of All Trades** is enabled → Add `floor(Proficiency Bonus / 2)`.
+3.  **Global Modifier:** Add `Sum(Active Global Skill Modifiers)`.
+4.  **Resolution:** If `Override Toggle` is TRUE, use the `Manual Override`; otherwise, use the calculated sum.
 
 ### 3.3 User Interaction
 
 - **Simple Toggles:** Users manually select their proficiency level.
+- **Jack of All Trades Toggle:** Single button at the top of the Skills section to enable/disable the Bard feature globally.
+- **Global Modifier Stack:** Collapsable list of labeled bonuses beneath the skill list. Any active entry shifts every skill's ghost value.
 - **Initial Phase:** All toggles are manual based on the user's knowledge of their Class/Background.
 - **Future Improvement:** Auto-toggling based on Class/Background choices.
 - **Re-binding (Optional/Edge Case):** While skills are linked to default attributes, users wanting "Strength (Intimidation)" should use the **Manual Override** to set the correct total for that specific printout.

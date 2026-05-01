@@ -8,6 +8,7 @@ import { ClassesField } from "@/components/forge/classes-field"
 import { StatBlock } from "@/components/forge/stat-block"
 import { SaveBlock } from "@/components/forge/save-block"
 import { SkillsBlock } from "@/components/forge/skills-block"
+import { OtherProficienciesBlock } from "@/components/forge/other-proficiencies-block"
 import { ChevronDown, ChevronRight, CircleDot, Circle, X, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import type { AttributeKey, ModifierEntry } from "@/lib/types/character"
@@ -43,6 +44,9 @@ export default function ForgePage() {
   const setSkillState = useCharacterStore((s) => s.setSkillState)
   const setSkillOverride = useCharacterStore((s) => s.setSkillOverride)
   const setClasses = useCharacterStore((s) => s.setClasses)
+  const setOtherProficiencies = useCharacterStore((s) => s.setOtherProficiencies)
+  const setGlobalSkillStack = useCharacterStore((s) => s.setGlobalSkillStack)
+  const setJackOfAllTrades = useCharacterStore((s) => s.setJackOfAllTrades)
 
   useEffect(() => {
     setCharacter(createDefaultCharacter("stub"))
@@ -50,7 +54,7 @@ export default function ForgePage() {
 
   if (!character) return null
 
-  const { identity, attributes, saves, saveGlobalStack, skills } = character
+  const { identity, attributes, saves, saveGlobalStack, skills, skillGlobalStack, jackOfAllTrades, otherProficiencies } = character
   const pb = Math.ceil(identity.level / 4) + 1
 
   return (
@@ -180,8 +184,23 @@ export default function ForgePage() {
             skills={skills}
             attributes={attributes}
             proficiencyBonus={pb}
+            jackOfAllTrades={jackOfAllTrades}
+            globalStack={skillGlobalStack}
             onStateChange={setSkillState}
             onOverrideChange={setSkillOverride}
+            onJackOfAllTradesChange={setJackOfAllTrades}
+            onGlobalStackChange={setGlobalSkillStack}
+          />
+        </section>
+
+        {/* Other Proficiencies */}
+        <section className="min-w-0 max-w-1/4 flex-1 space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Other Proficiencies</h2>
+          <OtherProficienciesBlock
+            proficiencies={otherProficiencies}
+            attributes={attributes}
+            proficiencyBonus={pb}
+            onChange={setOtherProficiencies}
           />
         </section>
       </div>

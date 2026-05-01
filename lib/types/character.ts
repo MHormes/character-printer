@@ -134,6 +134,8 @@ export type CharacterData = {
   saves: Record<AttributeKey, SaveData>;
   saveGlobalStack: ModifierEntry[];
   skills: Record<string, SkillData>;
+  skillGlobalStack: ModifierEntry[];
+  jackOfAllTrades: boolean;
   otherProficiencies: OtherProficiency[];
   combat: CombatData;
   inventory: InventoryItem[];

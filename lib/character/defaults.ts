@@ -51,6 +51,8 @@ export function createDefaultCharacter(id: string): CharacterData {
     ) as CharacterData["saves"],
     skills: DEFAULT_SKILLS,
     saveGlobalStack: [],
+    skillGlobalStack: [],
+    jackOfAllTrades: false,
     otherProficiencies: [],
     combat: {
       ac: {
