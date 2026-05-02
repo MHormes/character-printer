@@ -5,7 +5,9 @@ import { IntegerField } from "@/components/forge/integer-field"
 import { Button } from "@/components/ui/button"
 import { X, Plus } from "lucide-react"
 
-type ClassEntry = { name: string; level: number }
+const HIT_DICE = ["d6", "d8", "d10", "d12"] as const
+
+type ClassEntry = { name: string; level: number; hitDie: string }
 
 type ClassesFieldProps = {
   classes: ClassEntry[]
@@ -15,7 +17,7 @@ type ClassesFieldProps = {
 
 export function ClassesField({ classes, onChange, proficiencyBonus }: ClassesFieldProps) {
   function add() {
-    onChange([...classes, { name: "", level: 1 }])
+    onChange([...classes, { name: "", level: 1, hitDie: "d8" }])
   }
 
   function remove(index: number) {
@@ -28,6 +30,10 @@ export function ClassesField({ classes, onChange, proficiencyBonus }: ClassesFie
 
   function updateLevel(index: number, level: number) {
     onChange(classes.map((c, i) => (i === index ? { ...c, level } : c)))
+  }
+
+  function updateHitDie(index: number, hitDie: string) {
+    onChange(classes.map((c, i) => (i === index ? { ...c, hitDie } : c)))
   }
 
   return (
@@ -45,6 +51,13 @@ export function ClassesField({ classes, onChange, proficiencyBonus }: ClassesFie
               placeholder="Class name"
             />
           </div>
+          <select
+            value={cls.hitDie ?? "d8"}
+            onChange={(e) => updateHitDie(i, e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:border-ring"
+          >
+            {HIT_DICE.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
           <IntegerField
             label=""
             value={cls.level}

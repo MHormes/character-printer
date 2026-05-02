@@ -41,7 +41,9 @@ Standard string inputs for character documentation. These do not affect mechanic
 - **Character Level (Integer):** Automatically calculates **Proficiency Bonus**: `2 + floor((Level - 1) / 4)`.
 - **Class Management:**
   - Supports multi-classing via an "Add Class" interface.
-  - Each entry stores `Class Name` and `Class Level`.
+  - Each entry stores `Class Name`, `Class Level`, and `Hit Die` (d6 / d8 / d10 / d12 select, defaults to d8).
+  - Hit Die is informational in the Classes section but drives the Max HP formula in Section 5.
+  - **Future Improvement:** Hit Die auto-filled when selecting a Class from the compendium.
 
 ### 1.3 Selection Logic
 
@@ -97,6 +99,7 @@ Each Skill (e.g., Athletics, Stealth) contains:
 
 - **State (Enum):** `None`, `Proficient`, or `Expertise`.
 - **Attribute Link:** A hard link to the standard Core Attribute (e.g., Perception -> Wis).
+- **Modifier Stack (List of ModifierEntry):** System-managed bonuses pushed by equipped inventory items (e.g., Boots of Elvenkind → Stealth +5). These entries are read-only in the UI; they cannot be deleted or edited directly — only by modifying the source item in the inventory.
 - **Manual Override (Nullable Integer):** A priority field for the final bonus (auto enables override toggle).
 - **Override Toggle (Boolean):** Flag to bypass automation.
 
@@ -164,18 +167,18 @@ This section calculates the core survival and reactive statistics. It relies on 
 
 ### 5.1 Armor Class (AC) Logic
 
-AC is the most complex calculation, requiring three distinct modes to handle various armor types and class features:
+AC uses two modes plus a shared modifier stack and ghost total:
 
 - **Mode A: Standard (Automatic):**
-  - Formula: `10 + Dex Modifier`.
+  - Base formula: `10 + Dex Modifier`.
 - **Mode B: Formula Builder (Custom):**
   - Allows the user to define: `Base Value (Int)` + `Stat A (Nullable)` + `Stat B (Nullable)`.
   - _Example (Unarmored Defense):_ `10 + Dex + Con`.
   - _Example (Plate Armor):_ `18 + null + null`.
-- **Mode C: Manual Override:**
-  - A single integer field that bypasses all formulas.
-- **Initial Phase:** User manually selects and configures the Mode.
-- **Future Improvement:** Equipped armor from Section 6 will automatically trigger Mode selection.
+- **Modifier Stack (both modes):** A labeled bonus stack identical to Core Attributes — used for shields, magic items, spells, etc. (e.g., "Shield: +2", "Ring of Protection: +1"). Future improvement: automatically seeded by equipped items from Section 6.
+- **Ghost Total:** Calculated as `base formula + Sum(Active Modifiers)`. Typing a value into the total field enables a **Manual Override** (same pattern as other sections). A reset button reverts to the calculated total.
+- **Initial Phase:** User manually selects Mode and populates the modifier stack.
+- **Future Improvement:** Equipped armor from Section 6 will automatically populate the modifier stack.
 
 ### 5.2 Initiative & Speed
 
@@ -191,11 +194,17 @@ AC is the most complex calculation, requiring three distinct modes to handle var
 ### 5.3 Health Points (HP)
 
 - **Max HP:**
-  - **Formula:** `(Class Hit Die + Con) + ((Level - 1) * (Avg Die Roll + Con))`.
-  - **Initial Phase:** Users can use this formula manually or simply use the "Misc HP" field to account for manual rolls or feats like "Tough".
-  - **Future Improvement:** Full automation based on Class and Level.
+  - Displayed as a ghost value calculated from the class list (Section 1.2). Typing a value into the field enables a **Manual Override**; a reset button reverts to the formula.
+  - **Single-class formula:** `(HitDie + Con) + ((Level - 1) × (floor(HitDie / 2) + 1 + Con))`
+    - Level 1 always grants maximum die roll.
+    - `avg(HitDie) = floor(die / 2) + 1` (e.g. d8 → 5, d10 → 6).
+  - **Multiclass formula:** The "level 1 max roll" applies only to level 1 of the **first** class added. Every subsequent level of that class and all levels of additional classes use the average roll:
+    - First class: `(HitDie + Con) + ((classLevel - 1) × (avg + Con))`
+    - Each additional class: `classLevel × (avg + Con)`
+  - **Modifier Stack:** Added on top of the formula total. Each entry has a source label, value, and active toggle (e.g. "Tough feat: +10", "Draconic Resilience: +5"). Same pattern as AC/Initiative/Speed stacks.
+  - **Future Improvement:** Support for rolled HP per level instead of fixed average.
 - **Hit Dice:**
-  - Tracks total quantity and die type (e.g., 3d8) based on Class and Level. Supports multiclassing (e.g. 2d8 - cleric, 1d8 bard).
+  - Read-only, auto-derived from the class list. Displays `<level><hitDie> (Class Name)` per class (e.g. `5d10 (Fighter)`). No manual entry needed.
 
 ### 5.4 User Interaction
 
@@ -224,11 +233,14 @@ Each item entry consists of the following data points:
 
 ### 6.2 The "Broadcast" Logic
 
-This is the core integration between the Inventory and the rest of the Data Forge:
+This is the core integration between the Inventory and the rest of the Data Forge. Implemented via `lib/character/modifier-sync.ts`, which runs every time inventory changes.
 
-- **Active Bonus:** When an item's `Equipped State` is TRUE, its `Modifier Stack` is pushed to the corresponding section's stack (e.g., an "Amulet of Health" pushes a `Set To: 19` or a `Bonus: +2` to the Con Attribute stack).
-- **Severing the Link:** If an item is deleted or unequipped, the corresponding entry in the Attribute/Combat stack is removed or set to `Is_Active: False`.
-- **Conflict Resolution:** If multiple items affect the same field (e.g., two different sets of Armor), the user manages this by toggling the `Equipped State`.
+- **System-Managed Entries:** Each `ModifierEntry` carries an optional `itemId` field. When set, the entry was created automatically by an inventory item and is read-only in all stack UIs (shown with a lock icon, no delete button, no edit fields).
+- **Active Bonus:** When an item's `Equipped State` is TRUE, a `ModifierEntry` with `isActive: true` is injected into the target stack (e.g., a Ring of Protection pushes `+1` to `combat.ac.stack`).
+- **Unequip:** Setting `Equipped State` to FALSE keeps the entry in the stack but sets `isActive: false`, so the bonus is suspended without losing the configuration.
+- **Delete:** Removing an item purges all its `ModifierEntry` objects from every stack they were injected into.
+- **Rebuild Strategy:** On every inventory change the sync function clears all `itemId` entries across all stacks and re-injects from the current inventory state. This is idempotent and correct regardless of what changed.
+- **Conflict Resolution:** If multiple items affect the same field (e.g., two different sets of Armor), the user manages this by toggling `Equipped State`.
 
 ### 6.3 Automation vs. Manual
 
@@ -472,24 +484,24 @@ The following structure represents the single JSON object stored in the database
     "cha": { "proficient": false, "stack": [], "override": null }
   },
   "skills": {
-    "athletics": { "state": "None|Proficient|Expertise", "override": null },
-    "acrobatics": { "state": "None", "override": null },
-    "slight_of_hand": { "state": "None", "override": null },
-    "stealth": { "state": "None", "override": null },
-    "arcana": { "state": "None", "override": null },
-    "history": { "state": "None", "override": null },
-    "investigation": { "state": "None", "override": null },
-    "nature": { "state": "None", "override": null },
-    "religion": { "state": "None", "override": null },
-    "animal_handling": { "state": "None", "override": null },
-    "insight": { "state": "None", "override": null },
-    "medicine": { "state": "None", "override": null },
-    "perception": { "state": "None", "override": null },
-    "survival": { "state": "None", "override": null },
-    "deception": { "state": "None", "override": null },
-    "intimidation": { "state": "None", "override": null },
-    "performance": { "state": "None", "override": null },
-    "persuasion": { "state": "None", "override": null }
+    "athletics": { "state": "None|Proficient|Expertise", "stack": [], "override": null },
+    "acrobatics": { "state": "None", "stack": [], "override": null },
+    "sleightOfHand": { "state": "None", "stack": [], "override": null },
+    "stealth": { "state": "None", "stack": [], "override": null },
+    "arcana": { "state": "None", "stack": [], "override": null },
+    "history": { "state": "None", "stack": [], "override": null },
+    "investigation": { "state": "None", "stack": [], "override": null },
+    "nature": { "state": "None", "stack": [], "override": null },
+    "religion": { "state": "None", "stack": [], "override": null },
+    "animalHandling": { "state": "None", "stack": [], "override": null },
+    "insight": { "state": "None", "stack": [], "override": null },
+    "medicine": { "state": "None", "stack": [], "override": null },
+    "perception": { "state": "None", "stack": [], "override": null },
+    "survival": { "state": "None", "stack": [], "override": null },
+    "deception": { "state": "None", "stack": [], "override": null },
+    "intimidation": { "state": "None", "stack": [], "override": null },
+    "performance": { "state": "None", "stack": [], "override": null },
+    "persuasion": { "state": "None", "stack": [], "override": null }
   },
   "other_proficiencies": [
     {
@@ -513,8 +525,7 @@ The following structure represents the single JSON object stored in the database
     "speed": { "base": 30, "stack": [], "override": null },
     "hp": {
       "max": 10,
-      "misc": 0,
-      "hitDice": [{ "count": 1, "dieType": "d8", "class": "string" }]
+      "stack": [{ "id": "uuid", "source": "string", "value": 0, "isActive": true }]
     }
   },
   "inventory": [
@@ -524,7 +535,7 @@ The following structure represents the single JSON object stored in the database
       "weight": 0.0,
       "category": "string",
       "equipped": false,
-      "modifiers": [{ "target": "string", "value": 0, "type": "Bonus|Set To" }]
+      "modifiers": [{ "id": "uuid", "target": "ModifierTarget", "value": 0, "type": "Bonus|Set To" }]
     }
   ],
   "actions": [
@@ -609,6 +620,9 @@ The following structure represents the single JSON object stored in the database
   "id": "uuid",
   "source": "string",
   "value": number,
-  "isActive": boolean
+  "isActive": boolean,
+  "itemId": "uuid | undefined"
 }
 ```
+
+`itemId` is set only for entries injected by the inventory broadcast system. These entries are read-only in the UI and are removed/recreated automatically when inventory changes.

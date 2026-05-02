@@ -58,8 +58,7 @@ All character state is a single JSON blob. Example:
     },
     "hp": {
       "max": 52,
-      "misc": 0,
-      "hitDice": [{ "count": 5, "dieType": "d10", "class": "Fighter" }]
+      "stack": [{ "id": "uuid", "source": "Tough feat", "value": 10, "isActive": true }]
     }
   },
   "canvas": {

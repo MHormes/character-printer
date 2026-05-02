@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { RotateCcw, Circle, CircleDot, CheckCircle2, ChevronDown, ChevronRight, X, Plus } from "lucide-react"
+import { RotateCcw, Circle, CircleDot, CheckCircle2, ChevronDown, ChevronRight, X, Plus, Lock } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { AttributeKey, AttributeData, SkillData, SkillState, ModifierEntry } from "@/lib/types/character"
@@ -69,8 +69,9 @@ export function SkillsBlock({
   const globalSum = globalStack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
   const joatBonus = Math.floor(proficiencyBonus / 2)
 
-  function calculated(attr: AttributeKey, state: SkillState): number {
-    const base = attrMod(attr) + stateBonus(state, proficiencyBonus) + globalSum
+  function calculated(key: string, attr: AttributeKey, state: SkillState): number {
+    const skillStackSum = (skills[key]?.stack ?? []).filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
+    const base = attrMod(attr) + stateBonus(state, proficiencyBonus) + globalSum + skillStackSum
     if (jackOfAllTrades && state === "None") return base + joatBonus
     return base
   }
@@ -84,6 +85,8 @@ export function SkillsBlock({
 
   function handleOverrideChange(key: string, raw: string) {
     if (raw === "") { onOverrideChange(key, null); return }
+    if (raw === "-") return
+    if (!/^-?\d+$/.test(raw)) return
     const n = parseInt(raw, 10)
     if (!isNaN(n)) onOverrideChange(key, n)
   }
@@ -122,7 +125,7 @@ export function SkillsBlock({
       {SKILLS.map(({ key, meta }) => {
         const skill = skills[key]
         if (!skill) return null
-        const calc = calculated(meta.attr, skill.state)
+        const calc = calculated(key, meta.attr, skill.state)
         const isOverridden = skill.override !== null
 
         return (
@@ -151,7 +154,8 @@ export function SkillsBlock({
 
             <div className="relative w-12 shrink-0">
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={isOverridden ? skill.override! : ""}
                 placeholder={calc.toString()}
                 onChange={(e) => handleOverrideChange(key, e.target.value)}
@@ -196,53 +200,64 @@ export function SkillsBlock({
 
         {globalExpanded && (
           <div className="flex flex-col gap-1.5">
-            {globalStack.map((mod) => (
-              <div key={mod.id} className={cn("flex items-start gap-1", !mod.isActive && "opacity-40")}>
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <Input
-                    type="text"
-                    value={mod.source}
-                    placeholder="Source"
-                    className="h-6 text-xs"
-                    onChange={(e) => updateGlobalMod(mod.id, { source: e.target.value })}
-                  />
-                  <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                    <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
-                    <input
+            {globalStack.map((mod) =>
+              mod.sourceId ? (
+                <div key={mod.id} className={cn("flex items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5", !mod.isActive && "opacity-40")}>
+                  <Lock className="size-2.5 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{mod.source}</span>
+                  <span className="shrink-0 tabular-nums text-xs text-foreground">
+                    {mod.value >= 0 ? `+${mod.value}` : mod.value}
+                  </span>
+                  {mod.isActive ? <CircleDot className="size-2.5 shrink-0 text-muted-foreground" /> : <Circle className="size-2.5 shrink-0 text-muted-foreground" />}
+                </div>
+              ) : (
+                <div key={mod.id} className={cn("flex items-start gap-1", !mod.isActive && "opacity-40")}>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <Input
                       type="text"
-                      inputMode="numeric"
-                      value={mod.value === 0 ? "" : String(mod.value)}
-                      placeholder="0"
-                      onChange={(e) => {
-                        const raw = e.target.value
-                        if (raw === "") { updateGlobalMod(mod.id, { value: 0 }); return }
-                        if (raw === "-") return
-                        const n = parseInt(raw, 10)
-                        if (!isNaN(n)) updateGlobalMod(mod.id, { value: n })
-                      }}
-                      onBlur={(e) => { if (e.target.value === "-") updateGlobalMod(mod.id, { value: 0 }) }}
-                      className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                      value={mod.source}
+                      placeholder="Source"
+                      className="h-6 text-xs"
+                      onChange={(e) => updateGlobalMod(mod.id, { source: e.target.value })}
                     />
+                    <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
+                      <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={mod.value === 0 ? "" : String(mod.value)}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          if (raw === "") { updateGlobalMod(mod.id, { value: 0 }); return }
+                          if (raw === "-") return
+                          const n = parseInt(raw, 10)
+                          if (!isNaN(n)) updateGlobalMod(mod.id, { value: n })
+                        }}
+                        onBlur={(e) => { if (e.target.value === "-") updateGlobalMod(mod.id, { value: 0 }) }}
+                        className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-0.5 flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => removeGlobalMod(mod.id)}
+                      className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <X className="size-2.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateGlobalMod(mod.id, { isActive: !mod.isActive })}
+                      className="flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {mod.isActive ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
+                    </button>
                   </div>
                 </div>
-                <div className="mt-0.5 flex flex-col gap-0.5">
-                  <button
-                    type="button"
-                    onClick={() => removeGlobalMod(mod.id)}
-                    className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <X className="size-2.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateGlobalMod(mod.id, { isActive: !mod.isActive })}
-                    className="flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {mod.isActive ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
-                  </button>
-                </div>
-              </div>
-            ))}
+              )
+            )}
             <button
               type="button"
               onClick={addGlobalMod}

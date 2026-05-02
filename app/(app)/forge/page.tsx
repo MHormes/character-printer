@@ -9,9 +9,12 @@ import { StatBlock } from "@/components/forge/stat-block"
 import { SaveBlock } from "@/components/forge/save-block"
 import { SkillsBlock } from "@/components/forge/skills-block"
 import { OtherProficienciesBlock } from "@/components/forge/other-proficiencies-block"
-import { ChevronDown, ChevronRight, CircleDot, Circle, X, Plus } from "lucide-react"
+import { CombatBlock } from "@/components/forge/combat-block"
+import { InventoryBlock } from "@/components/forge/inventory-block"
+import { ActionsBlock } from "@/components/forge/actions-block"
+import { ChevronDown, ChevronRight, CircleDot, Circle, X, Plus, Lock } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import type { AttributeKey, ModifierEntry } from "@/lib/types/character"
+import type { AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
 
 const ATTRIBUTE_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
 const ATTRIBUTE_LABELS: Record<AttributeKey, string> = {
@@ -22,7 +25,7 @@ const SAVE_LABELS: Record<AttributeKey, string> = {
   str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
 }
 
-function resolvedAttrMod(attr: ReturnType<typeof useCharacterStore.getState>["character"] extends null ? never : ReturnType<typeof useCharacterStore.getState>["character"]["attributes"][AttributeKey], ) {
+function resolvedAttrMod(attr: AttributeData) {
   const sum = attr.stack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
   const total = attr.override ?? (attr.base + sum)
   return Math.floor((total - 10) / 2)
@@ -47,6 +50,13 @@ export default function ForgePage() {
   const setOtherProficiencies = useCharacterStore((s) => s.setOtherProficiencies)
   const setGlobalSkillStack = useCharacterStore((s) => s.setGlobalSkillStack)
   const setJackOfAllTrades = useCharacterStore((s) => s.setJackOfAllTrades)
+  const setAc = useCharacterStore((s) => s.setAc)
+  const setInitiative = useCharacterStore((s) => s.setInitiative)
+  const setSpeed = useCharacterStore((s) => s.setSpeed)
+  const setHp = useCharacterStore((s) => s.setHp)
+  const setInventory = useCharacterStore((s) => s.setInventory)
+  const setActions = useCharacterStore((s) => s.setActions)
+  const setSpellCastingStat = useCharacterStore((s) => s.setSpellCastingStat)
 
   useEffect(() => {
     setCharacter(createDefaultCharacter("stub"))
@@ -54,7 +64,7 @@ export default function ForgePage() {
 
   if (!character) return null
 
-  const { identity, attributes, saves, saveGlobalStack, skills, skillGlobalStack, jackOfAllTrades, otherProficiencies } = character
+  const { identity, attributes, saves, saveGlobalStack, skills, skillGlobalStack, jackOfAllTrades, otherProficiencies, combat, inventory, actions, spells } = character
   const pb = Math.ceil(identity.level / 4) + 1
 
   return (
@@ -134,38 +144,49 @@ export default function ForgePage() {
             </button>
             {globalSaveExpanded && (
               <div className="flex flex-col gap-1.5">
-                {saveGlobalStack.map((mod) => (
-                  <div key={mod.id} className="flex items-start gap-1">
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <Input type="text" value={mod.source} placeholder="Source" className="h-6 text-xs"
-                        onChange={(e) => setGlobalSaveStack(saveGlobalStack.map(m => m.id === mod.id ? { ...m, source: e.target.value } : m))} />
-                      <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                        <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
-                        <input type="text" inputMode="numeric"
-                          value={mod.value === 0 ? "" : String(mod.value)} placeholder="0"
-                          onChange={(e) => {
-                            const raw = e.target.value
-                            if (raw === "") { setGlobalSaveStack(saveGlobalStack.map(m => m.id === mod.id ? { ...m, value: 0 } : m)); return }
-                            if (raw === "-") return
-                            const n = parseInt(raw, 10)
-                            if (!isNaN(n)) setGlobalSaveStack(saveGlobalStack.map(m => m.id === mod.id ? { ...m, value: n } : m))
-                          }}
-                          className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
-                        />
+                {saveGlobalStack.map((mod) =>
+                  mod.sourceId ? (
+                    <div key={mod.id} className={`flex items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5${!mod.isActive ? " opacity-40" : ""}`}>
+                      <Lock className="size-2.5 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{mod.source}</span>
+                      <span className="shrink-0 tabular-nums text-xs text-foreground">
+                        {mod.value >= 0 ? `+${mod.value}` : mod.value}
+                      </span>
+                      {mod.isActive ? <CircleDot className="size-2.5 shrink-0 text-muted-foreground" /> : <Circle className="size-2.5 shrink-0 text-muted-foreground" />}
+                    </div>
+                  ) : (
+                    <div key={mod.id} className="flex items-start gap-1">
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <Input type="text" value={mod.source} placeholder="Source" className="h-6 text-xs"
+                          onChange={(e) => setGlobalSaveStack(saveGlobalStack.map(m => m.id === mod.id ? { ...m, source: e.target.value } : m))} />
+                        <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
+                          <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
+                          <input type="text" inputMode="numeric"
+                            value={mod.value === 0 ? "" : String(mod.value)} placeholder="0"
+                            onChange={(e) => {
+                              const raw = e.target.value
+                              if (raw === "") { setGlobalSaveStack(saveGlobalStack.map(m => m.id === mod.id ? { ...m, value: 0 } : m)); return }
+                              if (raw === "-") return
+                              const n = parseInt(raw, 10)
+                              if (!isNaN(n)) setGlobalSaveStack(saveGlobalStack.map(m => m.id === mod.id ? { ...m, value: n } : m))
+                            }}
+                            className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-0.5 flex flex-col gap-0.5">
+                        <button type="button" onClick={() => setGlobalSaveStack(saveGlobalStack.filter(m => m.id !== mod.id))}
+                          className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
+                          <X className="size-2.5" />
+                        </button>
+                        <button type="button" onClick={() => setGlobalSaveStack(saveGlobalStack.map(m => m.id === mod.id ? { ...m, isActive: !m.isActive } : m))}
+                          className="flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
+                          {mod.isActive ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
+                        </button>
                       </div>
                     </div>
-                    <div className="mt-0.5 flex flex-col gap-0.5">
-                      <button type="button" onClick={() => setGlobalSaveStack(saveGlobalStack.filter(m => m.id !== mod.id))}
-                        className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
-                        <X className="size-2.5" />
-                      </button>
-                      <button type="button" onClick={() => setGlobalSaveStack(saveGlobalStack.map(m => m.id === mod.id ? { ...m, isActive: !m.isActive } : m))}
-                        className="flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
-                        {mod.isActive ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                )}
                 <button type="button"
                   onClick={() => setGlobalSaveStack([...saveGlobalStack, { id: crypto.randomUUID(), source: "", value: 0, isActive: true }])}
                   className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
@@ -194,7 +215,7 @@ export default function ForgePage() {
         </section>
 
         {/* Other Proficiencies */}
-        <section className="min-w-0 max-w-1/4 flex-1 space-y-3">
+        <section className="min-w-0 w-56 space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Other Proficiencies</h2>
           <OtherProficienciesBlock
             proficiencies={otherProficiencies}
@@ -203,7 +224,40 @@ export default function ForgePage() {
             onChange={setOtherProficiencies}
           />
         </section>
+
+        {/* Combat */}
+        <section className="min-w-0 flex-1 space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Combat</h2>
+          <CombatBlock
+            data={combat}
+            attributes={attributes}
+            classes={identity.classes}
+            proficiencyBonus={pb}
+            jackOfAllTrades={jackOfAllTrades}
+            onAcChange={setAc}
+            onInitiativeChange={setInitiative}
+            onSpeedChange={setSpeed}
+            onHpChange={setHp}
+          />
+        </section>
       </div>
+
+      <section className="space-y-4 max-w-1/4">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Inventory</h2>
+        <InventoryBlock inventory={inventory} onChange={setInventory} />
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Attacks & Actions</h2>
+        <ActionsBlock
+          actions={actions}
+          castingStat={spells.globalCastingStat}
+          attributes={attributes}
+          proficiencyBonus={pb}
+          onChange={setActions}
+          onCastingStatChange={setSpellCastingStat}
+        />
+      </section>
     </main>
   )
 }

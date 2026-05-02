@@ -76,6 +76,8 @@ export function OtherProficienciesBlock({
 
   function handleOverrideChange(id: string, raw: string) {
     if (raw === "") { update(id, { override: null }); return }
+    if (raw === "-") return
+    if (!/^-?\d+$/.test(raw)) return
     const n = parseInt(raw, 10)
     if (!isNaN(n)) update(id, { override: n })
   }
@@ -92,92 +94,89 @@ export function OtherProficienciesBlock({
         const isOverridden = prof.override !== null
 
         return (
-          <div key={prof.id} className="flex items-center gap-2 rounded-lg border border-border bg-card p-2">
-            {/* Training toggle — only for roll categories */}
-            {roll ? (
+          <div key={prof.id} className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-2">
+            {/* Row 1: name + delete */}
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="text"
+                value={prof.name}
+                placeholder="Name"
+                onChange={(e) => update(prof.id, { name: e.target.value })}
+                className="h-7 min-w-0 flex-1 text-xs"
+              />
               <button
                 type="button"
-                aria-label={`Training: ${prof.training}`}
-                onClick={() => toggleTraining(prof)}
-                className="flex size-5 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                onClick={() => remove(prof.id)}
+                className="flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
               >
-                {prof.training === "Proficient"
-                  ? <CircleDot className="size-3.5" />
-                  : <CheckCircle2 className="size-3.5" />}
+                <X className="size-3" />
               </button>
-            ) : (
-              <div className="size-5 shrink-0" />
-            )}
+            </div>
 
-            {/* Name */}
-            <Input
-              type="text"
-              value={prof.name}
-              placeholder="Name"
-              onChange={(e) => update(prof.id, { name: e.target.value })}
-              className="h-7 min-w-0 flex-1 text-xs"
-            />
+            {/* Row 2: category + training toggle + stat + modifier */}
+            <div className="flex items-center gap-1.5">
+              <select
+                value={prof.category}
+                onChange={(e) => handleCategoryChange(prof, e.target.value as OtherProficiency["category"])}
+                className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+              >
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
 
-            {/* Category */}
-            <select
-              value={prof.category}
-              onChange={(e) => handleCategoryChange(prof, e.target.value as OtherProficiency["category"])}
-              className="h-7 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
-            >
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+              {roll ? (
+                <>
+                  <button
+                    type="button"
+                    aria-label={`Training: ${prof.training}`}
+                    onClick={() => toggleTraining(prof)}
+                    className="flex size-5 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {prof.training === "Proficient"
+                      ? <CircleDot className="size-3.5" />
+                      : <CheckCircle2 className="size-3.5" />}
+                  </button>
 
-            {/* Stat + modifier — roll categories only */}
-            {roll && (
-              <>
-                <select
-                  value={prof.stat ?? ""}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    update(prof.id, { stat: val === "" ? null : val as AttributeKey })
-                  }}
-                  className="h-7 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
-                >
-                  <option value="">—</option>
-                  {ATTR_KEYS.map((k) => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
-                </select>
+                  <select
+                    value={prof.stat ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      update(prof.id, { stat: val === "" ? null : val as AttributeKey })
+                    }}
+                    className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+                  >
+                    <option value="">—</option>
+                    {ATTR_KEYS.map((k) => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
+                  </select>
 
-                <div className="relative w-12 shrink-0">
-                  <input
-                    type="number"
-                    value={isOverridden ? prof.override! : ""}
-                    placeholder={calc >= 0 ? `+${calc}` : String(calc)}
-                    onChange={(e) => handleOverrideChange(prof.id, e.target.value)}
-                    className={cn(
-                      "h-7 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                      "placeholder:text-foreground/30",
-                      "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
-                      "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-                      isOverridden && "pr-4",
+                  <div className="relative w-10 shrink-0">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={isOverridden ? prof.override! : ""}
+                      placeholder={calc >= 0 ? `+${calc}` : String(calc)}
+                      onChange={(e) => handleOverrideChange(prof.id, e.target.value)}
+                      className={cn(
+                        "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
+                        "placeholder:text-foreground/30",
+                        "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
+                        "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                        isOverridden && "pr-4",
+                      )}
+                    />
+                    {isOverridden && (
+                      <button
+                        type="button"
+                        aria-label="Reset"
+                        onClick={() => update(prof.id, { override: null })}
+                        className="absolute right-0.5 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <RotateCcw className="size-2.5" />
+                      </button>
                     )}
-                  />
-                  {isOverridden && (
-                    <button
-                      type="button"
-                      aria-label="Reset"
-                      onClick={() => update(prof.id, { override: null })}
-                      className="absolute right-0.5 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      <RotateCcw className="size-2.5" />
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Delete */}
-            <button
-              type="button"
-              onClick={() => remove(prof.id)}
-              className="flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="size-3" />
-            </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
           </div>
         )
       })}

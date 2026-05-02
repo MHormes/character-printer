@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { CharacterData, AttributeKey, SkillState } from "@/lib/types/character";
+import { syncInventoryToStacks } from "@/lib/character/modifier-sync";
 
 type CharacterStore = {
   character: CharacterData | null;
@@ -22,6 +23,13 @@ type CharacterStore = {
   setOtherProficiencies: (list: CharacterData["otherProficiencies"]) => void;
   setGlobalSkillStack: (stack: CharacterData["skillGlobalStack"]) => void;
   setJackOfAllTrades: (value: boolean) => void;
+  setAc: (ac: CharacterData["combat"]["ac"]) => void;
+  setInitiative: (initiative: CharacterData["combat"]["initiative"]) => void;
+  setSpeed: (speed: CharacterData["combat"]["speed"]) => void;
+  setHp: (hp: CharacterData["combat"]["hp"]) => void;
+  setInventory: (list: CharacterData["inventory"]) => void;
+  setActions: (list: CharacterData["actions"]) => void;
+  setSpellCastingStat: (stat: AttributeKey | null) => void;
 };
 
 export const useCharacterStore = create<CharacterStore>()(
@@ -135,6 +143,56 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.jackOfAllTrades = value;
+        state.isDirty = true;
+      }),
+
+    setAc: (ac) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.combat.ac = ac;
+        state.isDirty = true;
+      }),
+
+    setInitiative: (initiative) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.combat.initiative = initiative;
+        state.isDirty = true;
+      }),
+
+    setSpeed: (speed) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.combat.speed = speed;
+        state.isDirty = true;
+      }),
+
+    setHp: (hp) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.combat.hp = hp;
+        state.isDirty = true;
+      }),
+
+    setInventory: (list) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.inventory = list;
+        syncInventoryToStacks(state.character as unknown as CharacterData, list);
+        state.isDirty = true;
+      }),
+
+    setActions: (list) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.actions = list;
+        state.isDirty = true;
+      }),
+
+    setSpellCastingStat: (stat) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.spells.globalCastingStat = stat;
         state.isDirty = true;
       }),
   }))

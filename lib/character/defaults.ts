@@ -1,26 +1,26 @@
-import type { CharacterData, AttributeKey } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, AttributeData, SaveData } from "@/lib/types/character"
 
 const ATTRIBUTE_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
 
-const DEFAULT_SKILLS: Record<string, { state: "None"; override: null }> = {
-  acrobatics:     { state: "None", override: null },
-  animalHandling: { state: "None", override: null },
-  arcana:         { state: "None", override: null },
-  athletics:      { state: "None", override: null },
-  deception:      { state: "None", override: null },
-  history:        { state: "None", override: null },
-  insight:        { state: "None", override: null },
-  intimidation:   { state: "None", override: null },
-  investigation:  { state: "None", override: null },
-  medicine:       { state: "None", override: null },
-  nature:         { state: "None", override: null },
-  perception:     { state: "None", override: null },
-  performance:    { state: "None", override: null },
-  persuasion:     { state: "None", override: null },
-  religion:       { state: "None", override: null },
-  sleightOfHand:  { state: "None", override: null },
-  stealth:        { state: "None", override: null },
-  survival:       { state: "None", override: null },
+const DEFAULT_SKILLS: Record<string, { state: "None"; stack: []; override: null }> = {
+  acrobatics:     { state: "None", stack: [], override: null },
+  animalHandling: { state: "None", stack: [], override: null },
+  arcana:         { state: "None", stack: [], override: null },
+  athletics:      { state: "None", stack: [], override: null },
+  deception:      { state: "None", stack: [], override: null },
+  history:        { state: "None", stack: [], override: null },
+  insight:        { state: "None", stack: [], override: null },
+  intimidation:   { state: "None", stack: [], override: null },
+  investigation:  { state: "None", stack: [], override: null },
+  medicine:       { state: "None", stack: [], override: null },
+  nature:         { state: "None", stack: [], override: null },
+  perception:     { state: "None", stack: [], override: null },
+  performance:    { state: "None", stack: [], override: null },
+  persuasion:     { state: "None", stack: [], override: null },
+  religion:       { state: "None", stack: [], override: null },
+  sleightOfHand:  { state: "None", stack: [], override: null },
+  stealth:        { state: "None", stack: [], override: null },
+  survival:       { state: "None", stack: [], override: null },
 }
 
 const SPELL_SLOTS = Object.fromEntries(
@@ -33,6 +33,7 @@ const SPELL_SLOTS = Object.fromEntries(
 export function createDefaultCharacter(id: string): CharacterData {
   return {
     version: "1.0.0",
+    profBonusStack: [],
     identity: {
       name: "",
       race: "",
@@ -41,13 +42,13 @@ export function createDefaultCharacter(id: string): CharacterData {
       alignment: "",
       deity: "",
       level: 1,
-      classes: [],
+      classes: [{ name: "", level: 1, hitDie: "d8" }],
     },
     attributes: Object.fromEntries(
-      ATTRIBUTE_KEYS.map((k) => [k, { base: 10, stack: [], override: null }])
+      ATTRIBUTE_KEYS.map((k): [AttributeKey, AttributeData] => [k, { base: 10, stack: [], override: null }])
     ) as CharacterData["attributes"],
     saves: Object.fromEntries(
-      ATTRIBUTE_KEYS.map((k) => [k, { proficient: false, stack: [], override: null }])
+      ATTRIBUTE_KEYS.map((k): [AttributeKey, SaveData] => [k, { proficient: false, stack: [], override: null }])
     ) as CharacterData["saves"],
     skills: DEFAULT_SKILLS,
     saveGlobalStack: [],
@@ -60,14 +61,14 @@ export function createDefaultCharacter(id: string): CharacterData {
         base: 10,
         statA: null,
         statB: null,
+        stack: [],
         override: null,
       },
       initiative: { stack: [], override: null },
       speed: { base: 30, stack: [], override: null },
       hp: {
-        max: 0,
-        misc: 0,
-        hitDice: [],
+        max: null,
+        stack: [],
       },
     },
     inventory: [],
@@ -76,6 +77,8 @@ export function createDefaultCharacter(id: string): CharacterData {
     trackers: [],
     spells: {
       globalCastingStat: null,
+      attackStack: [],
+      dcStack: [],
       slots: SPELL_SLOTS,
       list: [],
     },

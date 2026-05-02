@@ -5,6 +5,7 @@ export type ModifierEntry = {
   source: string;
   value: number;
   isActive: boolean;
+  sourceId?: string; // namespaced: "item:<uuid>", "race:<id>", "class:<id>", etc. — set means system-managed, read-only in UI
 };
 
 export type AttributeKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
@@ -25,6 +26,7 @@ export type SkillState = "None" | "Proficient" | "Expertise";
 
 export type SkillData = {
   state: SkillState;
+  stack: ModifierEntry[];
   override: number | null;
 };
 
@@ -37,7 +39,7 @@ export type OtherProficiency = {
   override: number | null;
 };
 
-export type AcMode = "Standard" | "Formula" | "Override";
+export type AcMode = "Standard" | "Formula";
 
 export type CombatData = {
   ac: {
@@ -45,16 +47,30 @@ export type CombatData = {
     base: number;
     statA: AttributeKey | null;
     statB: AttributeKey | null;
+    stack: ModifierEntry[];
     override: number | null;
   };
   initiative: { stack: ModifierEntry[]; override: number | null };
   speed: { base: number; stack: ModifierEntry[]; override: number | null };
   hp: {
-    max: number;
-    misc: number;
-    hitDice: { count: number; dieType: string; class: string }[];
+    max: number | null;
+    stack: ModifierEntry[];
   };
 };
+
+export type ModifierTarget =
+  | "attr.str" | "attr.dex" | "attr.con" | "attr.int" | "attr.wis" | "attr.cha"
+  | "save.str" | "save.dex" | "save.con" | "save.int" | "save.wis" | "save.cha" | "save.all"
+  | "skill.acrobatics" | "skill.animalHandling" | "skill.arcana" | "skill.athletics"
+  | "skill.deception" | "skill.history" | "skill.insight" | "skill.intimidation"
+  | "skill.investigation" | "skill.medicine" | "skill.nature" | "skill.perception"
+  | "skill.performance" | "skill.persuasion" | "skill.religion" | "skill.sleightOfHand"
+  | "skill.stealth" | "skill.survival" | "skill.all"
+  | "combat.ac" | "combat.hp" | "combat.initiative" | "combat.speed"
+  | "spell.slots.1" | "spell.slots.2" | "spell.slots.3" | "spell.slots.4" | "spell.slots.5"
+  | "spell.slots.6" | "spell.slots.7" | "spell.slots.8" | "spell.slots.9"
+  | "spell.attack" | "spell.dc"
+  | "prof_bonus";
 
 export type InventoryItem = {
   id: string;
@@ -62,7 +78,7 @@ export type InventoryItem = {
   weight: number;
   category: "Weapon" | "Armor" | "Tool" | "Consumable" | "Wondrous" | "Mundane";
   equipped: boolean;
-  modifiers: { target: string; value: number; type: "Bonus" | "Set To" }[];
+  modifiers: { id: string; target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[];
 };
 
 export type ActionEntry = {
@@ -120,6 +136,7 @@ export type CanvasWidget = {
 
 export type CharacterData = {
   version: string;
+  profBonusStack: ModifierEntry[];
   identity: {
     name: string;
     race: string;
@@ -128,7 +145,7 @@ export type CharacterData = {
     alignment: string;
     deity: string;
     level: number;
-    classes: { name: string; level: number }[];
+    classes: { name: string; level: number; hitDie: string }[];
   };
   attributes: Record<AttributeKey, AttributeData>;
   saves: Record<AttributeKey, SaveData>;
@@ -144,6 +161,8 @@ export type CharacterData = {
   trackers: TrackerEntry[];
   spells: {
     globalCastingStat: AttributeKey | null;
+    attackStack: ModifierEntry[];
+    dcStack: ModifierEntry[];
     slots: Record<string, { base: number; stack: ModifierEntry[]; override: number | null }>;
     list: SpellEntry[];
   };
