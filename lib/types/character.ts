@@ -81,12 +81,29 @@ export type InventoryItem = {
   modifiers: { id: string; target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[];
 };
 
+export type ActionMode = "Spell" | "DC" | "Attack" | "Heal";
+
+export type DieType = "d4" | "d6" | "d8" | "d10" | "d12" | "d20" | "d100";
+
+export type DamageEntry = {
+  diceCount: number;
+  dieType: DieType;
+  stat: AttributeKey | null;
+  type: string;
+  active: boolean;
+};
+
 export type ActionEntry = {
   id: string;
   name: string;
-  mode: "Standard" | "Fixed" | "Manual";
-  fixedValue: number | null;
-  damageStack: { formula: string; type: string; active: boolean }[];
+  mode: ActionMode;
+  // Attack mode: which stat + proficiency toggle + flat bonus (e.g. +1 magic weapon)
+  attackStat: AttributeKey | null;
+  attackProficient: boolean;
+  attackBonus: number;
+  // DC mode: optional fixed override (for item-based DCs like "DC 13 Spider Staff")
+  fixedDC: number | null;
+  damageStack: DamageEntry[];
   notes: string;
 };
 

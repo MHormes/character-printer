@@ -247,7 +247,7 @@ export default function ForgePage() {
         <InventoryBlock inventory={inventory} onChange={setInventory} />
       </section>
 
-      <section className="space-y-4">
+      <section className="space-y-4 max-w-1/3">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Attacks & Actions</h2>
         <ActionsBlock
           actions={actions}

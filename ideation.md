@@ -275,12 +275,13 @@ This section tracks offensive and utility actions. It uses a "Standard DC" for t
 
 Each Attack or Spell entry contains:
 
-- **Name (String):** (e.g., "Flame Tongue Greatsword", "Spider Staff").
-- **Attack/DC Mode (Enum):**
-  - `Standard`: Uses the character's natural stats/global DC.
-  - `Fixed`: Ignores stats and uses a hard-coded number (e.g., "DC 13").
-  - `Manual`: A total override for the final value.
-- **To Hit / DC Total:** The resolved number based on the mode selected.
+- **Name (String):** (e.g., "Longsword", "Fireball", "Spider Staff").
+- **Mode (Enum):** Four modes cover all D&D 5e offensive and restorative options:
+  - `Spell`: Uses the global **Spell Attack Bonus** (`Proficiency + Casting Mod`). For cantrips and spell attack rolls (e.g., Fire Bolt, Eldritch Blast).
+  - `DC`: Uses the global **Spell Save DC** (`8 + Proficiency + Casting Mod`) with an optional **Fixed DC Override** for item-based DCs (e.g., "DC 13" on a Spider Staff). For saving throw spells (e.g., Fireball, Sleep).
+  - `Attack`: Manual weapon/ability attack. User selects a **Stat Modifier** (STR/DEX/CON/INT/WIS/CHA), toggles a **Proficiency** button, and optionally adds a **flat bonus** (e.g., +1 for a magic weapon). Covers weapon attacks, unarmed strikes, finesse weapons, and special ability attacks.
+  - `Heal`: No attack roll or save DC. The effect stack is relabeled as **Healing** and defines restorative amounts (e.g., `1d8 + WIS` for Cure Wounds, `2d4 + WIS` for Healing Word). Stat modifier optional.
+- **To Hit / DC Total:** The resolved number shown inline based on the mode selected.
 - **Damage/Effect Stack (List of Objects):**
   - `Formula`: (e.g., "2d6 + Str", "1d6").
   - `Type`: (e.g., "Slashing", "Fire").
@@ -542,8 +543,10 @@ The following structure represents the single JSON object stored in the database
     {
       "id": "uuid",
       "name": "string",
-      "mode": "Standard|Fixed|Manual",
-      "fixedValue": null,
+      "mode": "Spell|DC|Attack|Heal",
+      "attackStat": "str|dex|con|int|wis|cha|null",
+      "attackProficient": true,
+      "fixedDC": null,
       "damageStack": [
         { "formula": "string", "type": "string", "active": true }
       ],
