@@ -224,7 +224,7 @@ export default function ForgePage({
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
           Identity
         </h2>
-        <div className="grid grid-cols- md:grid-cols-4 xl:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
           <StringField
             label="Name"
             value={identity.name}
@@ -324,9 +324,9 @@ export default function ForgePage({
         </div>
       </section>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col xl:flex-row gap-6">
         {/* Core stats + saves stacked */}
-        <section className="w-1/4 space-y-6">
+        <section className="w-full xl:w-1/4 space-y-6">
           <div className="space-y-3">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
               Core Stats
@@ -525,7 +525,7 @@ export default function ForgePage({
         </section>
 
         {/* Skills */}
-        <section className="w-48 shrink-0 space-y-3">
+        <section className="w-full xl:w-48 shrink-0 space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
             Skills
           </h2>
@@ -543,7 +543,7 @@ export default function ForgePage({
         </section>
 
         {/* Other Proficiencies */}
-        <section className="min-w-0 w-72 space-y-3">
+        <section className="w-full xl:w-72 min-w-0 space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
             Other Proficiencies
           </h2>
@@ -556,7 +556,7 @@ export default function ForgePage({
         </section>
 
         {/* Combat */}
-        <section className="min-w-0 flex-1 space-y-3">
+        <section className="w-full xl:flex-1 min-w-0 space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
             Combat
           </h2>
@@ -586,7 +586,7 @@ export default function ForgePage({
         </section>
       </div>
 
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col md:flex-row gap-6 items-start">
         <section className="flex-1 min-w-0 space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
             Features & Traits
@@ -602,15 +602,15 @@ export default function ForgePage({
         </section>
       </div>
 
-      <div className="flex gap-6 items-start">
-        <section className="space-y-4 w-1/3">
+      <div className="flex flex-col md:flex-row gap-6 items-start">
+        <section className="w-full md:w-1/3 space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
             Inventory
           </h2>
           <InventoryBlock inventory={inventory} onChange={setInventory} />
         </section>
 
-        <section className="space-y-4 w-2/3">
+        <section className="w-full md:w-2/3 space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
             Spellcasting
           </h2>
