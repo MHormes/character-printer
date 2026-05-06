@@ -166,6 +166,13 @@ export type CharacterData = {
     background: string;
     alignment: string;
     deity: string;
+    age: string;
+    gender: string;
+    height: string;
+    weight: string;
+    eyes: string;
+    hair: string;
+    skin: string;
     level: number;
     classes: { name: string; level: number; hitDie: string }[];
   };

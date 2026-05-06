@@ -37,7 +37,7 @@ export function ClassesField({ classes, onChange, proficiencyBonus }: ClassesFie
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-0">
       <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Classes
       </span>
@@ -54,7 +54,7 @@ export function ClassesField({ classes, onChange, proficiencyBonus }: ClassesFie
           <select
             value={cls.hitDie ?? "d8"}
             onChange={(e) => updateHitDie(i, e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:border-ring"
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground shadow-sm focus:outline-none focus:border-ring"
           >
             {HIT_DICE.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>

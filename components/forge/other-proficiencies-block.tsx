@@ -129,7 +129,10 @@ export function OtherProficienciesBlock({
                     type="button"
                     aria-label={`Training: ${prof.training}`}
                     onClick={() => toggleTraining(prof)}
-                    className="flex size-5 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                    className={cn(
+                      "flex size-5 shrink-0 items-center justify-center transition-colors",
+                      prof.training === "Proficient" ? "text-informative" : "text-destructive",
+                    )}
                   >
                     {prof.training === "Proficient"
                       ? <CircleDot className="size-3.5" />

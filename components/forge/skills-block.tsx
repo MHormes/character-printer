@@ -134,7 +134,12 @@ export function SkillsBlock({
               type="button"
               aria-label={`Cycle proficiency: currently ${skill.state}`}
               onClick={() => handleStateClick(key, skill.state, skill.override)}
-              className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+              className={cn(
+                "flex size-4 shrink-0 items-center justify-center transition-colors",
+                skill.state === "None"       && "text-muted-foreground hover:text-foreground",
+                skill.state === "Proficient" && "text-informative",
+                skill.state === "Expertise"  && "text-destructive",
+              )}
             >
               {skill.state === "None"       && <Circle       className="size-3" />}
               {skill.state === "Proficient" && <CircleDot    className="size-3" />}

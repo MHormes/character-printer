@@ -149,7 +149,10 @@ export function SavesBlock({
                 type="button"
                 aria-label={save.proficient ? "Remove proficiency" : "Add proficiency"}
                 onClick={() => toggleProficiency(attr)}
-                className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                className={cn(
+                  "flex size-4 shrink-0 items-center justify-center transition-colors",
+                  save.proficient ? "text-informative" : "text-muted-foreground hover:text-foreground",
+                )}
               >
                 {save.proficient ? <CircleDot className="size-3" /> : <Circle className="size-3" />}
               </button>
