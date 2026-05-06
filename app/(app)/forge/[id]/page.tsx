@@ -15,6 +15,7 @@ import { ActionsBlock } from "@/components/forge/actions-block";
 import { FeaturesBlock } from "@/components/forge/features-block";
 import { TrackersBlock } from "@/components/forge/trackers-block";
 import { SpellsBlock } from "@/components/forge/spells-block";
+import { ForgeSection } from "@/components/forge/forge-section";
 import {
   ChevronDown,
   ChevronRight,
@@ -220,10 +221,7 @@ export default function ForgePage({
         </div>
       </div>
 
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          Identity
-        </h2>
+      <ForgeSection title="Identity" className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
           <StringField
             label="Name"
@@ -322,15 +320,12 @@ export default function ForgePage({
             placeholder="e.g. Tanned"
           />
         </div>
-      </section>
+      </ForgeSection>
 
       <div className="flex flex-col xl:flex-row gap-6">
         {/* Core stats + saves stacked */}
-        <section className="w-full xl:w-1/4 space-y-6">
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Core Stats
-            </h2>
+        <div className="w-full xl:w-1/4 flex flex-col gap-4">
+          <ForgeSection title="Core Stats">
             <div className="grid grid-cols-3 gap-3">
               {ATTRIBUTE_KEYS.map((attr) => (
                 <StatBlock
@@ -347,12 +342,9 @@ export default function ForgePage({
                 />
               ))}
             </div>
-          </div>
+          </ForgeSection>
 
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Saving Throws
-            </h2>
+          <ForgeSection title="Saving Throws">
             <div className="grid grid-cols-3 gap-3">
               {ATTRIBUTE_KEYS.map((attr) => (
                 <SaveBlock
@@ -521,14 +513,11 @@ export default function ForgePage({
                 </button>
               </div>
             )}
-          </div>
-        </section>
+          </ForgeSection>
+        </div>
 
         {/* Skills */}
-        <section className="w-full xl:w-48 shrink-0 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Skills
-          </h2>
+        <ForgeSection title="Skills" className="w-full xl:w-62 shrink-0">
           <SkillsBlock
             skills={skills}
             attributes={attributes}
@@ -540,80 +529,66 @@ export default function ForgePage({
             onJackOfAllTradesChange={setJackOfAllTrades}
             onGlobalStackChange={setGlobalSkillStack}
           />
-        </section>
+        </ForgeSection>
 
         {/* Other Proficiencies */}
-        <section className="w-full xl:w-72 min-w-0 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Other Proficiencies
-          </h2>
+        <ForgeSection
+          title="Other Proficiencies"
+          className="w-full xl:w-72 min-w-0"
+        >
           <OtherProficienciesBlock
             proficiencies={otherProficiencies}
             attributes={attributes}
             proficiencyBonus={pb}
             onChange={setOtherProficiencies}
           />
-        </section>
+        </ForgeSection>
 
         {/* Combat */}
-        <section className="w-full xl:flex-1 min-w-0 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Combat
-          </h2>
-          <CombatBlock
-            data={combat}
-            attributes={attributes}
-            classes={identity.classes}
-            proficiencyBonus={pb}
-            jackOfAllTrades={jackOfAllTrades}
-            onAcChange={setAc}
-            onInitiativeChange={setInitiative}
-            onSpeedChange={setSpeed}
-            onHpChange={setHp}
-          />
+        <div className="w-full xl:flex-1 min-w-0 flex flex-col gap-4">
+          <ForgeSection title="Combat">
+            <CombatBlock
+              data={combat}
+              attributes={attributes}
+              classes={identity.classes}
+              proficiencyBonus={pb}
+              jackOfAllTrades={jackOfAllTrades}
+              onAcChange={setAc}
+              onInitiativeChange={setInitiative}
+              onSpeedChange={setSpeed}
+              onHpChange={setHp}
+            />
+          </ForgeSection>
 
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Attacks & Actions
-          </h2>
-          <ActionsBlock
-            actions={actions}
-            castingStat={spells.globalCastingStat}
-            attributes={attributes}
-            proficiencyBonus={pb}
-            onChange={setActions}
-            onCastingStatChange={setSpellCastingStat}
-          />
-        </section>
+          <ForgeSection title="Attacks & Actions">
+            <ActionsBlock
+              actions={actions}
+              castingStat={spells.globalCastingStat}
+              attributes={attributes}
+              proficiencyBonus={pb}
+              onChange={setActions}
+              onCastingStatChange={setSpellCastingStat}
+            />
+          </ForgeSection>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
-        <section className="flex-1 min-w-0 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Features & Traits
-          </h2>
+        <ForgeSection title="Features & Traits" className="flex-1 min-w-0">
           <FeaturesBlock features={features} onChange={setFeatures} />
-        </section>
+        </ForgeSection>
 
-        <section className="flex-1 min-w-0 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Trackers
-          </h2>
+        <ForgeSection title="Trackers" className="flex-1 min-w-0">
           <TrackersBlock trackers={trackers} onChange={setTrackers} />
-        </section>
+        </ForgeSection>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
-        <section className="w-full md:w-1/3 space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Inventory
-          </h2>
+        <ForgeSection title="Inventory" className="w-full md:w-1/3">
           <InventoryBlock inventory={inventory} onChange={setInventory} />
-        </section>
+        </ForgeSection>
 
-        <section className="w-full md:w-2/3 space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Spellcasting
-          </h2>
+        <ForgeSection title="Spellcasting" className="w-full md:w-2/3">
           <SpellsBlock
             slots={spells.slots}
             list={spells.list}
@@ -623,7 +598,7 @@ export default function ForgePage({
             onSlotsChange={setSpellSlots}
             onListChange={setSpellList}
           />
-        </section>
+        </ForgeSection>
       </div>
     </main>
   );
