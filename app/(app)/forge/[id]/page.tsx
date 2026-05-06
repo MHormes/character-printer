@@ -28,9 +28,10 @@ import {
   Check,
   Loader2,
   Save,
+  Layout,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 import type {
   AttributeKey,
@@ -184,6 +185,13 @@ export default function ForgePage({
             Characters
           </Link>
           <h1 className="text-lg font-semibold">Forge</h1>
+          <Link
+            href={`/canvas/${id}`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <Layout className="size-4" />
+            Open Canvas
+          </Link>
         </div>
         <div className="flex items-center gap-3">
           <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
