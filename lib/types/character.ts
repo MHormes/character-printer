@@ -89,6 +89,7 @@ export type DamageEntry = {
   diceCount: number;
   dieType: DieType;
   stat: AttributeKey | null;
+  flatBonus: number;
   type: string;
   active: boolean;
 };
@@ -131,11 +132,15 @@ export type SpellEntry = {
   castingTime: string;
   range: string;
   duration: string;
-  rollType: "Attack" | "Save" | "Utility";
-  hitDCMode: "Standard" | "Fixed" | "Manual";
-  damageStack: { formula: string; type: string; scaling: string; active: boolean }[];
+  mode: ActionMode;
+  attackStat: AttributeKey | null;
+  attackProficient: boolean;
+  attackBonus: number;
+  fixedDC: number | null;
+  damageStack: DamageEntry[];
   description: string;
-  components: string;
+  upcastDescription: string;
+  components: { verbal: boolean; somatic: boolean; material: boolean; materialDesc: string };
   tags: { ritual: boolean; concentration: boolean; prepared: boolean };
 };
 

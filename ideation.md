@@ -283,9 +283,12 @@ Each Attack or Spell entry contains:
   - `Heal`: No attack roll or save DC. The effect stack is relabeled as **Healing** and defines restorative amounts (e.g., `1d8 + WIS` for Cure Wounds, `2d4 + WIS` for Healing Word). Stat modifier optional.
 - **To Hit / DC Total:** The resolved number shown inline based on the mode selected.
 - **Damage/Effect Stack (List of Objects):**
-  - `Formula`: (e.g., "2d6 + Str", "1d6").
+  - `Dice Count` (Integer) + `Die Type` (Enum: d4/d6/d8/d10/d12/d20/d100): structured dice fields.
+  - `Stat` (Nullable Enum): optional attribute modifier added to the roll.
+  - `Flat Bonus` (Integer): optional fixed bonus.
   - `Type`: (e.g., "Slashing", "Fire").
   - `Is_Active`: Toggle for conditional damage (e.g., "Sneak Attack").
+  - **Collapsed display:** stat mod and flat bonus are summed into a single total (e.g., `1d8+3` not `1d8+2+1`).
 - **Properties/Notes:** A text area for range, save types, or flavor text.
 
 ### 7.3 Damage Logic
@@ -393,16 +396,20 @@ Each spell entry is a comprehensive object designed to generate a "Spell Card" i
   - **Range (String):** (e.g., "60 feet", "Touch").
   - **Duration (String):** (e.g., "Instantaneous", "Concentration, up to 1 minute").
 - **Mechanical Logic:**
-  - **Roll Type (Enum):** [Attack Roll, Save DC, Utility/None].
-  - **Hit/DC Mode:** (Uses the `Standard/Fixed/Manual` logic from Section 7).
-  - **Damage/Effect Stack (List of Objects):**
-    - `Formula`: (e.g., "3d8 + Mod").
-    - `Type`: (e.g., "Radiant").
-    - `Scaling`: (Text field for "At Higher Levels" math).
+  - **Mode (Enum):** `Attack` | `Spell` | `DC` | `Heal` — same four modes as Section 7.
+    - `Spell`: uses global spell attack bonus (Proficiency + Casting Mod).
+    - `DC`: uses global Spell Save DC with an optional fixed override for item-based DCs.
+    - `Attack`: custom stat + proficiency + flat bonus, for unusual melee/touch spell attacks.
+    - `Heal`: no attack roll or DC; effect stack relabeled as Healing.
+  - **Damage/Effect Stack:** same structured `DamageEntry` as Section 7 — dice count + die type + optional stat modifier + flat bonus + damage type + active toggle. Collapsed pill shows mode label + combined damage total.
 - **Text & Tags:**
   - **Description (Markdown):** The full spell text.
-  - **Components (String):** (e.g., "V, S, M").
+  - **At Higher Levels (String):** Free-text description of upcast behavior (e.g., "When cast using a 3rd-level slot or higher, the damage increases by 1d8 for each slot above 2nd"). Not shown for cantrips.
+  - **Components (Object):** Structured flags instead of a raw string.
+    - `verbal` (Boolean), `somatic` (Boolean), `material` (Boolean).
+    - `materialDesc` (String): the actual material requirements, enabled only when `material` is true.
   - **Tags (Flags):** Ritual, Concentration, Prepared.
+  - **Spell card intent:** The full spell data structure is designed to generate printable Spell Cards on the Canvas.
 
 ### 10.3 Automation & Logic
 
@@ -485,7 +492,11 @@ The following structure represents the single JSON object stored in the database
     "cha": { "proficient": false, "stack": [], "override": null }
   },
   "skills": {
-    "athletics": { "state": "None|Proficient|Expertise", "stack": [], "override": null },
+    "athletics": {
+      "state": "None|Proficient|Expertise",
+      "stack": [],
+      "override": null
+    },
     "acrobatics": { "state": "None", "stack": [], "override": null },
     "sleightOfHand": { "state": "None", "stack": [], "override": null },
     "stealth": { "state": "None", "stack": [], "override": null },
@@ -526,7 +537,9 @@ The following structure represents the single JSON object stored in the database
     "speed": { "base": 30, "stack": [], "override": null },
     "hp": {
       "max": 10,
-      "stack": [{ "id": "uuid", "source": "string", "value": 0, "isActive": true }]
+      "stack": [
+        { "id": "uuid", "source": "string", "value": 0, "isActive": true }
+      ]
     }
   },
   "inventory": [
@@ -536,7 +549,14 @@ The following structure represents the single JSON object stored in the database
       "weight": 0.0,
       "category": "string",
       "equipped": false,
-      "modifiers": [{ "id": "uuid", "target": "ModifierTarget", "value": 0, "type": "Bonus|Set To" }]
+      "modifiers": [
+        {
+          "id": "uuid",
+          "target": "ModifierTarget",
+          "value": 0,
+          "type": "Bonus|Set To"
+        }
+      ]
     }
   ],
   "actions": [
@@ -546,9 +566,10 @@ The following structure represents the single JSON object stored in the database
       "mode": "Spell|DC|Attack|Heal",
       "attackStat": "str|dex|con|int|wis|cha|null",
       "attackProficient": true,
+      "attackBonus": 0,
       "fixedDC": null,
       "damageStack": [
-        { "formula": "string", "type": "string", "active": true }
+        { "diceCount": 1, "dieType": "d6", "stat": "str|null", "flatBonus": 0, "type": "string", "active": true }
       ],
       "notes": "string"
     }
@@ -587,8 +608,17 @@ The following structure represents the single JSON object stored in the database
         "duration": "string",
         "rollType": "Attack|Save|Utility",
         "hitDCMode": "Standard|Fixed|Manual",
-        "damageStack": [],
+        "mode": "Attack|Spell|DC|Heal",
+        "attackStat": "str|dex|con|int|wis|cha|null",
+        "attackProficient": true,
+        "attackBonus": 0,
+        "fixedDC": null,
+        "damageStack": [
+          { "diceCount": 1, "dieType": "d6", "stat": "str|null", "flatBonus": 0, "type": "string", "active": true }
+        ],
         "description": "string",
+        "upcastDescription": "string",
+        "components": { "verbal": false, "somatic": false, "material": false, "materialDesc": "string" },
         "tags": { "ritual": false, "concentration": false, "prepared": true }
       }
     ]

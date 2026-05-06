@@ -15,7 +15,8 @@ export async function createCharacter(userId: string): Promise<{ id: string }> {
     id,
     userId,
     name: "",
-    data: JSON.stringify(data),
+    // @ts-expect-error drizzle union type, correct at runtime
+    data,
   })
 
   return { id }
@@ -24,9 +25,10 @@ export async function createCharacter(userId: string): Promise<{ id: string }> {
 export async function saveCharacter(id: string, data: CharacterData): Promise<void> {
   await db
     .update(sqliteCharacters)
+    // @ts-expect-error drizzle union type, correct at runtime
     .set({
       name: data.identity.name,
-      data: JSON.stringify(data),
+      data,
       updatedAt: new Date(),
     })
     .where(eq(sqliteCharacters.id, id))
@@ -41,4 +43,19 @@ export async function loadCharacter(id: string): Promise<CharacterData | null> {
 
   if (!rows[0]) return null
   return rows[0].data as CharacterData
+}
+
+export async function listAllCharacters(): Promise<{ id: string; name: string; updatedAt: Date | null }[]> {
+  return db
+    .select({
+      id: sqliteCharacters.id,
+      name: sqliteCharacters.name,
+      updatedAt: sqliteCharacters.updatedAt,
+    })
+    .from(sqliteCharacters)
+    .orderBy(sqliteCharacters.updatedAt)
+}
+
+export async function deleteCharacter(id: string): Promise<void> {
+  await db.delete(sqliteCharacters).where(eq(sqliteCharacters.id, id))
 }

@@ -2,13 +2,14 @@
 
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import type { CharacterData, AttributeKey, SkillState } from "@/lib/types/character";
+import type { CharacterData, AttributeKey, SkillState, FeatureEntry, TrackerEntry, SpellEntry } from "@/lib/types/character";
 import { syncInventoryToStacks } from "@/lib/character/modifier-sync";
 
 type CharacterStore = {
   character: CharacterData | null;
   isDirty: boolean;
   setCharacter: (data: CharacterData) => void;
+  clearCharacter: () => void;
   updateIdentityField: (field: keyof CharacterData["identity"], value: string | number) => void;
   updateAttributeBase: (attr: AttributeKey, value: number) => void;
   setAttributeStack: (attr: AttributeKey, stack: CharacterData["attributes"][AttributeKey]["stack"]) => void;
@@ -29,7 +30,11 @@ type CharacterStore = {
   setHp: (hp: CharacterData["combat"]["hp"]) => void;
   setInventory: (list: CharacterData["inventory"]) => void;
   setActions: (list: CharacterData["actions"]) => void;
+  setFeatures: (list: FeatureEntry[]) => void;
+  setTrackers: (list: TrackerEntry[]) => void;
   setSpellCastingStat: (stat: AttributeKey | null) => void;
+  setSpellSlots: (slots: CharacterData["spells"]["slots"]) => void;
+  setSpellList: (list: SpellEntry[]) => void;
 };
 
 export const useCharacterStore = create<CharacterStore>()(
@@ -40,6 +45,12 @@ export const useCharacterStore = create<CharacterStore>()(
     setCharacter: (data) =>
       set((state) => {
         state.character = data;
+        state.isDirty = false;
+      }),
+
+    clearCharacter: () =>
+      set((state) => {
+        state.character = null;
         state.isDirty = false;
       }),
 
@@ -189,10 +200,38 @@ export const useCharacterStore = create<CharacterStore>()(
         state.isDirty = true;
       }),
 
+    setFeatures: (list) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.features = list;
+        state.isDirty = true;
+      }),
+
+    setTrackers: (list) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.trackers = list;
+        state.isDirty = true;
+      }),
+
     setSpellCastingStat: (stat) =>
       set((state) => {
         if (!state.character) return;
         state.character.spells.globalCastingStat = stat;
+        state.isDirty = true;
+      }),
+
+    setSpellSlots: (slots) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.spells.slots = slots;
+        state.isDirty = true;
+      }),
+
+    setSpellList: (list) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.spells.list = list;
         state.isDirty = true;
       }),
   }))

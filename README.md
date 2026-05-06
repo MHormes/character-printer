@@ -96,3 +96,10 @@ All character state is a single JSON blob. Example:
 | Drag & Drop     | dnd-kit                     |
 | Auth            | NextAuth.js                 |
 | Language        | TypeScript                  |
+
+---
+
+## License
+
+Copyright (c) 2026 Maarten Hormes - ALL RIGHTS RESERVED.
+This project is provided for portfolio review only. See the [LICENSE](LICENSE) file for full details.

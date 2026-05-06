@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { use, useState, useEffect, useRef } from "react"
 import { useCharacterStore } from "@/lib/store/character-store"
-import { createDefaultCharacter } from "@/lib/character/defaults"
+import { loadCharacter, saveCharacter } from "@/lib/actions/character"
 import { StringField } from "@/components/forge/string-field"
 import { ClassesField } from "@/components/forge/classes-field"
 import { StatBlock } from "@/components/forge/stat-block"
@@ -12,8 +12,13 @@ import { OtherProficienciesBlock } from "@/components/forge/other-proficiencies-
 import { CombatBlock } from "@/components/forge/combat-block"
 import { InventoryBlock } from "@/components/forge/inventory-block"
 import { ActionsBlock } from "@/components/forge/actions-block"
-import { ChevronDown, ChevronRight, CircleDot, Circle, X, Plus, Lock } from "lucide-react"
+import { FeaturesBlock } from "@/components/forge/features-block"
+import { TrackersBlock } from "@/components/forge/trackers-block"
+import { SpellsBlock } from "@/components/forge/spells-block"
+import { ChevronDown, ChevronRight, CircleDot, Circle, X, Plus, Lock, ArrowLeft, Check, Loader2, Save } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import type { AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
 
 const ATTRIBUTE_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
@@ -31,11 +36,17 @@ function resolvedAttrMod(attr: AttributeData) {
   return Math.floor((total - 10) / 2)
 }
 
-export default function ForgePage() {
+export default function ForgePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [globalSaveExpanded, setGlobalSaveExpanded] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
+  const [autoSave, setAutoSave] = useState(true)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const setCharacter = useCharacterStore((s) => s.setCharacter)
+  const clearCharacter = useCharacterStore((s) => s.clearCharacter)
   const character = useCharacterStore((s) => s.character)
+  const isDirty = useCharacterStore((s) => s.isDirty)
   const updateIdentityField = useCharacterStore((s) => s.updateIdentityField)
   const updateAttributeBase = useCharacterStore((s) => s.updateAttributeBase)
   const setAttributeStack = useCharacterStore((s) => s.setAttributeStack)
@@ -56,20 +67,82 @@ export default function ForgePage() {
   const setHp = useCharacterStore((s) => s.setHp)
   const setInventory = useCharacterStore((s) => s.setInventory)
   const setActions = useCharacterStore((s) => s.setActions)
+  const setFeatures = useCharacterStore((s) => s.setFeatures)
+  const setTrackers = useCharacterStore((s) => s.setTrackers)
   const setSpellCastingStat = useCharacterStore((s) => s.setSpellCastingStat)
+  const setSpellSlots = useCharacterStore((s) => s.setSpellSlots)
+  const setSpellList = useCharacterStore((s) => s.setSpellList)
 
   useEffect(() => {
-    setCharacter(createDefaultCharacter("stub"))
-  }, [setCharacter])
+    clearCharacter()
+    loadCharacter(id).then((data) => {
+      if (data) setCharacter(data)
+    })
+  }, [id, clearCharacter, setCharacter])
 
-  if (!character) return null
+  // Auto-save on change with 1.5s debounce
+  useEffect(() => {
+    if (!character || !isDirty || !autoSave) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    setSaveStatus("saving")
+    saveTimer.current = setTimeout(async () => {
+      await saveCharacter(id, character)
+      setSaveStatus("saved")
+      setTimeout(() => setSaveStatus("idle"), 2000)
+    }, 1500)
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
+  }, [character, isDirty, autoSave])
 
-  const { identity, attributes, saves, saveGlobalStack, skills, skillGlobalStack, jackOfAllTrades, otherProficiencies, combat, inventory, actions, spells } = character
+  async function handleSave() {
+    if (!character) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    setSaveStatus("saving")
+    await saveCharacter(id, character)
+    setSaveStatus("saved")
+    setTimeout(() => setSaveStatus("idle"), 2000)
+  }
+
+  if (!character) return (
+    <main className="flex min-h-screen items-center justify-center">
+      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+    </main>
+  )
+
+  const { identity, attributes, saves, saveGlobalStack, skills, skillGlobalStack, jackOfAllTrades, otherProficiencies, combat, inventory, actions, features, trackers, spells } = character
   const pb = Math.ceil(identity.level / 4) + 1
 
   return (
     <main className="space-y-10 p-6">
-      <h1 className="text-lg font-semibold">Forge</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/characters" className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <ArrowLeft className="size-4" />
+            Characters
+          </Link>
+          <h1 className="text-lg font-semibold">Forge</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
+            <input
+              type="checkbox"
+              checked={autoSave}
+              onChange={(e) => setAutoSave(e.target.checked)}
+              className="h-3.5 w-3.5 accent-foreground"
+            />
+            Auto-save
+          </label>
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {saveStatus === "saving" && <><Loader2 className="size-3 animate-spin" />Saving…</>}
+            {saveStatus === "saved" && <><Check className="size-3 text-green-600" />Saved</>}
+          </span>
+          <Button size="sm" variant="outline" onClick={handleSave} disabled={saveStatus === "saving"}>
+            <Save />
+            Save
+          </Button>
+        </div>
+      </div>
 
       <section className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Identity</h2>
@@ -119,6 +192,7 @@ export default function ForgePage() {
                   data={saves[attr]}
                   attrMod={resolvedAttrMod(attributes[attr])}
                   proficiencyBonus={pb}
+                  globalStack={saveGlobalStack}
                   onProficiencyChange={(p) => setSaveProficiency(attr, p)}
                   onStackChange={(stack) => setSaveStack(attr, stack)}
                   onOverrideChange={(override) => setSaveOverride(attr, override)}
@@ -258,6 +332,33 @@ export default function ForgePage() {
           onCastingStatChange={setSpellCastingStat}
         />
       </section>
+
+      <div className="flex gap-6 items-start">
+        <section className="flex-1 min-w-0 space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Features & Traits</h2>
+          <FeaturesBlock features={features} onChange={setFeatures} />
+        </section>
+
+        <section className="flex-1 min-w-0 space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Trackers</h2>
+          <TrackersBlock trackers={trackers} onChange={setTrackers} />
+        </section>
+
+        <section className="flex-1 min-w-0 flex flex-row gap-2 items-start">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none pt-1">Spellcasting</h2>
+          <div className="flex-1 min-w-0">
+            <SpellsBlock
+              slots={spells.slots}
+              list={spells.list}
+              castingStat={spells.globalCastingStat}
+              attributes={attributes}
+              proficiencyBonus={pb}
+              onSlotsChange={setSpellSlots}
+              onListChange={setSpellList}
+            />
+          </div>
+        </section>
+      </div>
     </main>
   )
 }

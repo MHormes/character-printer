@@ -11,19 +11,21 @@ type SaveBlockProps = {
   data: SaveData
   attrMod: number
   proficiencyBonus: number
+  globalStack: ModifierEntry[]
   onProficiencyChange: (proficient: boolean) => void
   onStackChange: (stack: ModifierEntry[]) => void
   onOverrideChange: (override: number | null) => void
 }
 
 export function SaveBlock({
-  label, data, attrMod, proficiencyBonus,
+  label, data, attrMod, proficiencyBonus, globalStack,
   onProficiencyChange, onStackChange, onOverrideChange,
 }: SaveBlockProps) {
   const [expanded, setExpanded] = useState(false)
 
   const stackTotal = data.stack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
-  const calculated = attrMod + (data.proficient ? proficiencyBonus : 0) + stackTotal
+  const globalTotal = globalStack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
+  const calculated = attrMod + (data.proficient ? proficiencyBonus : 0) + stackTotal + globalTotal
   const isOverridden = data.override !== null
 
   function toggleProficiency() {

@@ -58,9 +58,10 @@ export function ActionsBlock({
     if (active.length === 0) return ""
     return active.map((d) => {
       const dice = `${d.diceCount}${d.dieType}`
-      const modPart = d.stat ? sign(attrMod(d.stat)) : ""
+      const total = (d.stat ? attrMod(d.stat) : 0) + (d.flatBonus ?? 0)
+      const bonusPart = total !== 0 ? sign(total) : ""
       const typePart = d.type ? ` ${d.type}` : ""
-      return `${dice}${modPart}${typePart}`
+      return `${dice}${bonusPart}${typePart}`
     }).join(" + ")
   }
 
@@ -301,6 +302,23 @@ export function ActionsBlock({
                             <option value="">—</option>
                             {ATTR_KEYS.map((k) => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
                           </select>
+                          {/* Flat bonus */}
+                          <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
+                            <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
+                            <input
+                              type="text" inputMode="numeric"
+                              value={(dmg.flatBonus ?? 0) === 0 ? "" : String(dmg.flatBonus)}
+                              placeholder="0"
+                              onChange={(e) => {
+                                const raw = e.target.value
+                                if (raw === "" || raw === "-") { patchDmg({ flatBonus: 0 }); return }
+                                if (!/^-?\d+$/.test(raw)) return
+                                const n = parseInt(raw, 10)
+                                if (!isNaN(n)) patchDmg({ flatBonus: n })
+                              }}
+                              className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-foreground/30 focus:outline-none"
+                            />
+                          </div>
                           {/* Damage type */}
                           <input
                             type="text"
@@ -323,7 +341,7 @@ export function ActionsBlock({
                       )
                     })}
                     <button type="button"
-                      onClick={() => patchAction(action.id, { damageStack: [...action.damageStack, { diceCount: 1, dieType: "d6", stat: null, type: "", active: true }] })}
+                      onClick={() => patchAction(action.id, { damageStack: [...action.damageStack, { diceCount: 1, dieType: "d6", stat: null, flatBonus: 0, type: "", active: true }] })}
                       className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
                       <Plus className="size-3" />
                       {action.mode === "Heal" ? "Add healing" : "Add damage"}
