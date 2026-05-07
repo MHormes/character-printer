@@ -81,13 +81,6 @@ export function TrackersBlock({ trackers, onChange }: TrackersBlockProps) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="w-16 shrink-0 text-xs text-muted-foreground">Display</span>
-                  <Input type="text" value={tracker.valueLabel ?? ""} placeholder="e.g. d10, 4 cantrips"
-                    onChange={e => patch(tracker.id, { valueLabel: e.target.value })}
-                    className="h-6 min-w-0 flex-1 text-xs" />
-                </div>
-
-                <div className="flex items-center gap-2">
                   <span className="w-16 shrink-0 text-xs text-muted-foreground">Base</span>
                   <input type="number" value={tracker.base} min={0}
                     onChange={e => patch(tracker.id, { base: parseInt(e.target.value) || 0, override: null })}

@@ -168,6 +168,20 @@ export function CanvasArea() {
   );
 
   const PALETTE_ITEMS = [
+    { type: "CharacterName" as const, label: "Character Name", w: 15, h: 3 },
+    {
+      type: "CharacterInfoDetailed" as const,
+      label: "Info: Detailed",
+      w: 17,
+      h: 3,
+    },
+    {
+      type: "CharacterInfoCompact" as const,
+      label: "Info: Compact",
+      w: 17,
+      h: 3,
+    },
+    { type: "CharacterAppearance" as const, label: "Appearance", w: 17, h: 3 },
     { type: "CoreStats" as const, label: "Core Stats", w: 3, h: 18 },
     { type: "Inspiration" as const, label: "Inspiration", w: 7, h: 2 },
     { type: "Proficiency" as const, label: "Prof. Bonus", w: 7, h: 2 },
@@ -324,7 +338,6 @@ export function CanvasArea() {
 
         {/* Canvas column */}
         <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-
           {/* Page actions bar — top right */}
           <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border bg-section px-3 py-1">
             <button

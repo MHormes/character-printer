@@ -37,6 +37,7 @@ export function createDefaultCharacter(id: string): CharacterData {
     identity: {
       name: "",
       race: "",
+      subrace: "",
       classLabels: "",
       background: "",
       alignment: "",
@@ -49,7 +50,7 @@ export function createDefaultCharacter(id: string): CharacterData {
       hair: "",
       skin: "",
       level: 1,
-      classes: [{ name: "", level: 1, hitDie: "d8" }],
+      classes: [{ name: "", subclass: "", level: 1, hitDie: "d8" }],
     },
     attributes: Object.fromEntries(
       ATTRIBUTE_KEYS.map((k): [AttributeKey, AttributeData] => [k, { base: 10, stack: [], override: null }])

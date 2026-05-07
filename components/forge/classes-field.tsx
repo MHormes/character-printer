@@ -7,7 +7,7 @@ import { X, Plus } from "lucide-react"
 
 const HIT_DICE = ["d6", "d8", "d10", "d12"] as const
 
-type ClassEntry = { name: string; level: number; hitDie: string }
+type ClassEntry = { name: string; subclass: string; level: number; hitDie: string }
 
 type ClassesFieldProps = {
   classes: ClassEntry[]
@@ -17,23 +17,15 @@ type ClassesFieldProps = {
 
 export function ClassesField({ classes, onChange, proficiencyBonus }: ClassesFieldProps) {
   function add() {
-    onChange([...classes, { name: "", level: 1, hitDie: "d8" }])
+    onChange([...classes, { name: "", subclass: "", level: 1, hitDie: "d8" }])
   }
 
   function remove(index: number) {
     onChange(classes.filter((_, i) => i !== index))
   }
 
-  function updateName(index: number, name: string) {
-    onChange(classes.map((c, i) => (i === index ? { ...c, name } : c)))
-  }
-
-  function updateLevel(index: number, level: number) {
-    onChange(classes.map((c, i) => (i === index ? { ...c, level } : c)))
-  }
-
-  function updateHitDie(index: number, hitDie: string) {
-    onChange(classes.map((c, i) => (i === index ? { ...c, hitDie } : c)))
+  function update<K extends keyof ClassEntry>(index: number, key: K, value: ClassEntry[K]) {
+    onChange(classes.map((c, i) => (i === index ? { ...c, [key]: value } : c)))
   }
 
   return (
@@ -43,17 +35,24 @@ export function ClassesField({ classes, onChange, proficiencyBonus }: ClassesFie
       </span>
       {classes.map((cls, i) => (
         <div key={i} className="relative flex items-end gap-2">
-          <div className="flex-1">
+          <div className="flex flex-1 flex-col gap-1">
             <Input
               type="text"
               value={cls.name}
-              onChange={(e) => updateName(i, e.target.value)}
+              onChange={(e) => update(i, "name", e.target.value)}
               placeholder="Class name"
+            />
+            <Input
+              type="text"
+              value={cls.subclass}
+              onChange={(e) => update(i, "subclass", e.target.value)}
+              placeholder="Subclass"
+              className="h-6 text-xs"
             />
           </div>
           <select
             value={cls.hitDie ?? "d8"}
-            onChange={(e) => updateHitDie(i, e.target.value)}
+            onChange={(e) => update(i, "hitDie", e.target.value)}
             className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground shadow-sm focus:outline-none focus:border-ring"
           >
             {HIT_DICE.map((d) => <option key={d} value={d}>{d}</option>)}
@@ -61,7 +60,7 @@ export function ClassesField({ classes, onChange, proficiencyBonus }: ClassesFie
           <IntegerField
             label=""
             value={cls.level}
-            onChange={(v) => updateLevel(i, v)}
+            onChange={(v) => update(i, "level", v)}
             min={1}
             max={20}
             className="w-28 shrink-0"

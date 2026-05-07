@@ -248,6 +248,12 @@ export default function ForgePage({
             placeholder="e.g. Human"
           />
           <StringField
+            label="Subrace"
+            value={identity.subrace}
+            onChange={(v) => updateIdentityField("subrace", v)}
+            placeholder="e.g. High Elf"
+          />
+          <StringField
             label="Background"
             value={identity.background}
             onChange={(v) => updateIdentityField("background", v)}

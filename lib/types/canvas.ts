@@ -7,6 +7,7 @@ export type WidgetType =
   | "CurrentHp" | "TempHp" | "HitDice" | "DeathSaves"
   | "Attacks" | "SlimAttacks" | "Equipment"
   | "Trackers" | "Features"
+  | "CharacterName" | "CharacterInfoDetailed" | "CharacterInfoCompact" | "CharacterAppearance"
 export type Rotation = 0 | 90 | 180 | 270
 export type PrintState = "Calculated" | "Blank"
 

@@ -156,6 +156,7 @@ export type CharacterData = {
   identity: {
     name: string;
     race: string;
+    subrace: string;
     classLabels: string;
     background: string;
     alignment: string;
@@ -168,7 +169,7 @@ export type CharacterData = {
     hair: string;
     skin: string;
     level: number;
-    classes: { name: string; level: number; hitDie: string }[];
+    classes: { name: string; subclass: string; level: number; hitDie: string }[];
   };
   attributes: Record<AttributeKey, AttributeData>;
   saves: Record<AttributeKey, SaveData>;

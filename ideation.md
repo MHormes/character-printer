@@ -425,7 +425,16 @@ Each spell entry is a comprehensive object designed to generate a "Spell Card" i
 
 ---
 
-## 11. The Canvas (Design Page)
+## 11. Full-Page Overlays
+
+Users can toggle full-page view overlays over the canvas to display comprehensive data, regardless of grid size:
+- **Features & Traits Overlay:** Displays full name and description for all character features.
+- **Spellbook Overlay:** Lists all known spells with their full details.
+- **Interaction:** These overlays are triggered via a new control section located above the element palette, allowing users to switch between the main canvas and full-page information views.
+
+---
+
+## 12. The Canvas (Design Page)
 
 The **Canvas** is the layout engine that transforms data from the Forge into a printable sheet. It handles the "where" and "how" of the final output.
 

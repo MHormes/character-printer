@@ -26,6 +26,12 @@ import { SlimAttacksWidget } from "@/components/canvas/widgets/slim-attacks-widg
 import { EquipmentWidget } from "@/components/canvas/widgets/equipment-widget"
 import { TrackerWidget } from "@/components/canvas/widgets/tracker-widget"
 import { FeaturesWidget } from "@/components/canvas/widgets/features-widget"
+import { FullPageFeaturesWidget } from "@/components/canvas/widgets/full-page-features-widget"
+import { FullPageSpellsWidget } from "@/components/canvas/widgets/full-page-spells-widget"
+import { CharacterNameWidget } from "@/components/canvas/widgets/character-name-widget"
+import { CharacterInfoDetailedWidget } from "@/components/canvas/widgets/character-info-detailed-widget"
+import { CharacterInfoCompactWidget } from "@/components/canvas/widgets/character-info-compact-widget"
+import { CharacterAppearanceWidget } from "@/components/canvas/widgets/character-appearance-widget"
 
 function WidgetContent({ type }: { type: WidgetType }) {
   if (type === "CoreStats")          return <CoreStatsWidget />
@@ -50,6 +56,12 @@ function WidgetContent({ type }: { type: WidgetType }) {
   if (type === "Equipment")         return <EquipmentWidget />
   if (type === "Trackers")          return <TrackerWidget />
   if (type === "Features")          return <FeaturesWidget />
+  if (type === "FullPageFeatures")    return <FullPageFeaturesWidget />
+  if (type === "FullPageSpells")      return <FullPageSpellsWidget />
+  if (type === "CharacterName")       return <CharacterNameWidget />
+  if (type === "CharacterInfoDetailed") return <CharacterInfoDetailedWidget />
+  if (type === "CharacterInfoCompact")  return <CharacterInfoCompactWidget />
+  if (type === "CharacterAppearance")   return <CharacterAppearanceWidget />
   return null
 }
 
