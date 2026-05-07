@@ -1,12 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, ChevronRight, X, Plus, RotateCcw, CircleDot, Circle } from "lucide-react"
+import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData } from "@/lib/types/character"
-
+import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
 import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack, sumStack } from "@/lib/character/calculations"
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
+import type { DragEndEvent } from "@dnd-kit/core"
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 type SlotData = { base: number; stack: { id: string; source: string; value: number; isActive: boolean }[]; override: number | null }
 
@@ -35,6 +38,7 @@ export function SpellsBlock({
   onSlotsChange, onListChange,
 }: SpellsBlockProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   const mockChar = {
     attributes,
@@ -60,6 +64,14 @@ export function SpellsBlock({
 
   function patchSpell(id: string, update: Partial<SpellEntry>) {
     onListChange(list.map(s => s.id === id ? { ...s, ...update } : s))
+  }
+
+  function handleDragEndForLevel(e: DragEndEvent) {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const oldIdx = list.findIndex(s => s.id === active.id)
+    const newIdx = list.findIndex(s => s.id === over.id)
+    onListChange(arrayMove(list, oldIdx, newIdx))
   }
 
   function addSpell(level: number) {
@@ -142,19 +154,23 @@ export function SpellsBlock({
             </div>
 
             <div className="space-y-1 pl-3">
-              {spellsAtLevel.map(spell => (
-                <SpellRow key={spell.id} spell={spell}
-                  expanded={expandedIds.has(spell.id)}
-                  spellDC={spellDC} spellAttack={spellAttack}
-                  attrMod={attrMod}
-                  proficiencyBonus={proficiencyBonus}
-                  onToggle={() => toggleExpand(spell.id)}
-                  onPatch={u => patchSpell(spell.id, u)}
-                  onDelete={() => onListChange(list.filter(s => s.id !== spell.id))}
-                  onPatchDmg={(idx, u) => patchSpell(spell.id, { damageStack: spell.damageStack.map((d, i) => i === idx ? { ...d, ...u } : d) })}
-                  onDeleteDmg={idx => patchSpell(spell.id, { damageStack: spell.damageStack.filter((_, i) => i !== idx) })}
-                />
-              ))}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndForLevel}>
+                <SortableContext items={spellsAtLevel.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                  {spellsAtLevel.map(spell => (
+                    <SortableSpellRow key={spell.id} spell={spell}
+                      expanded={expandedIds.has(spell.id)}
+                      spellDC={spellDC} spellAttack={spellAttack}
+                      attrMod={attrMod}
+                      proficiencyBonus={proficiencyBonus}
+                      onToggle={() => toggleExpand(spell.id)}
+                      onPatch={u => patchSpell(spell.id, u)}
+                      onDelete={() => onListChange(list.filter(s => s.id !== spell.id))}
+                      onPatchDmg={(idx, u) => patchSpell(spell.id, { damageStack: spell.damageStack.map((d, i) => i === idx ? { ...d, ...u } : d) })}
+                      onDeleteDmg={idx => patchSpell(spell.id, { damageStack: spell.damageStack.filter((_, i) => i !== idx) })}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
 
               <button type="button" onClick={() => addSpell(lvl)}
                 className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
@@ -181,9 +197,31 @@ type SpellRowProps = {
   onDelete: () => void
   onPatchDmg: (idx: number, u: Partial<DamageEntry>) => void
   onDeleteDmg: (idx: number) => void
+  dragHandle?: React.ReactNode
 }
 
-function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyBonus, onToggle, onPatch, onDelete, onPatchDmg, onDeleteDmg }: SpellRowProps) {
+function SortableSpellRow(props: Omit<SpellRowProps, "dragHandle">) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.spell.id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={isDragging ? "opacity-50" : ""}
+    >
+      <SpellRow
+        {...props}
+        dragHandle={
+          <button type="button" {...listeners} {...attributes}
+            className="shrink-0 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground">
+            <GripVertical className="size-3.5" />
+          </button>
+        }
+      />
+    </div>
+  )
+}
+
+function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyBonus, onToggle, onPatch, onDelete, onPatchDmg, onDeleteDmg, dragHandle }: SpellRowProps) {
   function calcToHit(): number {
     const mod = spell.attackStat ? attrMod(spell.attackStat) : 0
     return mod + (spell.attackProficient ? proficiencyBonus : 0) + (spell.attackBonus ?? 0)
@@ -213,6 +251,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="flex items-center gap-2 p-2">
+        {dragHandle}
         <button type="button" onClick={onToggle}
           className="shrink-0 text-muted-foreground transition-colors hover:text-foreground">
           {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
