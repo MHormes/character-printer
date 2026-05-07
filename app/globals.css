@@ -137,3 +137,37 @@
     @apply font-sans;
   }
 }
+
+#print-canvas {
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #print-canvas,
+  #print-canvas * {
+    visibility: visible;
+  }
+
+  #print-canvas {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: unset !important;
+    max-width: unset !important;
+    max-height: unset !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background-color: white !important;
+  }
+}

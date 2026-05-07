@@ -144,17 +144,7 @@ export type SpellEntry = {
   tags: { ritual: boolean; concentration: boolean; prepared: boolean };
 };
 
-export type WidgetPrintState = "Calculated" | "Blank";
-
-export type CanvasWidget = {
-  id: string;
-  type: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  printState: WidgetPrintState;
-};
+import type { CanvasWidget } from "./canvas";
 
 export type CharacterData = {
   version: string;
@@ -196,6 +186,7 @@ export type CharacterData = {
     list: SpellEntry[];
   };
   canvas: {
+    cols: number;
     pages: { id: string; widgets: CanvasWidget[] }[];
   };
 };

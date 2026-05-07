@@ -15,6 +15,7 @@ export async function createCharacter(userId: string): Promise<{ id: string }> {
     id,
     userId,
     name: "",
+    autoSave: true,
     // @ts-expect-error drizzle union type, correct at runtime
     data,
   })
@@ -22,27 +23,31 @@ export async function createCharacter(userId: string): Promise<{ id: string }> {
   return { id }
 }
 
-export async function saveCharacter(id: string, data: CharacterData): Promise<void> {
+export async function saveCharacter(id: string, data: CharacterData, autoSave?: boolean): Promise<void> {
   await db
     .update(sqliteCharacters)
     // @ts-expect-error drizzle union type, correct at runtime
     .set({
       name: data.identity.name,
       data,
+      ...(autoSave !== undefined ? { autoSave } : {}),
       updatedAt: new Date(),
     })
     .where(eq(sqliteCharacters.id, id))
 }
 
-export async function loadCharacter(id: string): Promise<CharacterData | null> {
+export async function loadCharacter(id: string): Promise<{ data: CharacterData; autoSave: boolean } | null> {
   const rows = await db
-    .select({ data: sqliteCharacters.data })
+    .select({ data: sqliteCharacters.data, autoSave: sqliteCharacters.autoSave })
     .from(sqliteCharacters)
     .where(eq(sqliteCharacters.id, id))
     .limit(1)
 
   if (!rows[0]) return null
-  return rows[0].data as CharacterData
+  return {
+    data: rows[0].data as CharacterData,
+    autoSave: rows[0].autoSave,
+  }
 }
 
 export async function listAllCharacters(): Promise<{ id: string; name: string; updatedAt: Date | null }[]> {

@@ -82,12 +82,13 @@ export default function ForgePage({
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
-  const [autoSave, setAutoSave] = useState(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setCharacter = useCharacterStore((s) => s.setCharacter);
   const clearCharacter = useCharacterStore((s) => s.clearCharacter);
   const character = useCharacterStore((s) => s.character);
+  const autoSave = useCharacterStore((s) => s.autoSave);
+  const setAutoSave = useCharacterStore((s) => s.setAutoSave);
   const isDirty = useCharacterStore((s) => s.isDirty);
   const updateIdentityField = useCharacterStore((s) => s.updateIdentityField);
   const updateAttributeBase = useCharacterStore((s) => s.updateAttributeBase);
@@ -119,8 +120,8 @@ export default function ForgePage({
 
   useEffect(() => {
     clearCharacter();
-    loadCharacter(id).then((data) => {
-      if (data) setCharacter(data);
+    loadCharacter(id).then((res) => {
+      if (res) setCharacter(res.data, res.autoSave);
     });
   }, [id, clearCharacter, setCharacter]);
 
@@ -130,22 +131,30 @@ export default function ForgePage({
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus("saving");
     saveTimer.current = setTimeout(async () => {
-      await saveCharacter(id, character);
+      await saveCharacter(id, character, autoSave);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     }, 1500);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [character, isDirty, autoSave]);
+  }, [character, isDirty, autoSave, id]);
 
   async function handleSave() {
     if (!character) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus("saving");
-    await saveCharacter(id, character);
+    await saveCharacter(id, character, autoSave);
     setSaveStatus("saved");
     setTimeout(() => setSaveStatus("idle"), 2000);
+  }
+
+  async function handleToggleAutoSave(checked: boolean) {
+    setAutoSave(checked);
+    // Persist immediately when toggling
+    if (character) {
+      await saveCharacter(id, character, checked);
+    }
   }
 
   if (!character)
@@ -198,7 +207,7 @@ export default function ForgePage({
             <input
               type="checkbox"
               checked={autoSave}
-              onChange={(e) => setAutoSave(e.target.checked)}
+              onChange={(e) => handleToggleAutoSave(e.target.checked)}
               className="h-3.5 w-3.5 accent-foreground"
             />
             Auto-save

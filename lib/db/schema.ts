@@ -31,6 +31,7 @@ export const sqliteCharacters = sqliteTable("characters", {
     .notNull()
     .references(() => sqliteUsers.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  autoSave: integer("auto_save", { mode: "boolean" }).notNull().default(true),
   data: text("data", { mode: "json" }).notNull().default("{}"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -55,6 +56,7 @@ export const pgCharacters = pgTable("characters", {
     .notNull()
     .references(() => pgUsers.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
+  autoSave: boolean("auto_save").notNull().default(true),
   data: jsonb("data").notNull().default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

@@ -7,8 +7,10 @@ import { syncInventoryToStacks } from "@/lib/character/modifier-sync";
 
 type CharacterStore = {
   character: CharacterData | null;
+  autoSave: boolean;
   isDirty: boolean;
-  setCharacter: (data: CharacterData) => void;
+  setCharacter: (data: CharacterData, autoSave?: boolean) => void;
+  setAutoSave: (value: boolean) => void;
   clearCharacter: () => void;
   updateIdentityField: (field: keyof CharacterData["identity"], value: string | number) => void;
   updateAttributeBase: (attr: AttributeKey, value: number) => void;
@@ -40,17 +42,26 @@ type CharacterStore = {
 export const useCharacterStore = create<CharacterStore>()(
   immer((set) => ({
     character: null,
+    autoSave: true,
     isDirty: false,
 
-    setCharacter: (data) =>
+    setCharacter: (data, autoSave) =>
       set((state) => {
         state.character = data;
+        if (autoSave !== undefined) state.autoSave = autoSave;
         state.isDirty = false;
+      }),
+
+    setAutoSave: (value) =>
+      set((state) => {
+        state.autoSave = value;
+        state.isDirty = true;
       }),
 
     clearCharacter: () =>
       set((state) => {
         state.character = null;
+        state.autoSave = true;
         state.isDirty = false;
       }),
 

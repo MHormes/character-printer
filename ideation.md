@@ -431,30 +431,63 @@ The **Canvas** is the layout engine that transforms data from the Forge into a p
 
 ### 11.1 The Grid-Based Workspace
 
-- **Print-Safe Boundaries:** Represents physical paper (A4/Letter) with "Safe Zones" for home printers.
-- **Fixed-Column Grid:** The canvas uses a **12 or 24 column fixed grid**. This ensures that the layout remains consistent and predictable when scaling from the web preview to the final print output.
-- **Snap-to-Grid:** Background grid for widget alignment with adjustable sensitivity.
-- **Multi-Page Support:** Ability to add multiple pages for overflow or dedicated sections (e.g., a full page for Spells).
+- **A4 Paper Bounds:** The canvas represents a single A4 page (210 × 297 mm, portrait). The on-screen preview maintains the exact `210/297` aspect ratio so WYSIWYG holds for printing.
+- **Adjustable Grid:** The user sets the number of columns via the Grid control. Rows are derived automatically as `ceil(cols × 297/210)` to guarantee square cells. Default: 20 cols → 29 rows.
+- **Grid Coordinates:** All widget positions are stored as `(col, row)` integer pairs (0-indexed), not pixels. Cell size in pixels = `canvasWidth / cols` and `canvasHeight / rows` (always equal due to square cells).
+- **Snap-to-Grid:** Widgets always snap to the nearest grid cell on drop. No free-float positioning.
+- **Print Output:** The browser `@media print` rule forces `#print-canvas` to fill the A4 page exactly. `print-color-adjust: exact` ensures grid lines and widget backgrounds render on paper.
 
-### 11.2 The Widget System
+### 11.2 The Widget Palette (Sidebar)
 
-Widgets are UI components linked to Data Forge fields.
+The left 1/4 of the Canvas page is a scrollable **Widget Palette** — a catalogue of tiles that can be dragged onto the grid.
 
-- **Initial Phase (Dedicated Widgets):** We will build specialized components for each Forge section (e.g., `StrWidget`, `SkillsWidget`, `HPWidget`). These are pre-styled and hard-linked to their respective data paths for rapid development.
-- **Future Improvement (Generic/Custom Widgets):** Users will eventually be able to create "Custom Widgets" by choosing a container (Box, Circle, List) and binding it to any data point in the Forge.
-- **Drag-and-Drop:** A palette of widgets categorized by Forge section for easy placement and resizing using **dnd-kit**.
+- **Tile Appearance:** Each palette tile is a compact preview of the widget (label + rough shape), sized to communicate its default grid footprint (e.g., a 1 × 6 tile renders as a tall narrow rectangle).
+- **Categories:** Tiles are grouped by Forge section (Identity, Stats, Skills, Combat, Inventory, etc.).
+- **Initial Phase:** A single generic **Box (1 × 6)** tile is available as a placeholder. It renders as a bordered rectangle with no data binding.
+- **Future Improvement:** Data-linked tiles per Forge section (e.g., `StatsWidget`, `SkillsWidget`, `HPWidget`) are added as those sections are finalized.
 
-### 11.3 Data Sync & "Wipe-Out" Logic
+### 11.3 Drag-and-Drop Placement
 
-- **Live Preview:** Forge updates (e.g., leveling up) reflect instantly on the Canvas.
-- **The "Print Override":** To allow for pencil tracking during play, widgets have a "Print State":
-  - **Calculated:** Prints the current value (e.g., "Max HP: 45").
-  - **Blank/Underlined:** Prints an empty space or underline for manual tracking (e.g., "Current HP: **\_**").
+Implemented with **dnd-kit**.
 
-### 11.4 Layout Templates & Export
+- **Start Drag:** Click-hold on a palette tile. A ghost preview follows the cursor over the grid, snapping to the cell under the pointer.
+- **Drop:** Releasing over the grid places the widget. Its `col` and `row` are set to the top-left corner of the snapped position. If the widget footprint would overflow the grid bounds it is clamped to fit.
+- **Already-Placed Widgets:** Can be picked up and repositioned by click-dragging from the grid. Locked widgets are immune to drag.
+- **Collision:** No collision detection in the initial phase — widgets can overlap. Future improvement: optional overlap prevention.
 
-- **Templates:** Supports pre-designed global layouts and user-created presets.
-- **Exporting:** High-quality PDF generation or direct browser printing.
+### 11.4 Widget State
+
+Each placed widget carries the following runtime state (persisted in the `canvas` JSON blob):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | uuid | Unique instance identifier |
+| `type` | enum | Widget kind (`Box`, `StatsWidget`, …) |
+| `col` | integer | Left edge column (0-indexed) |
+| `row` | integer | Top edge row (0-indexed) |
+| `w` | integer | Width in grid columns |
+| `h` | integer | Height in grid rows |
+| `rotation` | 0 \| 90 \| 180 \| 270 | Clockwise degrees. When 90° or 270°, the effective footprint swaps `w` and `h` for collision and bounds checking. |
+| `locked` | boolean | When `true`, drag is disabled. Rotation and other controls remain accessible. |
+| `printState` | `Calculated` \| `Blank` | Controls printed output: `Calculated` shows the live data value; `Blank` prints an empty line for pencil tracking. |
+
+### 11.5 Per-Widget Controls
+
+Clicking a placed widget **selects** it and surfaces an inline toolbar:
+
+- **Rotate (CW):** Cycles `rotation` through 0 → 90 → 180 → 270 → 0. Icon: `RotateCw`.
+- **Lock / Unlock:** Toggles `locked`. When locked, a `Lock` icon is shown on the widget body itself as a persistent visual indicator. Icon: `Lock` / `Unlock`.
+- **Delete:** Removes the widget from the canvas. Only available when unlocked.
+
+### 11.6 Data Sync & Print State
+
+- **Live Preview:** Forge updates (e.g., leveling up) reflect instantly on the Canvas for data-linked widgets.
+- **Print State Toggle:** Per-widget control to switch between `Calculated` (prints current value) and `Blank` (prints underline for pencil tracking).
+
+### 11.7 Layout Templates & Export
+
+- **Templates:** Pre-designed global layouts and user-created presets (future).
+- **Exporting:** Direct browser `window.print()` targeting `#print-canvas` with `@page { size: A4 portrait; margin: 0 }`. Future: high-quality PDF via headless Chrome.
 
 ---
 
@@ -624,17 +657,20 @@ The following structure represents the single JSON object stored in the database
     ]
   },
   "canvas": {
+    "cols": 20,
     "pages": [
       {
         "id": "uuid",
         "widgets": [
           {
             "id": "uuid",
-            "type": "StrWidget|HPWidget|etc",
-            "x": 0,
-            "y": 0,
+            "type": "Box|StatsWidget|HPWidget|etc",
+            "col": 0,
+            "row": 0,
             "w": 1,
-            "h": 1,
+            "h": 6,
+            "rotation": 0,
+            "locked": false,
             "printState": "Calculated|Blank"
           }
         ]

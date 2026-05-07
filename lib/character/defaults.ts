@@ -90,6 +90,7 @@ export function createDefaultCharacter(id: string): CharacterData {
       list: [],
     },
     canvas: {
+      cols: 20,
       pages: [{ id: `${id}-page-1`, widgets: [] }],
     },
   }

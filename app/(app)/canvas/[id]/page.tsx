@@ -1,10 +1,14 @@
 "use client"
 
-import { use, useState } from "react"
+import { use, useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { ArrowLeft, Hammer, Grid3x3, Printer } from "lucide-react"
-import { buttonVariants } from "@/components/ui/button"
+import { ArrowLeft, Hammer, Grid3x3, Printer, Loader2, Check, Save } from "lucide-react"
+import { buttonVariants, Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { CanvasArea } from "@/components/canvas/canvas-area"
+import { useCanvasStore } from "@/lib/store/canvas-store"
+import { useCharacterStore } from "@/lib/store/character-store"
+import { loadCharacter, saveCharacter } from "@/lib/actions/character"
 
 export default function CanvasPage({
   params,
@@ -12,9 +16,101 @@ export default function CanvasPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
-  const [cols, setCols] = useState(20)
-  const [rows, setRows] = useState(15)
   const [showGridConfig, setShowGridConfig] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const cols = useCanvasStore((s) => s.cols)
+  const setCols = useCanvasStore((s) => s.setCols)
+  const widgets = useCanvasStore((s) => s.widgets)
+  const setCanvasData = useCanvasStore((s) => s.setCanvasData)
+
+  const setCharacter = useCharacterStore((s) => s.setCharacter)
+  const clearCharacter = useCharacterStore((s) => s.clearCharacter)
+  const character = useCharacterStore((s) => s.character)
+  const autoSave = useCharacterStore((s) => s.autoSave)
+  const setAutoSave = useCharacterStore((s) => s.setAutoSave)
+
+  const rows = Math.ceil((cols * 297) / 210)
+
+  useEffect(() => {
+    clearCharacter()
+    loadCharacter(id).then((res) => {
+      if (res) {
+        setCharacter(res.data, res.autoSave)
+        setCanvasData(res.data.canvas.cols || 20, res.data.canvas.pages[0]?.widgets || [])
+      }
+    })
+  }, [id, clearCharacter, setCharacter, setCanvasData])
+
+  // Auto-save on canvas change with 1.5s debounce
+  useEffect(() => {
+    if (!character || !autoSave) return
+    
+    // Create updated character data with current canvas state
+    const updatedCharacter = {
+      ...character,
+      canvas: {
+        ...character.canvas,
+        cols,
+        pages: character.canvas.pages.map((p, i) => i === 0 ? { ...p, widgets } : p)
+      }
+    }
+
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    setSaveStatus("saving")
+    saveTimer.current = setTimeout(async () => {
+      await saveCharacter(id, updatedCharacter, autoSave)
+      setSaveStatus("saved")
+      setTimeout(() => setSaveStatus("idle"), 2000)
+    }, 1500)
+
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
+  }, [widgets, cols, autoSave, id]) // Note: intentionally not depending on 'character' to avoid loops if character is updated elsewhere
+
+  async function handleSave() {
+    if (!character) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    
+    const updatedCharacter = {
+      ...character,
+      canvas: {
+        ...character.canvas,
+        cols,
+        pages: character.canvas.pages.map((p, i) => i === 0 ? { ...p, widgets } : p)
+      }
+    }
+
+    setSaveStatus("saving")
+    await saveCharacter(id, updatedCharacter, autoSave)
+    setSaveStatus("saved")
+    setTimeout(() => setSaveStatus("idle"), 2000)
+  }
+
+  async function handleToggleAutoSave(checked: boolean) {
+    setAutoSave(checked)
+    if (character) {
+      const updatedCharacter = {
+        ...character,
+        canvas: {
+          ...character.canvas,
+          cols,
+          pages: character.canvas.pages.map((p, i) => i === 0 ? { ...p, widgets } : p)
+        }
+      }
+      await saveCharacter(id, updatedCharacter, checked)
+    }
+  }
+
+  if (!character) {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      </main>
+    )
+  }
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
@@ -32,17 +128,50 @@ export default function CanvasPage({
             href={`/forge/${id}`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            <Hammer />
+            <Hammer className="size-4" />
             Open Forge
           </Link>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
+            <input
+              type="checkbox"
+              checked={autoSave}
+              onChange={(e) => handleToggleAutoSave(e.target.checked)}
+              className="h-3.5 w-3.5 accent-foreground"
+            />
+            Auto-save
+          </label>
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {saveStatus === "saving" && (
+              <>
+                <Loader2 className="size-3 animate-spin" />
+                Saving…
+              </>
+            )}
+            {saveStatus === "saved" && (
+              <>
+                <Check className="size-3 text-green-600" />
+                Saved
+              </>
+            )}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSave}
+            disabled={saveStatus === "saving"}
+          >
+            <Save className="size-4" />
+            Save
+          </Button>
+          <div className="h-4 w-px bg-border mx-1" />
           <button
             type="button"
             onClick={() => setShowGridConfig((v) => !v)}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            <Grid3x3 />
+            <Grid3x3 className="size-4" />
             Grid
           </button>
           <button
@@ -50,49 +179,27 @@ export default function CanvasPage({
             onClick={() => window.print()}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            <Printer />
+            <Printer className="size-4" />
             Print
           </button>
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <aside className="w-1/4 shrink-0 overflow-y-auto border-r border-border bg-section p-4" />
-
-        <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-muted/30 p-8">
-          {showGridConfig && (
-            <div className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-lg border border-border bg-card p-3 shadow-sm">
-              <span className="text-xs text-muted-foreground">Columns</span>
-              <Input
-                type="number"
-                min={1}
-                value={cols}
-                onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))}
-                className="h-7 w-16 text-xs"
-              />
-              <span className="text-xs text-muted-foreground">Rows</span>
-              <Input
-                type="number"
-                min={1}
-                value={rows}
-                onChange={(e) => setRows(Math.max(1, parseInt(e.target.value) || 1))}
-                className="h-7 w-16 text-xs"
-              />
-            </div>
-          )}
-          <div
-            id="print-canvas"
-            className="aspect-[210/297] h-full max-w-full bg-card shadow-lg"
-            style={{
-              backgroundImage: [
-                "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
-                "linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)",
-              ].join(", "),
-              backgroundSize: `${100 / cols}% ${100 / rows}%`,
-            }}
+      {showGridConfig && (
+        <div className="flex shrink-0 items-center gap-2 border-b border-border bg-section px-6 py-2">
+          <span className="text-xs text-muted-foreground">Columns</span>
+          <Input
+            type="number"
+            min={1}
+            value={cols}
+            onChange={(e) => setCols(Math.max(1, parseInt(e.target.value) || 1))}
+            className="h-7 w-16 text-xs"
           />
+          <span className="text-xs text-muted-foreground">{rows} rows</span>
         </div>
-      </div>
+      )}
+
+      <CanvasArea />
     </div>
   )
 }

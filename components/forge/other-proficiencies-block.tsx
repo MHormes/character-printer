@@ -118,7 +118,7 @@ export function OtherProficienciesBlock({
               <select
                 value={prof.category}
                 onChange={(e) => handleCategoryChange(prof, e.target.value as OtherProficiency["category"])}
-                className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+                className="h-6 min-w-0 flex-[2] rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
               >
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -145,13 +145,13 @@ export function OtherProficienciesBlock({
                       const val = e.target.value
                       update(prof.id, { stat: val === "" ? null : val as AttributeKey })
                     }}
-                    className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+                    className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
                   >
                     <option value="">—</option>
                     {ATTR_KEYS.map((k) => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
                   </select>
 
-                  <div className="relative w-10 shrink-0">
+                  <div className="relative min-w-[3rem] flex-1">
                     <input
                       type="text"
                       inputMode="numeric"

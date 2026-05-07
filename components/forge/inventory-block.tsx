@@ -120,9 +120,9 @@ export function InventoryBlock({ inventory, onChange }: InventoryBlockProps) {
       {/* Header row */}
       <div className="flex items-center gap-2 px-2 text-xs text-muted-foreground">
         <div className="size-5 shrink-0" />
-        <span className="min-w-0 flex-1">Name</span>
-        <span className="w-16 shrink-0 text-center">Weight</span>
-        <span className="w-28 shrink-0">Category</span>
+        <span className="min-w-0 flex-[3]">Name</span>
+        <span className="min-w-[4rem] flex-1 text-center">Weight</span>
+        <span className="min-w-[7rem] flex-[2]">Category</span>
         <div className="size-5 shrink-0" />
         <div className="size-5 shrink-0" />
       </div>
@@ -153,7 +153,7 @@ export function InventoryBlock({ inventory, onChange }: InventoryBlockProps) {
                 value={item.name}
                 placeholder="Item name"
                 onChange={(e) => patch(item.id, { name: e.target.value })}
-                className={cn("h-7 min-w-0 flex-1 text-xs", item.equipped && "font-medium")}
+                className={cn("h-7 min-w-0 flex-[3] text-xs", item.equipped && "font-medium")}
               />
 
               {/* Weight */}
@@ -175,14 +175,14 @@ export function InventoryBlock({ inventory, onChange }: InventoryBlockProps) {
                   const n = parseFloat(e.target.value)
                   patch(item.id, { weight: isNaN(n) ? 0 : n })
                 }}
-                className="h-7 w-16 shrink-0 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
+                className="h-7 min-w-[4rem] flex-1 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
               />
 
               {/* Category */}
               <select
                 value={item.category}
                 onChange={(e) => patch(item.id, { category: e.target.value as InventoryItem["category"] })}
-                className="h-7 w-28 shrink-0 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+                className="h-7 min-w-[7rem] flex-[2] rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
               >
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
