@@ -7,14 +7,15 @@ export function FullPageFeaturesWidget() {
   if (!character) return null;
 
   return (
-    <div className="h-full w-full overflow-y-auto p-6">
-      <h2 className="mb-6 text-2xl font-bold">FEATURES & TRAITS</h2>
-      <div className="grid grid-cols-3 gap-x-8 gap-y-4 text-xs leading-relaxed">
+    <div className="h-full w-full overflow-y-auto p-4 print:h-auto print:overflow-visible">
+      <h2 className="mb-3 text-base font-bold tracking-wide text-center ">
+        FEATURES & TRAITS
+      </h2>
+      <div className="columns-3 gap-5 text-xs leading-snug">
         {character.features.map((f) => (
-          <div key={f.id} className="break-inside-avoid">
+          <div key={f.id} className="break-inside-avoid mb-2.5">
             <h3 className="font-bold">{f.name}</h3>
-            <p className="italic text-muted-foreground">{f.source}</p>
-            <p className="mt-1">{f.description}</p>
+            <p className="mt-0.5">{f.description}</p>
           </div>
         ))}
       </div>

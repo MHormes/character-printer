@@ -26,7 +26,7 @@ export function TempHpWidget() {
         letterSpacing="0.3"
         fill="#1a1208"
       >
-        TEMPORARY HP
+        TEMP HP
       </text>
     </svg>
   );

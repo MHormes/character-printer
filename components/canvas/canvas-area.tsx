@@ -26,6 +26,7 @@ import { slimAttacksSvgH } from "@/components/canvas/widgets/slim-attacks-widget
 import { equipmentSvgH } from "@/components/canvas/widgets/equipment-widget";
 import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
 import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
+import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
 
 const centerOnCursor: Modifier = ({
   activatorEvent,
@@ -63,6 +64,7 @@ type ActiveData = {
   w?: number;
   h?: number;
   widgetId?: string;
+  fullPage?: boolean;
 };
 
 const SLIM_W = 10;
@@ -167,6 +169,13 @@ export function CanvasArea() {
     ),
   );
 
+  const spellLevelH = (level: number) => {
+    const count = character?.spells.list.filter((s) => s.level === level).length ?? 0;
+    return Math.max(3, Math.round(
+      (spellLevelSvgH(count) * 8 * rows * 210) / (cols * 297 * 120),
+    ));
+  };
+
   const PALETTE_ITEMS = [
     { type: "CharacterName" as const, label: "Character Name", w: 15, h: 3 },
     {
@@ -229,6 +238,43 @@ export function CanvasArea() {
     { type: "Features" as const, label: "Features", w: 6, h: featuresH },
   ];
 
+  const FULL_PAGE_ITEMS = [
+    {
+      type: "FullPageSpellSheet" as const,
+      label: "Full Spell Sheet",
+      fullPage: true as const,
+    },
+    {
+      type: "FullPageFeatures" as const,
+      label: "Full Feature Description",
+      fullPage: true as const,
+    },
+    {
+      type: "FullPageSpells" as const,
+      label: "Full Spell Cards",
+      fullPage: true as const,
+    },
+  ];
+
+  const SPELL_PALETTE_ITEMS = [
+    { type: "SpellcastingInfo" as const, label: "Casting Info", w: 18, h: 3 },
+    {
+      type: "SpellLevel0" as const,
+      label: "Cantrips",
+      w: 8,
+      h: spellLevelH(0),
+    },
+    { type: "SpellLevel1" as const, label: "Level 1", w: 8, h: spellLevelH(1) },
+    { type: "SpellLevel2" as const, label: "Level 2", w: 8, h: spellLevelH(2) },
+    { type: "SpellLevel3" as const, label: "Level 3", w: 8, h: spellLevelH(3) },
+    { type: "SpellLevel4" as const, label: "Level 4", w: 8, h: spellLevelH(4) },
+    { type: "SpellLevel5" as const, label: "Level 5", w: 8, h: spellLevelH(5) },
+    { type: "SpellLevel6" as const, label: "Level 6", w: 8, h: spellLevelH(6) },
+    { type: "SpellLevel7" as const, label: "Level 7", w: 8, h: spellLevelH(7) },
+    { type: "SpellLevel8" as const, label: "Level 8", w: 8, h: spellLevelH(8) },
+    { type: "SpellLevel9" as const, label: "Level 9", w: 8, h: spellLevelH(9) },
+  ];
+
   const gridDomRef = useRef<HTMLDivElement>(null);
   const [activeData, setActiveData] = useState<ActiveData | null>(null);
 
@@ -272,6 +318,21 @@ export function CanvasArea() {
         midY > gridRect.bottom
       )
         return;
+
+      if (data.fullPage) {
+        addWidget({
+          type: data.type as WidgetType,
+          col: 0,
+          row: 0,
+          w: cols,
+          h: rows,
+          rotation: 0,
+          locked: false,
+          printState: "Calculated",
+        });
+        return;
+      }
+
       const w = data.w ?? 1;
       const h = data.h ?? 1;
       const dropCol = Math.max(
@@ -327,10 +388,26 @@ export function CanvasArea() {
         {/* Sidebar palette */}
         <aside className="w-1/4 shrink-0 overflow-y-auto border-r border-border bg-section p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Full Page
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {FULL_PAGE_ITEMS.map((item) => (
+              <PaletteTile key={item.type} {...item} />
+            ))}
+          </div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground pt-1">
             Elements
           </p>
           <div className="grid grid-cols-3 gap-2">
             {PALETTE_ITEMS.map((item) => (
+              <PaletteTile key={item.type} {...item} />
+            ))}
+          </div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground pt-1">
+            Spells
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {SPELL_PALETTE_ITEMS.map((item) => (
               <PaletteTile key={item.type} {...item} />
             ))}
           </div>
@@ -424,24 +501,49 @@ export function CanvasArea() {
         {mounted &&
           createPortal(
             <div id="print-all-pages">
-              {pages.map((page) => (
-                <div key={page.id} className="print-page">
-                  {page.widgets.map((widget) => (
-                    <PlacedWidget
-                      key={widget.id}
-                      widget={widget}
-                      cols={cols}
-                      rows={rows}
-                      selected={false}
-                      printMode
-                      onSelect={() => {}}
-                      onRotate={() => {}}
-                      onToggleLock={() => {}}
-                      onDelete={() => {}}
-                    />
-                  ))}
-                </div>
-              ))}
+              {pages.map((page) => {
+                const fullPageWidget = page.widgets.find(
+                  (w) =>
+                    w.type === "FullPageFeatures" ||
+                    w.type === "FullPageSpells" ||
+                    w.type === "FullPageSpellSheet",
+                );
+                if (fullPageWidget) {
+                  return (
+                    <div key={page.id} className="full-page-print">
+                      <PlacedWidget
+                        widget={fullPageWidget}
+                        cols={cols}
+                        rows={rows}
+                        selected={false}
+                        printMode
+                        onSelect={() => {}}
+                        onRotate={() => {}}
+                        onToggleLock={() => {}}
+                        onDelete={() => {}}
+                      />
+                    </div>
+                  );
+                }
+                return (
+                  <div key={page.id} className="print-page">
+                    {page.widgets.map((widget) => (
+                      <PlacedWidget
+                        key={widget.id}
+                        widget={widget}
+                        cols={cols}
+                        rows={rows}
+                        selected={false}
+                        printMode
+                        onSelect={() => {}}
+                        onRotate={() => {}}
+                        onToggleLock={() => {}}
+                        onDelete={() => {}}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
             </div>,
             document.body,
           )}
@@ -451,10 +553,14 @@ export function CanvasArea() {
         {activeData?.source === "palette" && (
           <div
             className="rounded border-2 border-primary bg-card/80 opacity-80"
-            style={{
-              width: `${(activeData.w ?? 1) * 32}px`,
-              height: `${(activeData.h ?? 1) * 32}px`,
-            }}
+            style={
+              activeData.fullPage
+                ? { width: "80px", height: "113px" }
+                : {
+                    width: `${(activeData.w ?? 1) * 32}px`,
+                    height: `${(activeData.h ?? 1) * 32}px`,
+                  }
+            }
           />
         )}
         {activeWidget && (

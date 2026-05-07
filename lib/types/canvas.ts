@@ -6,7 +6,11 @@ export type WidgetType =
   | "ArmorClass" | "Initiative" | "Speed"
   | "CurrentHp" | "TempHp" | "HitDice" | "DeathSaves"
   | "Attacks" | "SlimAttacks" | "Equipment"
-  | "Trackers" | "Features"
+  | "Trackers" | "Features" | "FullPageFeatures" | "FullPageSpells"
+  | "SpellcastingInfo"
+  | "SpellLevel0" | "SpellLevel1" | "SpellLevel2" | "SpellLevel3" | "SpellLevel4"
+  | "SpellLevel5" | "SpellLevel6" | "SpellLevel7" | "SpellLevel8" | "SpellLevel9"
+  | "FullPageSpellSheet"
   | "CharacterName" | "CharacterInfoDetailed" | "CharacterInfoCompact" | "CharacterAppearance"
 export type Rotation = 0 | 90 | 180 | 270
 export type PrintState = "Calculated" | "Blank"

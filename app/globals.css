@@ -173,4 +173,18 @@
     break-after: auto;
     page-break-after: auto;
   }
+
+  .full-page-print {
+    width: 210mm;
+    background: white !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .full-page-print:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
 }

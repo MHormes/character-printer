@@ -174,7 +174,7 @@ export default function CanvasPage({
       </header>
 
       {showGridConfig && (
-        <div className="flex shrink-0 items-center gap-2 border-b border-border bg-section px-6 py-2">
+        <div className="flex shrink-0 items-center justify-end gap-2 border-b border-border bg-section px-6 py-2">
           <span className="text-xs text-muted-foreground">Columns</span>
           <Input
             type="number"
