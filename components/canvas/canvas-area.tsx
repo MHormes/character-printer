@@ -16,9 +16,13 @@ import {
 } from "@dnd-kit/core";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useCharacterStore } from "@/lib/store/character-store";
-import type { WidgetType } from "@/lib/types/canvas";
+import type { CanvasWidget, WidgetType } from "@/lib/types/canvas";
 import { PaletteTile } from "@/components/canvas/palette-tile";
 import { PlacedWidget } from "@/components/canvas/placed-widget";
+import {
+  SPELL_CARD_GRID_H,
+  SPELL_CARD_GRID_W,
+} from "@/components/canvas/widgets/spell-card-widget";
 import { slimToolSvgH } from "@/components/canvas/widgets/slim-tool-prof-widget";
 import { slimOtherSvgH } from "@/components/canvas/widgets/slim-other-prof-widget";
 import { attacksSvgH } from "@/components/canvas/widgets/attacks-widget";
@@ -26,7 +30,9 @@ import { slimAttacksSvgH } from "@/components/canvas/widgets/slim-attacks-widget
 import { equipmentSvgH } from "@/components/canvas/widgets/equipment-widget";
 import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
 import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
+import { featureCardGridH } from "@/components/canvas/widgets/feature-card-widget";
 import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
+import { FullPageMainWidget } from "@/components/canvas/widgets/full-page-main-widget";
 
 const centerOnCursor: Modifier = ({
   activatorEvent,
@@ -271,6 +277,7 @@ export function CanvasArea() {
     selectedId,
     addWidget,
     addWidgets,
+    addWidgetsMultiPage,
     moveWidget,
     rotateWidget,
     toggleLock,
@@ -432,12 +439,18 @@ export function CanvasArea() {
     // Trackers & features
     { type: "Trackers" as const, label: "Trackers", w: 6, h: trackersH },
     { type: "Features" as const, label: "Features", w: 6, h: featuresH },
+    { type: "FeatureCard" as const, label: "Feature Card", w: 9, h: 5 },
   ];
 
   const FULL_PAGE_ITEMS = [
     {
       type: "TemplatePage1" as const,
       label: "Template: Main Sheet",
+      fullPage: true as const,
+    },
+    {
+      type: "FullPageMain" as const,
+      label: "Complete: Main Sheet",
       fullPage: true as const,
     },
     {
@@ -451,19 +464,34 @@ export function CanvasArea() {
       fullPage: true as const,
     },
     {
+      type: "TemplateFeatures" as const,
+      label: "Template: Features",
+      fullPage: true as const,
+    },
+    {
       type: "FullPageFeatures" as const,
-      label: "Full Feature Description",
+      label: "Complete: Features",
+      fullPage: true as const,
+    },
+    {
+      type: "TemplateSpellCards" as const,
+      label: "Template: Spell Cards",
       fullPage: true as const,
     },
     {
       type: "FullPageSpells" as const,
-      label: "Full Spell Cards",
+      label: "Complete: Spell Cards",
       fullPage: true as const,
     },
   ];
 
   const SPELL_PALETTE_ITEMS = [
-    { type: "SpellCard" as const, label: "Spell Card", w: 6, h: 8 },
+    {
+      type: "SpellCard" as const,
+      label: "Spell Card",
+      w: SPELL_CARD_GRID_W,
+      h: SPELL_CARD_GRID_H,
+    },
     { type: "SpellcastingInfo" as const, label: "Casting Info", w: 18, h: 3 },
     {
       type: "SpellLevel0" as const,
@@ -581,6 +609,84 @@ export function CanvasArea() {
         return;
       }
 
+      if (data.type === "TemplateSpellCards") {
+        const spells = character?.spells.list ?? [];
+        if (spells.length === 0) return;
+
+        const CARD_W = SPELL_CARD_GRID_W;
+        const CARD_H = SPELL_CARD_GRID_H;
+        const perRow = Math.floor(cols / CARD_W);
+        const rowsPerPage = Math.floor(rows / CARD_H);
+        const perPage = perRow * rowsPerPage;
+
+        const pageWidgets: Omit<CanvasWidget, "id">[][] = [];
+        for (let i = 0; i < spells.length; i += perPage) {
+          const chunk = spells.slice(i, i + perPage);
+          pageWidgets.push(
+            chunk.map((spell, j) => ({
+              type: "SpellCard" as WidgetType,
+              col: (j % perRow) * CARD_W,
+              row: Math.floor(j / perRow) * CARD_H,
+              w: CARD_W,
+              h: CARD_H,
+              rotation: 0 as const,
+              locked: false,
+              printState: "Calculated" as const,
+              spellId: spell.id,
+            })),
+          );
+        }
+        addWidgetsMultiPage(pageWidgets);
+        return;
+      }
+
+      if (data.type === "TemplateFeatures") {
+        const features = character?.features ?? [];
+        if (features.length === 0) return;
+
+        // 3 columns: col 0, 10, 20 — each 9 wide (last capped at page edge)
+        const COL_STARTS = [0, 10, 20];
+        const CARD_W = 9;
+
+        const pageWidgets: Omit<CanvasWidget, "id">[][] = [];
+        let currentPage: Omit<CanvasWidget, "id">[] = [];
+        let currentCol = 0;
+        let currentRow = 0;
+
+        for (const feature of features) {
+          const cardW = Math.min(CARD_W, cols - COL_STARTS[currentCol]);
+          const h = Math.min(featureCardGridH(feature.description, cardW, cols, rows), rows);
+
+          if (currentRow + h > rows) {
+            // Column full — advance to next column
+            currentCol++;
+            currentRow = 0;
+            if (currentCol >= COL_STARTS.length) {
+              // All columns full — new page
+              pageWidgets.push(currentPage);
+              currentPage = [];
+              currentCol = 0;
+            }
+          }
+
+          currentPage.push({
+            type: "FeatureCard" as WidgetType,
+            col: COL_STARTS[currentCol],
+            row: currentRow,
+            w: Math.min(CARD_W, cols - COL_STARTS[currentCol]),
+            h,
+            rotation: 0 as const,
+            locked: false,
+            printState: "Calculated" as const,
+            featureId: feature.id,
+          });
+          currentRow += h;
+        }
+        if (currentPage.length > 0) pageWidgets.push(currentPage);
+        addWidgetsMultiPage(pageWidgets);
+        return;
+      }
+
       if (data.fullPage) {
         addWidget({
           type: data.type as WidgetType,
@@ -646,9 +752,9 @@ export function CanvasArea() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex min-h-0 items-start overflow-visible">
         {/* Sidebar palette */}
-        <aside className="w-1/4 shrink-0 overflow-y-auto border-r border-border bg-section p-4 space-y-3">
+        <aside className="sticky top-0 h-screen w-1/4 shrink-0 self-start overflow-y-auto border-r border-border bg-section p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Full Page
           </p>
@@ -676,7 +782,7 @@ export function CanvasArea() {
         </aside>
 
         {/* Canvas column */}
-        <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col">
           {/* Page actions bar — top right */}
           <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border bg-section px-3 py-1">
             <button
@@ -701,13 +807,13 @@ export function CanvasArea() {
 
           {/* Canvas display with floating nav arrows */}
           <div
-            className="relative flex flex-1 items-center justify-center overflow-hidden bg-muted/30 p-8"
+            className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center bg-muted/30 p-8"
             onClick={() => setSelected(null)}
           >
             <div
               id="canvas-editor"
               ref={setGridRef}
-              className="aspect-[210/297] h-full max-w-full relative bg-card shadow-lg overflow-hidden"
+              className="relative aspect-[210/297] w-full max-w-5xl overflow-hidden bg-card shadow-lg"
               style={{
                 backgroundImage: [
                   "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
@@ -766,6 +872,7 @@ export function CanvasArea() {
               {pages.map((page) => {
                 const fullPageWidget = page.widgets.find(
                   (w) =>
+                    w.type === "FullPageMain" ||
                     w.type === "FullPageFeatures" ||
                     w.type === "FullPageSpells" ||
                     w.type === "FullPageSpellSheet",

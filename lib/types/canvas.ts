@@ -6,7 +6,8 @@ export type WidgetType =
   | "ArmorClass" | "Initiative" | "Speed"
   | "CurrentHp" | "TempHp" | "HitDice" | "DeathSaves"
   | "Attacks" | "SlimAttacks" | "Equipment"
-  | "Trackers" | "Features" | "FullPageFeatures" | "FullPageSpells" | "FullPageMain"
+  | "Trackers" | "Features" | "FeatureCard"
+  | "FullPageFeatures" | "FullPageSpells" | "FullPageMain"
   | "SpellcastingInfo"
   | "SpellLevel0" | "SpellLevel1" | "SpellLevel2" | "SpellLevel3" | "SpellLevel4"
   | "SpellLevel5" | "SpellLevel6" | "SpellLevel7" | "SpellLevel8" | "SpellLevel9"
@@ -15,6 +16,8 @@ export type WidgetType =
   | "SpellCard"
   | "TemplatePage1"
   | "TemplatePage2"
+  | "TemplateSpellCards"
+  | "TemplateFeatures"
 export type Rotation = 0 | 90 | 180 | 270
 export type PrintState = "Calculated" | "Blank"
 
@@ -28,4 +31,6 @@ export type CanvasWidget = {
   rotation: Rotation
   locked: boolean
   printState: PrintState
+  spellId?: string
+  featureId?: string
 }

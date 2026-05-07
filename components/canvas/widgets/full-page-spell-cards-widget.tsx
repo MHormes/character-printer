@@ -17,10 +17,12 @@ export function FullPageSpellCardWidget() {
   }
 
   return (
-    <div className="h-full w-full overflow-y-auto p-4 print:h-auto print:overflow-visible">
-      <div className="grid grid-cols-4 gap-3">
+    <div className="h-full w-full overflow-y-auto print:h-auto print:overflow-visible">
+      <div className="grid grid-cols-4 gap-x-0 gap-y-3">
         {spells.map((spell) => (
-          <SpellCardSvg key={spell.id} spell={spell} />
+          <div key={spell.id} className="break-inside-avoid">
+            <SpellCardSvg spell={spell} />
+          </div>
         ))}
       </div>
     </div>

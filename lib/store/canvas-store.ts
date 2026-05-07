@@ -18,11 +18,13 @@ type CanvasStore = {
   setPage: (index: number) => void
   addWidget: (w: Omit<CanvasWidget, "id">) => void
   addWidgets: (ws: Omit<CanvasWidget, "id">[]) => void
+  addWidgetsMultiPage: (pageWidgets: Omit<CanvasWidget, "id">[][]) => void
   moveWidget: (id: string, col: number, row: number) => void
   rotateWidget: (id: string) => void
   toggleLock: (id: string) => void
   removeWidget: (id: string) => void
   setSelected: (id: string | null) => void
+  updateWidgetData: (id: string, data: { spellId?: string; featureId?: string; w?: number; h?: number }) => void
 }
 
 function patchPage(
@@ -77,6 +79,27 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
     ])
   ),
 
+  addWidgetsMultiPage: (pageWidgets) => set((s) => {
+    if (pageWidgets.length === 0) return s
+    const [first, ...rest] = pageWidgets
+    const patched = patchPage(s.pages, s.currentPageIndex, (ws) => [
+      ...ws,
+      ...first.map((w) => ({ ...w, id: crypto.randomUUID() })),
+    ])
+    if (rest.length === 0) return patched
+    const insertAt = s.currentPageIndex + 1
+    const newPages = rest.map((chunk) => ({
+      id: crypto.randomUUID(),
+      widgets: chunk.map((w) => ({ ...w, id: crypto.randomUUID() })),
+    }))
+    const pages = [
+      ...patched.pages.slice(0, insertAt),
+      ...newPages,
+      ...patched.pages.slice(insertAt),
+    ]
+    return { pages, widgets: pages[s.currentPageIndex].widgets }
+  }),
+
   moveWidget: (id, col, row) => set((s) =>
     patchPage(s.pages, s.currentPageIndex, (ws) =>
       ws.map((w) => (w.id === id ? { ...w, col, row } : w))
@@ -114,4 +137,10 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   })),
 
   setSelected: (selectedId) => set({ selectedId }),
+
+  updateWidgetData: (id, data) => set((s) =>
+    patchPage(s.pages, s.currentPageIndex, (ws) =>
+      ws.map((w) => (w.id === id ? { ...w, ...data } : w))
+    )
+  ),
 }))
