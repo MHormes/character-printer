@@ -7,6 +7,40 @@ import type { CharacterData } from "@/lib/types/character"
 import { eq } from "drizzle-orm"
 import { randomUUID } from "crypto"
 
+function hydrateCharacter(id: string, data: CharacterData): CharacterData {
+  const defaults = createDefaultCharacter(id)
+
+  return {
+    ...defaults,
+    ...data,
+    identity: { ...defaults.identity, ...data.identity },
+    attributes: { ...defaults.attributes, ...data.attributes },
+    saves: { ...defaults.saves, ...data.saves },
+    skills: { ...defaults.skills, ...data.skills },
+    passivePerception: {
+      ...defaults.passivePerception,
+      ...data.passivePerception,
+    },
+    combat: {
+      ...defaults.combat,
+      ...data.combat,
+      ac: { ...defaults.combat.ac, ...data.combat?.ac },
+      initiative: {
+        ...defaults.combat.initiative,
+        ...data.combat?.initiative,
+      },
+      speed: { ...defaults.combat.speed, ...data.combat?.speed },
+      hp: { ...defaults.combat.hp, ...data.combat?.hp },
+    },
+    spells: {
+      ...defaults.spells,
+      ...data.spells,
+      slots: { ...defaults.spells.slots, ...data.spells?.slots },
+    },
+    canvas: { ...defaults.canvas, ...data.canvas },
+  }
+}
+
 export async function createCharacter(userId: string): Promise<{ id: string }> {
   const id = randomUUID()
   const data = createDefaultCharacter(id)
@@ -45,7 +79,7 @@ export async function loadCharacter(id: string): Promise<{ data: CharacterData; 
 
   if (!rows[0]) return null
   return {
-    data: rows[0].data as CharacterData,
+    data: hydrateCharacter(id, rows[0].data as CharacterData),
     autoSave: rows[0].autoSave,
   }
 }

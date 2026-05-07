@@ -24,7 +24,7 @@ type CanvasStore = {
   toggleLock: (id: string) => void
   removeWidget: (id: string) => void
   setSelected: (id: string | null) => void
-  updateWidgetData: (id: string, data: { spellId?: string; featureId?: string; w?: number; h?: number }) => void
+  updateWidgetData: (id: string, data: { spellId?: string; featureId?: string; statId?: string; w?: number; h?: number }) => void
 }
 
 function patchPage(

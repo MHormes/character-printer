@@ -440,6 +440,7 @@ export function CanvasArea() {
     { type: "Trackers" as const, label: "Trackers", w: 6, h: trackersH },
     { type: "Features" as const, label: "Features", w: 6, h: featuresH },
     { type: "FeatureCard" as const, label: "Feature Card", w: 9, h: 5 },
+    { type: "StatBox" as const, label: "Stat Box", w: 3, h: 4 },
   ];
 
   const FULL_PAGE_ITEMS = [

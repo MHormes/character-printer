@@ -47,10 +47,10 @@ export function featureCardGridH(description: string, cardW: number, cols: numbe
 
 const PLACEHOLDER: FeatureEntry = {
   id: "placeholder-feature",
-  name: "Feature Name",
-  source: "",
+  name: "Battle Focus",
+  source: "Sample Feature",
   description:
-    "Feature description text appears here. This widget displays a single feature or trait from your character sheet.",
+    "At the start of a fight, you can steady yourself and read the field. Use this card format for traits, class features, racial features, or magic item abilities that you want visible on the sheet.",
 }
 
 export function FeatureCardSvg({ feature }: { feature: FeatureEntry }) {

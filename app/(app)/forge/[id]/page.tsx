@@ -14,6 +14,7 @@ import { InventoryBlock } from "@/components/forge/inventory-block";
 import { ActionsBlock } from "@/components/forge/actions-block";
 import { FeaturesBlock } from "@/components/forge/features-block";
 import { TrackersBlock } from "@/components/forge/trackers-block";
+import { StatBoxesBlock } from "@/components/forge/stat-boxes-block";
 import { SpellsBlock } from "@/components/forge/spells-block";
 import { ForgeSection } from "@/components/forge/forge-section";
 import {
@@ -35,11 +36,13 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 import type {
   AttributeKey,
-  AttributeData,
   ModifierEntry,
 } from "@/lib/types/character";
 
-import { resolvePb, resolveAttributeMod } from "@/lib/character/calculations";
+import {
+  resolvePb,
+  resolveAttributeMod,
+} from "@/lib/character/calculations";
 
 const ATTRIBUTE_KEYS: AttributeKey[] = [
   "str",
@@ -94,6 +97,12 @@ export default function ForgePage({
   const setGlobalSaveStack = useCharacterStore((s) => s.setGlobalSaveStack);
   const setSkillState = useCharacterStore((s) => s.setSkillState);
   const setSkillOverride = useCharacterStore((s) => s.setSkillOverride);
+  const setPassivePerceptionStack = useCharacterStore(
+    (s) => s.setPassivePerceptionStack,
+  );
+  const setPassivePerceptionOverride = useCharacterStore(
+    (s) => s.setPassivePerceptionOverride,
+  );
   const setClasses = useCharacterStore((s) => s.setClasses);
   const setOtherProficiencies = useCharacterStore(
     (s) => s.setOtherProficiencies,
@@ -108,6 +117,7 @@ export default function ForgePage({
   const setActions = useCharacterStore((s) => s.setActions);
   const setFeatures = useCharacterStore((s) => s.setFeatures);
   const setTrackers = useCharacterStore((s) => s.setTrackers);
+  const setStatBoxes = useCharacterStore((s) => s.setStatBoxes);
   const setSpellCastingStat = useCharacterStore((s) => s.setSpellCastingStat);
   const setSpellSlots = useCharacterStore((s) => s.setSpellSlots);
   const setSpellList = useCharacterStore((s) => s.setSpellList);
@@ -165,6 +175,7 @@ export default function ForgePage({
     saveGlobalStack,
     skills,
     skillGlobalStack,
+    passivePerception,
     jackOfAllTrades,
     otherProficiencies,
     combat,
@@ -172,8 +183,8 @@ export default function ForgePage({
     actions,
     features,
     trackers,
+    statBoxes,
     spells,
-    profBonusStack,
   } = character;
   const pb = resolvePb(character);
 
@@ -543,10 +554,13 @@ export default function ForgePage({
             proficiencyBonus={pb}
             jackOfAllTrades={jackOfAllTrades}
             globalStack={skillGlobalStack}
+            passivePerception={passivePerception}
             onStateChange={setSkillState}
             onOverrideChange={setSkillOverride}
             onJackOfAllTradesChange={setJackOfAllTrades}
             onGlobalStackChange={setGlobalSkillStack}
+            onPassivePerceptionStackChange={setPassivePerceptionStack}
+            onPassivePerceptionOverrideChange={setPassivePerceptionOverride}
           />
         </ForgeSection>
 
@@ -601,6 +615,10 @@ export default function ForgePage({
 
         <ForgeSection title="Trackers" className="flex-1 min-w-0">
           <TrackersBlock trackers={trackers} onChange={setTrackers} />
+        </ForgeSection>
+
+        <ForgeSection title="Custom Stats" className="w-full md:w-72 shrink-0">
+          <StatBoxesBlock statBoxes={statBoxes ?? []} onChange={setStatBoxes} />
         </ForgeSection>
       </div>
 

@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, AttributeData, ModifierEntry, SkillState, CombatData } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
 
 export function sumStack(stack: ModifierEntry[]): number {
   return (stack ?? [])
@@ -112,7 +112,10 @@ export function resolveHpMax(c: CharacterData): number {
 }
 
 export function resolvePassivePerception(c: CharacterData): number {
-  return 10 + resolveSkillBonus(c, "perception", "wis")
+  if (c.passivePerception.override !== null) return c.passivePerception.override
+
+  const stackSum = sumStack(c.passivePerception.stack)
+  return 10 + resolveSkillBonus(c, "perception", "wis") + stackSum
 }
 
 export function resolveSpellDc(c: CharacterData): number {

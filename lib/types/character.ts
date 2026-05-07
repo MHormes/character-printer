@@ -30,6 +30,11 @@ export type SkillData = {
   override: number | null;
 };
 
+export type DerivedValueData = {
+  stack: ModifierEntry[];
+  override: number | null;
+};
+
 export type OtherProficiency = {
   id: string;
   name: string;
@@ -66,6 +71,7 @@ export type ModifierTarget =
   | "skill.investigation" | "skill.medicine" | "skill.nature" | "skill.perception"
   | "skill.performance" | "skill.persuasion" | "skill.religion" | "skill.sleightOfHand"
   | "skill.stealth" | "skill.survival" | "skill.all"
+  | "sense.passivePerception"
   | "combat.ac" | "combat.hp" | "combat.initiative" | "combat.speed"
   | "spell.slots.1" | "spell.slots.2" | "spell.slots.3" | "spell.slots.4" | "spell.slots.5"
   | "spell.slots.6" | "spell.slots.7" | "spell.slots.8" | "spell.slots.9"
@@ -126,6 +132,12 @@ export type TrackerEntry = {
   valueLabel?: string;
 };
 
+export type StatBox = {
+  id: string;
+  title: string;
+  value: string;
+};
+
 export type SpellEntry = {
   id: string;
   name: string;
@@ -176,6 +188,7 @@ export type CharacterData = {
   saveGlobalStack: ModifierEntry[];
   skills: Record<string, SkillData>;
   skillGlobalStack: ModifierEntry[];
+  passivePerception: DerivedValueData;
   jackOfAllTrades: boolean;
   otherProficiencies: OtherProficiency[];
   combat: CombatData;
@@ -184,6 +197,7 @@ export type CharacterData = {
   actions: ActionEntry[];
   features: FeatureEntry[];
   trackers: TrackerEntry[];
+  statBoxes?: StatBox[];
   spells: {
     globalCastingStat: AttributeKey | null;
     attackStack: ModifierEntry[];

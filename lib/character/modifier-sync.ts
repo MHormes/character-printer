@@ -50,6 +50,11 @@ export function syncInventoryToStacks(
   // Global save / skill stacks
   c.saveGlobalStack  = updateStack(c.saveGlobalStack,  get("save.all"),   prefix)
   c.skillGlobalStack = updateStack(c.skillGlobalStack, get("skill.all"),  prefix)
+  c.passivePerception.stack = updateStack(
+    c.passivePerception.stack,
+    get("sense.passivePerception"),
+    prefix,
+  )
 
   // Individual skills
   for (const key of Object.keys(c.skills)) {

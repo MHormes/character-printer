@@ -61,6 +61,10 @@ export function createDefaultCharacter(id: string): CharacterData {
     skills: DEFAULT_SKILLS,
     saveGlobalStack: [],
     skillGlobalStack: [],
+    passivePerception: {
+      stack: [],
+      override: null,
+    },
     jackOfAllTrades: false,
     otherProficiencies: [],
     combat: {
@@ -84,6 +88,7 @@ export function createDefaultCharacter(id: string): CharacterData {
     actions: [],
     features: [],
     trackers: [],
+    statBoxes: [],
     spells: {
       globalCastingStat: null,
       attackStack: [],

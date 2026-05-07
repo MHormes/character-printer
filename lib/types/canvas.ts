@@ -14,6 +14,7 @@ export type WidgetType =
   | "FullPageSpellSheet"
   | "CharacterName" | "CharacterInfoDetailed" | "CharacterInfoCompact" | "CharacterAppearance"
   | "SpellCard"
+  | "StatBox"
   | "TemplatePage1"
   | "TemplatePage2"
   | "TemplateSpellCards"
@@ -33,4 +34,5 @@ export type CanvasWidget = {
   printState: PrintState
   spellId?: string
   featureId?: string
+  statId?: string
 }

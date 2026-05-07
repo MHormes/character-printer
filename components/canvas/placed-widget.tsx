@@ -46,8 +46,9 @@ import { CharacterNameWidget } from "@/components/canvas/widgets/character-name-
 import { CharacterInfoDetailedWidget } from "@/components/canvas/widgets/character-info-detailed-widget";
 import { CharacterInfoCompactWidget } from "@/components/canvas/widgets/character-info-compact-widget";
 import { CharacterAppearanceWidget } from "@/components/canvas/widgets/character-appearance-widget";
+import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget";
 
-function WidgetContent({ type, spellId, featureId }: { type: WidgetType; spellId?: string; featureId?: string }) {
+function WidgetContent({ type, spellId, featureId, statId }: { type: WidgetType; spellId?: string; featureId?: string; statId?: string }) {
   if (type === "CoreStats") return <CoreStatsWidget />;
   if (type === "Inspiration") return <InspirationWidget />;
   if (type === "Proficiency") return <ProficiencyWidget />;
@@ -91,6 +92,7 @@ function WidgetContent({ type, spellId, featureId }: { type: WidgetType; spellId
   if (type === "CharacterInfoCompact") return <CharacterInfoCompactWidget />;
   if (type === "CharacterAppearance") return <CharacterAppearanceWidget />;
   if (type === "SpellCard") return <SpellCardWidget spellId={spellId} />;
+  if (type === "StatBox") return <StatBoxWidget statId={statId} />;
   if (type === "TemplatePage1") return null;
   if (type === "TemplatePage2") return null;
   if (type === "TemplateSpellCards") return null;
@@ -126,6 +128,7 @@ export function PlacedWidget({
   const updateWidgetData = useCanvasStore((s) => s.updateWidgetData);
   const spells = useCharacterStore((s) => s.character?.spells.list ?? []);
   const features = useCharacterStore((s) => s.character?.features ?? []);
+  const statBoxes = useCharacterStore((s) => s.character?.statBoxes ?? []);
 
   const sortedSpells = [...spells].sort((a, b) =>
     a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
@@ -164,11 +167,11 @@ export function PlacedWidget({
       widget.type === "FullPageSpells" ||
       widget.type === "FullPageSpellSheet"
     ) {
-      return <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} />;
+      return <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} />;
     }
     return (
       <div style={posStyle} className="overflow-hidden">
-        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} />
+        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} />
       </div>
     );
   }
@@ -192,7 +195,7 @@ export function PlacedWidget({
           !widget.locked && "cursor-grab active:cursor-grabbing",
         )}
       >
-        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} />
+        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} />
         {widget.locked && (
           <Lock className="absolute left-1 top-1 size-3 text-muted-foreground" />
         )}
@@ -228,7 +231,7 @@ export function PlacedWidget({
               <Trash2 className="size-3" />
             </button>
           )}
-          {(widget.type === "SpellCard" || widget.type === "FeatureCard") && (
+          {(widget.type === "SpellCard" || widget.type === "FeatureCard" || widget.type === "StatBox") && (
             <button
               type="button"
               onClick={(e) => {
@@ -236,7 +239,7 @@ export function PlacedWidget({
                 setPickerOpen((v) => !v);
               }}
               className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-              title={widget.type === "SpellCard" ? "Choose spell" : "Choose feature"}
+              title={widget.type === "SpellCard" ? "Choose spell" : widget.type === "StatBox" ? "Choose stat" : "Choose feature"}
             >
               <Settings className="size-3" />
             </button>
@@ -312,6 +315,39 @@ export function PlacedWidget({
                 {feature.source && (
                   <span className="text-[10px] text-muted-foreground">{feature.source}</span>
                 )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pickerOpen && widget.type === "StatBox" && (
+        <div
+          ref={pickerRef}
+          className="absolute left-0 z-50 w-48 rounded border border-border bg-card shadow-md"
+          style={{ top: "calc(100% + 2px)" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="max-h-64 overflow-y-auto py-1">
+            {statBoxes.length === 0 && (
+              <p className="px-3 py-2 text-xs text-muted-foreground">No stats defined</p>
+            )}
+            {statBoxes.map((stat) => (
+              <button
+                key={stat.id}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateWidgetData(widget.id, { statId: stat.id });
+                  setPickerOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between px-3 py-1.5 text-left transition-colors hover:bg-accent",
+                  widget.statId === stat.id && "bg-accent"
+                )}
+              >
+                <span className="text-xs font-medium text-foreground">{stat.title || "Untitled"}</span>
+                <span className="text-xs text-muted-foreground">{stat.value}</span>
               </button>
             ))}
           </div>

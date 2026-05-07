@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import type { CharacterData, AttributeKey, SkillState, FeatureEntry, TrackerEntry, SpellEntry } from "@/lib/types/character";
+import type { CharacterData, AttributeKey, SkillState, FeatureEntry, TrackerEntry, SpellEntry, StatBox } from "@/lib/types/character";
 import { syncInventoryToStacks } from "@/lib/character/modifier-sync";
 
 type CharacterStore = {
@@ -22,6 +22,8 @@ type CharacterStore = {
   setGlobalSaveStack: (stack: CharacterData["saveGlobalStack"]) => void;
   setSkillState: (key: string, state: SkillState) => void;
   setSkillOverride: (key: string, override: number | null) => void;
+  setPassivePerceptionStack: (stack: CharacterData["passivePerception"]["stack"]) => void;
+  setPassivePerceptionOverride: (override: number | null) => void;
   setClasses: (classes: CharacterData["identity"]["classes"]) => void;
   setOtherProficiencies: (list: CharacterData["otherProficiencies"]) => void;
   setGlobalSkillStack: (stack: CharacterData["skillGlobalStack"]) => void;
@@ -34,6 +36,7 @@ type CharacterStore = {
   setActions: (list: CharacterData["actions"]) => void;
   setFeatures: (list: FeatureEntry[]) => void;
   setTrackers: (list: TrackerEntry[]) => void;
+  setStatBoxes: (list: StatBox[]) => void;
   setSpellCastingStat: (stat: AttributeKey | null) => void;
   setSpellSlots: (slots: CharacterData["spells"]["slots"]) => void;
   setSpellList: (list: SpellEntry[]) => void;
@@ -139,6 +142,20 @@ export const useCharacterStore = create<CharacterStore>()(
         s.isDirty = true;
       }),
 
+    setPassivePerceptionStack: (stack) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.passivePerception.stack = stack;
+        state.isDirty = true;
+      }),
+
+    setPassivePerceptionOverride: (override) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.passivePerception.override = override;
+        state.isDirty = true;
+      }),
+
     setClasses: (classes) =>
       set((state) => {
         if (!state.character) return;
@@ -222,6 +239,13 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.trackers = list;
+        state.isDirty = true;
+      }),
+
+    setStatBoxes: (list) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.statBoxes = list;
         state.isDirty = true;
       }),
 

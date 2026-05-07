@@ -38,6 +38,7 @@ const MODIFIER_TARGETS: { key: ModifierTarget; label: string }[] = [
   { key: "skill.investigation", label: "Investigation" },
   { key: "skill.medicine",      label: "Medicine" },
   { key: "skill.nature",        label: "Nature" },
+  { key: "sense.passivePerception", label: "Passive Perception" },
   { key: "skill.perception",    label: "Perception" },
   { key: "skill.performance",   label: "Performance" },
   { key: "skill.persuasion",    label: "Persuasion" },
