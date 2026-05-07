@@ -41,7 +41,7 @@ export default function CanvasPage({
         const pages = res.data.canvas.pages.length > 0
           ? res.data.canvas.pages
           : [{ id: crypto.randomUUID(), widgets: [] }]
-        setCanvasData(res.data.canvas.cols || 20, pages)
+        setCanvasData(res.data.canvas.cols || 28, pages)
       }
     })
   }, [id, clearCharacter, setCharacter, setCanvasData])

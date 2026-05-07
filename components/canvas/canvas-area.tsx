@@ -69,6 +69,199 @@ type ActiveData = {
 
 const SLIM_W = 10;
 
+const TEMPLATE_PAGE1_WIDGETS = [
+  {
+    type: "CoreStats",
+    col: 0,
+    row: 0,
+    w: 3,
+    h: 18,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "Inspiration",
+    col: 3,
+    row: 0,
+    w: 7,
+    h: 2,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "Proficiency",
+    col: 3,
+    row: 2,
+    w: 7,
+    h: 2,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "SavingThrows",
+    col: 3,
+    row: 4,
+    w: 5,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "Skills",
+    col: 3,
+    row: 8,
+    w: 7,
+    h: 13,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "PassivePerception",
+    col: 0,
+    row: 21,
+    w: 8,
+    h: 2,
+    rotation: 180,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "SlimToolProf",
+    col: 0,
+    row: 23,
+    w: 10,
+    h: 3,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "SlimOtherProf",
+    col: 0,
+    row: 26,
+    w: 10,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "ArmorClass",
+    col: 10,
+    row: 0,
+    w: 3,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "Initiative",
+    col: 13,
+    row: 0,
+    w: 3,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "Speed",
+    col: 16,
+    row: 0,
+    w: 3,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "Trackers",
+    col: 19,
+    row: 0,
+    w: 6,
+    h: 7,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "CurrentHp",
+    col: 10,
+    row: 4,
+    w: 4,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "TempHp",
+    col: 15,
+    row: 4,
+    w: 4,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "HitDice",
+    col: 10,
+    row: 8,
+    w: 4,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "DeathSaves",
+    col: 15,
+    row: 8,
+    w: 4,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "SlimAttacks",
+    col: 10,
+    row: 12,
+    w: 9,
+    h: 3,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "Features",
+    col: 19,
+    row: 7,
+    w: 6,
+    h: 19,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "Equipment",
+    col: 10,
+    row: 15,
+    w: 9,
+    h: 25,
+    rotation: 0,
+    locked: true,
+    printState: "Calculated",
+  },
+] as const;
+
 export function CanvasArea() {
   const {
     cols,
@@ -77,6 +270,7 @@ export function CanvasArea() {
     widgets,
     selectedId,
     addWidget,
+    addWidgets,
     moveWidget,
     rotateWidget,
     toggleLock,
@@ -170,10 +364,12 @@ export function CanvasArea() {
   );
 
   const spellLevelH = (level: number) => {
-    const count = character?.spells.list.filter((s) => s.level === level).length ?? 0;
-    return Math.max(3, Math.round(
-      (spellLevelSvgH(count) * 8 * rows * 210) / (cols * 297 * 120),
-    ));
+    const count =
+      character?.spells.list.filter((s) => s.level === level).length ?? 0;
+    return Math.max(
+      1,
+      Math.round((spellLevelSvgH(count) * 8 * rows * 210) / (cols * 297 * 120)),
+    );
   };
 
   const PALETTE_ITEMS = [
@@ -240,8 +436,18 @@ export function CanvasArea() {
 
   const FULL_PAGE_ITEMS = [
     {
+      type: "TemplatePage1" as const,
+      label: "Template: Main Sheet",
+      fullPage: true as const,
+    },
+    {
+      type: "TemplatePage2" as const,
+      label: "Template: Spell Sheet",
+      fullPage: true as const,
+    },
+    {
       type: "FullPageSpellSheet" as const,
-      label: "Full Spell Sheet",
+      label: "Complete: Spell Sheet",
       fullPage: true as const,
     },
     {
@@ -257,6 +463,7 @@ export function CanvasArea() {
   ];
 
   const SPELL_PALETTE_ITEMS = [
+    { type: "SpellCard" as const, label: "Spell Card", w: 6, h: 8 },
     { type: "SpellcastingInfo" as const, label: "Casting Info", w: 18, h: 3 },
     {
       type: "SpellLevel0" as const,
@@ -318,6 +525,61 @@ export function CanvasArea() {
         midY > gridRect.bottom
       )
         return;
+
+      if (data.type === "TemplatePage1") {
+        addWidgets(
+          TEMPLATE_PAGE1_WIDGETS.map((w) => ({
+            ...w,
+            printState: w.printState as "Calculated" | "Blank",
+          })),
+        );
+        return;
+      }
+
+      if (data.type === "TemplatePage2") {
+        const INFO_H = 2;
+        const START_ROW = INFO_H;
+
+        function buildSpellColumn(
+          levels: number[],
+          colStart: number,
+          colW: number,
+        ) {
+          let currentRow = START_ROW;
+          return levels.map((level) => {
+            const h = spellLevelH(level);
+            const widget = {
+              type: `SpellLevel${level}` as WidgetType,
+              col: colStart,
+              row: currentRow,
+              w: colW,
+              h,
+              rotation: 0 as const,
+              locked: false,
+              printState: "Calculated" as const,
+            };
+            currentRow += h;
+            return widget;
+          });
+        }
+
+        addWidgets([
+          {
+            type: "SpellcastingInfo",
+            col: 0,
+            row: 0,
+            w: 28,
+            h: INFO_H,
+            rotation: 0,
+            locked: false,
+            printState: "Calculated",
+          },
+          ...buildSpellColumn([0, 1, 2], 0, 9),
+          ...buildSpellColumn([3, 4, 5], 10, 9),
+          ...buildSpellColumn([6, 7, 8, 9], 20, 8),
+        ]);
+        return;
+      }
 
       if (data.fullPage) {
         addWidget({

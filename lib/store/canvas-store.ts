@@ -17,6 +17,7 @@ type CanvasStore = {
   deletePage: (index: number) => void
   setPage: (index: number) => void
   addWidget: (w: Omit<CanvasWidget, "id">) => void
+  addWidgets: (ws: Omit<CanvasWidget, "id">[]) => void
   moveWidget: (id: string, col: number, row: number) => void
   rotateWidget: (id: string) => void
   toggleLock: (id: string) => void
@@ -34,7 +35,7 @@ function patchPage(
 }
 
 export const useCanvasStore = create<CanvasStore>((set) => ({
-  cols: 20,
+  cols: 28,
   pages: [{ id: crypto.randomUUID(), widgets: [] }],
   currentPageIndex: 0,
   widgets: [],
@@ -67,6 +68,13 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
 
   addWidget: (w) => set((s) =>
     patchPage(s.pages, s.currentPageIndex, (ws) => [...ws, { ...w, id: crypto.randomUUID() }])
+  ),
+
+  addWidgets: (newWidgets) => set((s) =>
+    patchPage(s.pages, s.currentPageIndex, (ws) => [
+      ...ws,
+      ...newWidgets.map((w) => ({ ...w, id: crypto.randomUUID() })),
+    ])
   ),
 
   moveWidget: (id, col, row) => set((s) =>

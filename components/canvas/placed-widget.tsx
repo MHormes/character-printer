@@ -27,7 +27,8 @@ import { EquipmentWidget } from "@/components/canvas/widgets/equipment-widget";
 import { TrackerWidget } from "@/components/canvas/widgets/tracker-widget";
 import { FeaturesWidget } from "@/components/canvas/widgets/features-widget";
 import { FullPageFeaturesWidget } from "@/components/canvas/widgets/full-page-features-widget";
-import { FullPageSpellCardWidget } from "@/components/canvas/widgets/full-page-spell-cards-widget";
+import { FullPageSpellCardWidget } from "@/components/canvas/widgets/full-page-spell-cards-widget"
+import { SpellCardWidget } from "@/components/canvas/widgets/spell-card-widget";
 import { SpellcastingInfoWidget } from "@/components/canvas/widgets/spellcasting-info-widget";
 import {
   SpellLevel0Widget, SpellLevel1Widget, SpellLevel2Widget, SpellLevel3Widget,
@@ -81,6 +82,9 @@ function WidgetContent({ type }: { type: WidgetType }) {
   if (type === "CharacterInfoDetailed") return <CharacterInfoDetailedWidget />;
   if (type === "CharacterInfoCompact") return <CharacterInfoCompactWidget />;
   if (type === "CharacterAppearance") return <CharacterAppearanceWidget />;
+  if (type === "SpellCard") return <SpellCardWidget />;
+  if (type === "TemplatePage1") return null;
+  if (type === "TemplatePage2") return null;
   return null;
 }
 
