@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -12,7 +14,6 @@ import {
   type DragStartEvent,
   type Modifier,
 } from "@dnd-kit/core";
-import { useState } from "react";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useCharacterStore } from "@/lib/store/character-store";
 import type { WidgetType } from "@/lib/types/canvas";
@@ -20,6 +21,11 @@ import { PaletteTile } from "@/components/canvas/palette-tile";
 import { PlacedWidget } from "@/components/canvas/placed-widget";
 import { slimToolSvgH } from "@/components/canvas/widgets/slim-tool-prof-widget";
 import { slimOtherSvgH } from "@/components/canvas/widgets/slim-other-prof-widget";
+import { attacksSvgH } from "@/components/canvas/widgets/attacks-widget";
+import { slimAttacksSvgH } from "@/components/canvas/widgets/slim-attacks-widget";
+import { equipmentSvgH } from "@/components/canvas/widgets/equipment-widget";
+import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
+import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
 
 const centerOnCursor: Modifier = ({
   activatorEvent,
@@ -64,6 +70,8 @@ const SLIM_W = 10;
 export function CanvasArea() {
   const {
     cols,
+    pages,
+    currentPageIndex,
     widgets,
     selectedId,
     addWidget,
@@ -72,28 +80,139 @@ export function CanvasArea() {
     toggleLock,
     removeWidget,
     setSelected,
+    addPage,
+    deletePage,
+    setPage,
   } = useCanvasStore();
   const rows = Math.ceil((cols * 297) / 210);
 
-  const character = useCharacterStore((s) => s.character);
-  const toolCount  = character?.otherProficiencies.filter((p) => p.category === "Tool").length ?? 0;
-  const otherCount = character?.otherProficiencies.filter((p) => p.category !== "Tool").length ?? 0;
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedId) return;
 
-  // h = rows × (SLIM_W/cols) × (210/297) × (svgH/130)
-  const slimToolH  = Math.max(2, Math.round(slimToolSvgH(toolCount)  * SLIM_W * rows * 210 / (cols * 297 * 130)));
-  const slimOtherH = Math.max(2, Math.round(slimOtherSvgH(otherCount) * SLIM_W * rows * 210 / (cols * 297 * 130)));
+      if (e.key === "Delete" || e.key === "Backspace") {
+        const target = e.target as HTMLElement;
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+
+        const widget = widgets.find((w) => w.id === selectedId);
+        if (widget && !widget.locked) {
+          removeWidget(selectedId);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedId, widgets, removeWidget]);
+
+  const character = useCharacterStore((s) => s.character);
+  const toolCount =
+    character?.otherProficiencies.filter((p) => p.category === "Tool").length ??
+    0;
+  const otherCount =
+    character?.otherProficiencies.filter((p) => p.category !== "Tool").length ??
+    0;
+  const actionsCount = character?.actions.length ?? 0;
+  const inventoryCount = character?.inventory.length ?? 0;
+  const trackersCount = character?.trackers.length ?? 0;
+  const featuresCount = character?.features.length ?? 0;
+
+  // h = rows × (w/cols) × (210/297) × (svgH/viewBoxW)
+  const slimToolH = Math.max(
+    2,
+    Math.round(
+      (slimToolSvgH(toolCount) * SLIM_W * rows * 210) / (cols * 297 * 164),
+    ),
+  );
+  const slimOtherH = Math.max(
+    2,
+    Math.round(
+      (slimOtherSvgH(otherCount) * SLIM_W * rows * 210) / (cols * 297 * 185),
+    ),
+  );
+  const attacksH = Math.max(
+    2,
+    Math.round(
+      (attacksSvgH(actionsCount) * 12 * rows * 210) / (cols * 297 * 176),
+    ),
+  );
+  const slimAttacksH = Math.max(
+    2,
+    Math.round(
+      (slimAttacksSvgH(actionsCount) * 12 * rows * 210) / (cols * 297 * 176),
+    ),
+  );
+  const equipmentH = Math.max(
+    4,
+    Math.round(
+      (equipmentSvgH(inventoryCount) * 12 * rows * 210) / (cols * 297 * 176),
+    ),
+  );
+  const trackersH = Math.max(
+    2,
+    Math.round(
+      (trackerSvgH(trackersCount) * 6 * rows * 210) / (cols * 297 * 171),
+    ),
+  );
+  const featuresH = Math.max(
+    2,
+    Math.round(
+      (featuresSvgH(featuresCount) * 6 * rows * 210) / (cols * 297 * 96),
+    ),
+  );
 
   const PALETTE_ITEMS = [
-    { type: "CoreStats" as const,          label: "Core Stats",        w: 3,      h: 18 },
-    { type: "Inspiration" as const,        label: "Inspiration",       w: 7,      h: 2  },
-    { type: "Proficiency" as const,        label: "Prof. Bonus",       w: 7,      h: 2  },
-    { type: "PassivePerception" as const,  label: "Passive Perception",w: 8,      h: 2  },
-    { type: "SavingThrows" as const,       label: "Saving Throws",     w: 5,      h: 4  },
-    { type: "Skills" as const,             label: "Skills",            w: 7,      h: 13 },
-    { type: "ToolProficiencies" as const,  label: "Tool Prof.",        w: 10,     h: 5  },
-    { type: "OtherProficiencies" as const, label: "Other Prof.",       w: 10,     h: 5  },
-    { type: "SlimToolProf" as const,       label: "Slim Tools",        w: SLIM_W, h: slimToolH  },
-    { type: "SlimOtherProf" as const,      label: "Slim Other Prof.",  w: SLIM_W, h: slimOtherH },
+    { type: "CoreStats" as const, label: "Core Stats", w: 3, h: 18 },
+    { type: "Inspiration" as const, label: "Inspiration", w: 7, h: 2 },
+    { type: "Proficiency" as const, label: "Prof. Bonus", w: 7, h: 2 },
+    {
+      type: "PassivePerception" as const,
+      label: "Passive Perception",
+      w: 8,
+      h: 2,
+    },
+    { type: "SavingThrows" as const, label: "Saving Throws", w: 5, h: 4 },
+    { type: "Skills" as const, label: "Skills", w: 7, h: 13 },
+    { type: "ToolProficiencies" as const, label: "Tool Prof.", w: 10, h: 5 },
+    { type: "OtherProficiencies" as const, label: "Other Prof.", w: 10, h: 5 },
+    {
+      type: "SlimToolProf" as const,
+      label: "Slim Tools",
+      w: SLIM_W,
+      h: slimToolH,
+    },
+    {
+      type: "SlimOtherProf" as const,
+      label: "Slim Other Prof.",
+      w: SLIM_W,
+      h: slimOtherH,
+    },
+    // Combat stats
+    { type: "ArmorClass" as const, label: "Armor Class", w: 3, h: 4 },
+    { type: "Initiative" as const, label: "Initiative", w: 3, h: 4 },
+    { type: "Speed" as const, label: "Speed", w: 3, h: 4 },
+    { type: "CurrentHp" as const, label: "Current HP", w: 4, h: 4 },
+    { type: "TempHp" as const, label: "Temp HP", w: 4, h: 4 },
+    { type: "HitDice" as const, label: "Hit Dice", w: 4, h: 4 },
+    { type: "DeathSaves" as const, label: "Death Saves", w: 4, h: 4 },
+    // Actions & inventory
+    { type: "Attacks" as const, label: "Attacks", w: 12, h: attacksH },
+    {
+      type: "SlimAttacks" as const,
+      label: "Slim Attacks",
+      w: 12,
+      h: slimAttacksH,
+    },
+    { type: "Equipment" as const, label: "Equipment", w: 9, h: equipmentH },
+    // Trackers & features
+    { type: "Trackers" as const, label: "Trackers", w: 6, h: trackersH },
+    { type: "Features" as const, label: "Features", w: 6, h: featuresH },
   ];
 
   const gridDomRef = useRef<HTMLDivElement>(null);
@@ -181,6 +300,9 @@ export function CanvasArea() {
       ? widgets.find((w) => w.id === activeData.widgetId)
       : null;
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   return (
     <DndContext
       sensors={sensors}
@@ -190,7 +312,9 @@ export function CanvasArea() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar palette */}
         <aside className="w-1/4 shrink-0 overflow-y-auto border-r border-border bg-section p-4 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Elements</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Elements
+          </p>
           <div className="grid grid-cols-3 gap-2">
             {PALETTE_ITEMS.map((item) => (
               <PaletteTile key={item.type} {...item} />
@@ -198,47 +322,116 @@ export function CanvasArea() {
           </div>
         </aside>
 
-        {/* Canvas */}
-        <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-muted/30 p-8">
-          <style jsx global>{`
-            @media print {
-              #print-canvas {
-                background-image: none !important;
-                box-shadow: none !important;
-              }
-            }
-          `}</style>
+        {/* Canvas column */}
+        <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+
+          {/* Page actions bar — top right */}
+          <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border bg-section px-3 py-1">
+            <button
+              type="button"
+              onClick={addPage}
+              className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Plus className="size-3" />
+              Add page
+            </button>
+            {pages.length > 1 && (
+              <button
+                type="button"
+                onClick={() => deletePage(currentPageIndex)}
+                className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-destructive"
+              >
+                <Trash2 className="size-3" />
+                Delete page
+              </button>
+            )}
+          </div>
+
+          {/* Canvas display with floating nav arrows */}
           <div
-            id="print-canvas"
-            ref={setGridRef}
-            className="aspect-[210/297] h-full max-w-full relative bg-card shadow-lg overflow-hidden"
-            style={{
-              backgroundImage: [
-                "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
-                "linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)",
-              ].join(", "),
-              backgroundSize: `${100 / cols}% ${100 / rows}%`,
-            }}
+            className="relative flex flex-1 items-center justify-center overflow-hidden bg-muted/30 p-8"
             onClick={() => setSelected(null)}
           >
-            {widgets.map((widget) => (
-              <PlacedWidget
-                key={widget.id}
-                widget={widget}
-                cols={cols}
-                rows={rows}
-                selected={selectedId === widget.id}
-                onSelect={(e) => {
-                  e.stopPropagation();
-                  setSelected(widget.id);
-                }}
-                onRotate={() => rotateWidget(widget.id)}
-                onToggleLock={() => toggleLock(widget.id)}
-                onDelete={() => removeWidget(widget.id)}
-              />
-            ))}
+            <div
+              id="canvas-editor"
+              ref={setGridRef}
+              className="aspect-[210/297] h-full max-w-full relative bg-card shadow-lg overflow-hidden"
+              style={{
+                backgroundImage: [
+                  "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
+                  "linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)",
+                ].join(", "),
+                backgroundSize: `${100 / cols}% ${100 / rows}%`,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {widgets.map((widget) => (
+                <PlacedWidget
+                  key={widget.id}
+                  widget={widget}
+                  cols={cols}
+                  rows={rows}
+                  selected={selectedId === widget.id}
+                  onSelect={(e) => {
+                    e.stopPropagation();
+                    setSelected(widget.id);
+                  }}
+                  onRotate={() => rotateWidget(widget.id)}
+                  onToggleLock={() => toggleLock(widget.id)}
+                  onDelete={() => removeWidget(widget.id)}
+                />
+              ))}
+            </div>
+
+            {/* Floating prev arrow */}
+            {currentPageIndex > 0 && (
+              <button
+                type="button"
+                onClick={() => setPage(currentPageIndex - 1)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+            )}
+
+            {/* Floating next arrow */}
+            {currentPageIndex < pages.length - 1 && (
+              <button
+                type="button"
+                onClick={() => setPage(currentPageIndex + 1)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Print portal — all pages, hidden normally, shown by globals.css @media print */}
+        {mounted &&
+          createPortal(
+            <div id="print-all-pages">
+              {pages.map((page) => (
+                <div key={page.id} className="print-page">
+                  {page.widgets.map((widget) => (
+                    <PlacedWidget
+                      key={widget.id}
+                      widget={widget}
+                      cols={cols}
+                      rows={rows}
+                      selected={false}
+                      printMode
+                      onSelect={() => {}}
+                      onRotate={() => {}}
+                      onToggleLock={() => {}}
+                      onDelete={() => {}}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>,
+            document.body,
+          )}
       </div>
 
       <DragOverlay dropAnimation={null} modifiers={[centerOnCursor]}>

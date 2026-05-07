@@ -1,6 +1,7 @@
 "use client";
 
 import { useCharacterStore } from "@/lib/store/character-store";
+import { resolvePb } from "@/lib/character/calculations";
 import { DndFrame } from "./dnd-frame";
 
 // ViewBox 120×28. Horizontal banner with bonus number in a box on left.
@@ -10,7 +11,7 @@ export function ProficiencyWidget() {
 
   if (!character) return null;
 
-  const pb = Math.ceil(character.identity.level / 4) + 1;
+  const pb = resolvePb(character);
 
   return (
     <svg

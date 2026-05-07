@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { AttributeKey, AttributeData, SkillData, SkillState, ModifierEntry } from "@/lib/types/character"
 
+import { resolveSkillBonus, resolvePb } from "@/lib/character/calculations"
+
 type SkillMeta = { label: string; attr: AttributeKey }
 
 const SKILLS: { key: string; meta: SkillMeta }[] = [
@@ -59,26 +61,26 @@ export function SkillsBlock({
 }: SkillsBlockProps) {
   const [globalExpanded, setGlobalExpanded] = useState(false)
 
-  function attrMod(attr: AttributeKey): number {
-    const a = attributes[attr]
-    const sum = a.stack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
-    const total = a.override ?? (a.base + sum)
-    return Math.floor((total - 10) / 2)
-  }
+  const mockChar = {
+    skills,
+    attributes,
+    jackOfAllTrades,
+    skillGlobalStack: globalStack,
+    identity: { level: (proficiencyBonus - 1) * 4 }, // Hacky PB fallback
+    profBonusStack: [],
+  } as any
 
   const globalSum = globalStack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
-  const joatBonus = Math.floor(proficiencyBonus / 2)
+  const pb = resolvePb(mockChar)
+  const joatBonus = Math.floor(pb / 2)
 
-  function calculated(key: string, attr: AttributeKey, state: SkillState): number {
-    const skillStackSum = (skills[key]?.stack ?? []).filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
-    const base = attrMod(attr) + stateBonus(state, proficiencyBonus) + globalSum + skillStackSum
-    if (jackOfAllTrades && state === "None") return base + joatBonus
-    return base
+  function calculated(key: string, attr: AttributeKey): number {
+    return resolveSkillBonus(mockChar, key, attr)
   }
 
   function handleStateClick(key: string, current: SkillState, override: number | null) {
     const next = NEXT_STATE[current]
-    const delta = stateBonus(next, proficiencyBonus) - stateBonus(current, proficiencyBonus)
+    const delta = stateBonus(next, pb) - stateBonus(current, pb)
     onStateChange(key, next)
     if (override !== null) onOverrideChange(key, override + delta)
   }
@@ -125,7 +127,7 @@ export function SkillsBlock({
       {SKILLS.map(({ key, meta }) => {
         const skill = skills[key]
         if (!skill) return null
-        const calc = calculated(key, meta.attr, skill.state)
+        const calc = calculated(key, meta.attr)
         const isOverridden = skill.override !== null
 
         return (

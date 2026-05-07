@@ -75,6 +75,7 @@ export type ModifierTarget =
 export type InventoryItem = {
   id: string;
   name: string;
+  quantity?: number;
   weight: number;
   category: "Weapon" | "Armor" | "Tool" | "Consumable" | "Wondrous" | "Mundane";
   equipped: boolean;
@@ -122,6 +123,7 @@ export type TrackerEntry = {
   stack: ModifierEntry[];
   reset: "Short Rest" | "Long Rest" | "Dawn" | "Special";
   override: number | null;
+  valueLabel?: string;
 };
 
 export type SpellEntry = {
@@ -145,6 +147,8 @@ export type SpellEntry = {
 };
 
 import type { CanvasWidget } from "./canvas";
+
+export type Currency = { cp: number; sp: number; ep: number; gp: number; pp: number };
 
 export type CharacterData = {
   version: string;
@@ -174,6 +178,7 @@ export type CharacterData = {
   jackOfAllTrades: boolean;
   otherProficiencies: OtherProficiency[];
   combat: CombatData;
+  currency?: Currency;
   inventory: InventoryItem[];
   actions: ActionEntry[];
   features: FeatureEntry[];

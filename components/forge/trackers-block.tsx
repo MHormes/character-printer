@@ -31,7 +31,7 @@ export function TrackersBlock({ trackers, onChange }: TrackersBlockProps) {
 
   function addTracker() {
     const id = crypto.randomUUID()
-    onChange([...trackers, { id, name: "", base: 0, stack: [], reset: "Long Rest", override: null }])
+    onChange([...trackers, { id, name: "", base: 0, stack: [], reset: "Long Rest", override: null, valueLabel: "" }])
     setExpandedIds(prev => new Set([...prev, id]))
   }
 
@@ -78,6 +78,13 @@ export function TrackersBlock({ trackers, onChange }: TrackersBlockProps) {
                   >
                     {RESET_CONDITIONS.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="w-16 shrink-0 text-xs text-muted-foreground">Display</span>
+                  <Input type="text" value={tracker.valueLabel ?? ""} placeholder="e.g. d10, 4 cantrips"
+                    onChange={e => patch(tracker.id, { valueLabel: e.target.value })}
+                    className="h-6 min-w-0 flex-1 text-xs" />
                 </div>
 
                 <div className="flex items-center gap-2">

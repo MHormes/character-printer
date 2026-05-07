@@ -39,6 +39,8 @@ import type {
   ModifierEntry,
 } from "@/lib/types/character";
 
+import { resolvePb, resolveAttributeMod } from "@/lib/character/calculations";
+
 const ATTRIBUTE_KEYS: AttributeKey[] = [
   "str",
   "dex",
@@ -63,14 +65,6 @@ const SAVE_LABELS: Record<AttributeKey, string> = {
   wis: "WIS",
   cha: "CHA",
 };
-
-function resolvedAttrMod(attr: AttributeData) {
-  const sum = attr.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-  const total = attr.override ?? attr.base + sum;
-  return Math.floor((total - 10) / 2);
-}
 
 export default function ForgePage({
   params,
@@ -179,8 +173,9 @@ export default function ForgePage({
     features,
     trackers,
     spells,
+    profBonusStack,
   } = character;
-  const pb = Math.ceil(identity.level / 4) + 1;
+  const pb = resolvePb(character);
 
   return (
     <main className="space-y-10 p-6">
@@ -368,9 +363,10 @@ export default function ForgePage({
                   key={attr}
                   label={SAVE_LABELS[attr]}
                   data={saves[attr]}
-                  attrMod={resolvedAttrMod(attributes[attr])}
+                  attrMod={resolveAttributeMod(attributes[attr])}
                   proficiencyBonus={pb}
                   globalStack={saveGlobalStack}
+                  attrKey={attr}
                   onProficiencyChange={(p) => setSaveProficiency(attr, p)}
                   onStackChange={(stack) => setSaveStack(attr, stack)}
                   onOverrideChange={(override) =>
@@ -583,6 +579,8 @@ export default function ForgePage({
               castingStat={spells.globalCastingStat}
               attributes={attributes}
               proficiencyBonus={pb}
+              attackStack={spells.attackStack}
+              dcStack={spells.dcStack}
               onChange={setActions}
               onCastingStatChange={setSpellCastingStat}
             />
@@ -612,6 +610,8 @@ export default function ForgePage({
             castingStat={spells.globalCastingStat}
             attributes={attributes}
             proficiencyBonus={pb}
+            attackStack={spells.attackStack}
+            dcStack={spells.dcStack}
             onSlotsChange={setSpellSlots}
             onListChange={setSpellList}
           />

@@ -21,6 +21,15 @@ import type {
   AcMode,
 } from "@/lib/types/character";
 
+import {
+  resolveAc,
+  resolveInitiative,
+  resolveSpeed,
+  resolveHpMax,
+  resolveAttributeMod,
+  resolveAttributeScore,
+} from "@/lib/character/calculations";
+
 const ATTR_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"];
 const ATTR_ABBR: Record<AttributeKey, string> = {
   str: "STR",
@@ -30,17 +39,6 @@ const ATTR_ABBR: Record<AttributeKey, string> = {
   wis: "WIS",
   cha: "CHA",
 };
-
-function resolvedAttrMod(
-  attr: AttributeKey,
-  attributes: Record<AttributeKey, AttributeData>,
-): number {
-  const a = attributes[attr];
-  const sum = a.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-  return Math.floor(((a.override ?? a.base + sum) - 10) / 2);
-}
 
 function sign(n: number): string {
   return n >= 0 ? `+${n}` : String(n);
@@ -197,35 +195,6 @@ function ModStack({
 
 type ClassEntry = { name: string; level: number; hitDie: string };
 
-function calcBaseHp(classes: ClassEntry[], conMod: number): number {
-  if (classes.length === 0) return 0;
-  let total = 0;
-  classes.forEach((cls, i) => {
-    const die = parseInt(cls.hitDie.replace("d", ""), 10);
-    if (isNaN(die) || cls.level < 1) return;
-    const avg = Math.floor(die / 2) + 1;
-    if (i === 0) {
-      total += die + conMod;
-      total += Math.max(0, cls.level - 1) * (avg + conMod);
-    } else {
-      total += cls.level * (avg + conMod);
-    }
-  });
-  return total;
-}
-
-type CombatBlockProps = {
-  data: CombatData;
-  attributes: Record<AttributeKey, AttributeData>;
-  classes: ClassEntry[];
-  proficiencyBonus: number;
-  jackOfAllTrades: boolean;
-  onAcChange: (ac: CombatData["ac"]) => void;
-  onInitiativeChange: (initiative: CombatData["initiative"]) => void;
-  onSpeedChange: (speed: CombatData["speed"]) => void;
-  onHpChange: (hp: CombatData["hp"]) => void;
-};
-
 export function CombatBlock({
   data,
   attributes,
@@ -243,48 +212,28 @@ export function CombatBlock({
   const [hpExpanded, setHpExpanded] = useState(false);
   const [initRaw, setInitRaw] = useState<string | null>(null);
 
-  const dexAttr = attributes["dex"];
-  const dexAttrStackSum = dexAttr.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-  const dexScore = dexAttr.override ?? dexAttr.base + dexAttrStackSum;
-  const dexMod = Math.floor((dexScore - 10) / 2);
+  // Partial character object for the resolver
+  const mockChar = {
+    identity: { classes },
+    attributes,
+    combat: data,
+    jackOfAllTrades,
+    profBonusStack: [], // resolvePb fallback
+  } as any;
 
-  const acStackSum = data.ac.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-  const acBase =
-    data.ac.mode === "Standard"
-      ? 10 + dexMod
-      : data.ac.base +
-        (data.ac.statA ? resolvedAttrMod(data.ac.statA, attributes) : 0) +
-        (data.ac.statB ? resolvedAttrMod(data.ac.statB, attributes) : 0);
-  const acCalc = acBase + acStackSum;
+  const dexMod = resolveAttributeMod(attributes.dex);
+  const dexScore = resolveAttributeScore(attributes.dex);
+
+  const acCalc = resolveAc(mockChar);
   const acOverridden = data.ac.override !== null;
 
-  const joatBonus = Math.floor(proficiencyBonus / 2);
-  const initSum = data.initiative.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-  const initCalc = dexMod + initSum + (jackOfAllTrades ? joatBonus : 0);
+  const initCalc = resolveInitiative(mockChar);
   const initOverridden = data.initiative.override !== null;
 
-  const speedSum = data.speed.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-  const speedCalc = data.speed.base + speedSum;
+  const speedCalc = resolveSpeed(mockChar);
   const speedOverridden = data.speed.override !== null;
 
-  const conAttr = attributes["con"];
-  const conSum = conAttr.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-  const conScore = conAttr.override ?? conAttr.base + conSum;
-  const conMod = Math.floor((conScore - 10) / 2);
-  const hpStackSum = data.hp.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-  const hpCalc = calcBaseHp(classes, conMod) + hpStackSum;
+  const hpCalc = resolveHpMax(mockChar);
   const hpOverridden = data.hp.max !== null;
 
   return (
@@ -352,7 +301,7 @@ export function CombatBlock({
                   <option value="">—</option>
                   {ATTR_KEYS.map((k) => (
                     <option key={k} value={k}>
-                      {ATTR_ABBR[k]} ({sign(resolvedAttrMod(k, attributes))})
+                      {ATTR_ABBR[k]} ({sign(resolveAttributeMod(attributes[k]))})
                     </option>
                   ))}
                 </select>

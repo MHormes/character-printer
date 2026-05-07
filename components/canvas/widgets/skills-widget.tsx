@@ -1,7 +1,8 @@
 "use client"
 
 import { useCharacterStore } from "@/lib/store/character-store"
-import type { AttributeKey, AttributeData } from "@/lib/types/character"
+import type { AttributeKey } from "@/lib/types/character"
+import { resolveSkillBonus } from "@/lib/character/calculations"
 import { DndFrame } from "./dnd-frame"
 
 const SKILL_CONFIG: { name: string; key: string; ability: AttributeKey; label: string }[] = [
@@ -25,14 +26,6 @@ const SKILL_CONFIG: { name: string; key: string; ability: AttributeKey; label: s
   { name: "Survival",        key: "survival",       ability: "wis", label: "Wis" },
 ]
 
-function calculateAttrMod(attr: AttributeData) {
-  const sum = attr.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0)
-  const total = attr.override ?? attr.base + sum
-  return Math.floor((total - 10) / 2)
-}
-
 function fmt(v: number) { return v >= 0 ? `+${v}` : `${v}` }
 
 // ViewBox 105×196. 18 rows + bottom label.
@@ -43,11 +36,6 @@ export function SkillsWidget() {
   const ROW_START = 11
 
   if (!character) return null
-
-  const pb = Math.ceil(character.identity.level / 4) + 1
-  const globalMod = character.skillGlobalStack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0)
 
   return (
     <svg
@@ -62,28 +50,7 @@ export function SkillsWidget() {
       {SKILL_CONFIG.map((config, i) => {
         const cy = ROW_START + i * ROW_H
         const skill = character.skills[config.key]
-        const attrMod = calculateAttrMod(character.attributes[config.ability])
-        
-        let value = 0
-        if (skill.override !== null) {
-          value = skill.override
-        } else {
-          const stackSum = skill.stack
-            .filter((m) => m.isActive)
-            .reduce((s, m) => s + m.value, 0)
-          
-          let profMod = 0
-          if (skill.state === "Expertise") {
-            profMod = pb * 2
-          } else if (skill.state === "Proficient") {
-            profMod = pb
-          } else if (character.jackOfAllTrades) {
-            profMod = Math.floor(pb / 2)
-          }
-
-          value = attrMod + stackSum + globalMod + profMod
-        }
-
+        const value = resolveSkillBonus(character, config.key, config.ability)
         const isProficient = skill.state === "Proficient" || skill.state === "Expertise"
 
         return (

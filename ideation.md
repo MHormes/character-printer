@@ -484,7 +484,18 @@ Clicking a placed widget **selects** it and surfaces an inline toolbar:
 - **Live Preview:** Forge updates (e.g., leveling up) reflect instantly on the Canvas for data-linked widgets.
 - **Print State Toggle:** Per-widget control to switch between `Calculated` (prints current value) and `Blank` (prints underline for pencil tracking).
 
-### 11.7 Layout Templates & Export
+### 11.7 Multi-Page Support
+
+Characters can span multiple A4 pages. All pages share the same column grid configuration.
+
+- **Data Model:** `canvas.pages` is an unbounded array of `{ id: uuid, widgets: CanvasWidget[] }`. Each entry is one independent A4 page with its own widget set.
+- **Active Page:** The canvas store tracks `currentPageIndex` (0-based). All widget mutations (add, move, rotate, lock, delete) affect only the current page's widget array. The `widgets` field in the store mirrors `pages[currentPageIndex].widgets` for backward compatibility.
+- **Adding Pages:** A **+** button sits on the right edge of the canvas grid, vertically centered. Clicking it appends a new blank page and immediately switches to it.
+- **Navigation:** A `< Page N / Total >` strip at the bottom of the canvas area. `<` and `>` buttons step through pages; both disable at boundaries.
+- **Persistence:** The full `pages` array is serialised into the character JSON blob on every save (auto-save or manual). On load, all pages are restored and page 0 is shown.
+- **Printing:** `window.print()` currently prints only the visible (current) page. Future: render all pages in sequence for a single multi-page print job.
+
+### 11.8 Layout Templates & Export
 
 - **Templates:** Pre-designed global layouts and user-created presets (future).
 - **Exporting:** Direct browser `window.print()` targeting `#print-canvas` with `@page { size: A4 portrait; margin: 0 }`. Future: high-quality PDF via headless Chrome.

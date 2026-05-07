@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { ActionEntry, ActionMode, DieType, DamageEntry, AttributeKey, AttributeData } from "@/lib/types/character"
 
+import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack } from "@/lib/character/calculations"
+
 const ATTR_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
 const ATTR_ABBR: Record<AttributeKey, string> = {
   str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
@@ -21,28 +23,29 @@ type ActionsBlockProps = {
   castingStat: AttributeKey | null
   attributes: Record<AttributeKey, AttributeData>
   proficiencyBonus: number
+  attackStack: ModifierEntry[]
+  dcStack: ModifierEntry[]
   onChange: (list: ActionEntry[]) => void
   onCastingStatChange: (stat: AttributeKey | null) => void
 }
 
 export function ActionsBlock({
-  actions, castingStat, attributes, proficiencyBonus, onChange, onCastingStatChange,
+  actions, castingStat, attributes, proficiencyBonus, attackStack, dcStack, onChange, onCastingStatChange,
 }: ActionsBlockProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
-  function attrMod(key: AttributeKey): number {
-    const a = attributes[key]
-    const sum = a.stack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
-    const score = a.override ?? (a.base + sum)
-    return Math.floor((score - 10) / 2)
-  }
+  const mockChar = {
+    attributes,
+    spells: { globalCastingStat: castingStat, attackStack, dcStack },
+    identity: { level: (proficiencyBonus - 1) * 4 },
+    profBonusStack: [],
+  } as any
 
-  const castingMod = castingStat ? attrMod(castingStat) : 0
-  const spellDC = 8 + proficiencyBonus + castingMod
-  const spellAttackBonus = proficiencyBonus + castingMod
+  const spellDC = resolveSpellDc(mockChar)
+  const spellAttackBonus = resolveSpellAttack(mockChar)
 
   function calcAttackToHit(action: ActionEntry): number {
-    const mod = action.attackStat ? attrMod(action.attackStat) : 0
+    const mod = action.attackStat ? resolveAttributeMod(attributes[action.attackStat]) : 0
     return mod + (action.attackProficient ? proficiencyBonus : 0) + (action.attackBonus ?? 0)
   }
 
@@ -58,7 +61,7 @@ export function ActionsBlock({
     if (active.length === 0) return ""
     return active.map((d) => {
       const dice = `${d.diceCount}${d.dieType}`
-      const total = (d.stat ? attrMod(d.stat) : 0) + (d.flatBonus ?? 0)
+      const total = (d.stat ? resolveAttributeMod(attributes[d.stat]) : 0) + (d.flatBonus ?? 0)
       const bonusPart = total !== 0 ? sign(total) : ""
       const typePart = d.type ? ` ${d.type}` : ""
       return `${dice}${bonusPart}${typePart}`

@@ -14,6 +14,18 @@ import { ToolProficienciesWidget } from "@/components/canvas/widgets/tool-profic
 import { OtherProficienciesWidget } from "@/components/canvas/widgets/other-proficiencies-widget"
 import { SlimToolProfWidget } from "@/components/canvas/widgets/slim-tool-prof-widget"
 import { SlimOtherProfWidget } from "@/components/canvas/widgets/slim-other-prof-widget"
+import { ArmorClassWidget } from "@/components/canvas/widgets/armor-class-widget"
+import { InitiativeWidget } from "@/components/canvas/widgets/initiative-widget"
+import { SpeedWidget } from "@/components/canvas/widgets/speed-widget"
+import { CurrentHpWidget } from "@/components/canvas/widgets/current-hp-widget"
+import { TempHpWidget } from "@/components/canvas/widgets/temp-hp-widget"
+import { HitDiceWidget } from "@/components/canvas/widgets/hit-dice-widget"
+import { DeathSavesWidget } from "@/components/canvas/widgets/death-saves-widget"
+import { AttacksWidget } from "@/components/canvas/widgets/attacks-widget"
+import { SlimAttacksWidget } from "@/components/canvas/widgets/slim-attacks-widget"
+import { EquipmentWidget } from "@/components/canvas/widgets/equipment-widget"
+import { TrackerWidget } from "@/components/canvas/widgets/tracker-widget"
+import { FeaturesWidget } from "@/components/canvas/widgets/features-widget"
 
 function WidgetContent({ type }: { type: WidgetType }) {
   if (type === "CoreStats")          return <CoreStatsWidget />
@@ -26,6 +38,18 @@ function WidgetContent({ type }: { type: WidgetType }) {
   if (type === "OtherProficiencies") return <OtherProficienciesWidget />
   if (type === "SlimToolProf")       return <SlimToolProfWidget />
   if (type === "SlimOtherProf")      return <SlimOtherProfWidget />
+  if (type === "ArmorClass")         return <ArmorClassWidget />
+  if (type === "Initiative")         return <InitiativeWidget />
+  if (type === "Speed")              return <SpeedWidget />
+  if (type === "CurrentHp")         return <CurrentHpWidget />
+  if (type === "TempHp")            return <TempHpWidget />
+  if (type === "HitDice")           return <HitDiceWidget />
+  if (type === "DeathSaves")        return <DeathSavesWidget />
+  if (type === "Attacks")           return <AttacksWidget />
+  if (type === "SlimAttacks")       return <SlimAttacksWidget />
+  if (type === "Equipment")         return <EquipmentWidget />
+  if (type === "Trackers")          return <TrackerWidget />
+  if (type === "Features")          return <FeaturesWidget />
   return null
 }
 
@@ -34,33 +58,42 @@ type Props = {
   cols: number
   rows: number
   selected: boolean
+  printMode?: boolean
   onSelect: (e: React.MouseEvent) => void
   onRotate: () => void
   onToggleLock: () => void
   onDelete: () => void
 }
 
-export function PlacedWidget({ widget, cols, rows, selected, onSelect, onRotate, onToggleLock, onDelete }: Props) {
+export function PlacedWidget({ widget, cols, rows, selected, printMode, onSelect, onRotate, onToggleLock, onDelete }: Props) {
   const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({
     id: widget.id,
     data: { source: "canvas", widgetId: widget.id },
-    disabled: widget.locked,
+    disabled: widget.locked || !!printMode,
   })
+
+  const posStyle: React.CSSProperties = {
+    position: "absolute",
+    left: `${(widget.col / cols) * 100}%`,
+    top: `${(widget.row / rows) * 100}%`,
+    width: `${(widget.w / cols) * 100}%`,
+    height: `${(widget.h / rows) * 100}%`,
+  }
+
+  if (printMode) {
+    return (
+      <div style={posStyle} className="overflow-hidden">
+        <WidgetContent type={widget.type} />
+      </div>
+    )
+  }
 
   return (
     <div
       ref={setNodeRef}
       {...(widget.locked ? {} : listeners)}
       {...attributes}
-      style={{
-        position: "absolute",
-        left: `${(widget.col / cols) * 100}%`,
-        top: `${(widget.row / rows) * 100}%`,
-        width: `${(widget.w / cols) * 100}%`,
-        height: `${(widget.h / rows) * 100}%`,
-        zIndex: selected ? 10 : 1,
-        opacity: isDragging ? 0.25 : 1,
-      }}
+      style={{ ...posStyle, zIndex: selected ? 10 : 1, opacity: isDragging ? 0.25 : 1 }}
       onClick={onSelect}
     >
       <div
@@ -76,7 +109,6 @@ export function PlacedWidget({ widget, cols, rows, selected, onSelect, onRotate,
         )}
       </div>
 
-      {/* Toolbar — rendered outside rotation wrapper so it stays upright */}
       {selected && (
         <div className="absolute -top-7 left-0 z-20 flex items-center gap-0.5 rounded border border-border bg-card px-1 py-0.5 shadow-sm">
           <button

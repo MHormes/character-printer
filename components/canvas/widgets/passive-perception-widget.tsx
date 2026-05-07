@@ -1,6 +1,7 @@
 "use client";
 
 import { useCharacterStore } from "@/lib/store/character-store";
+import { resolvePassivePerception } from "@/lib/character/calculations";
 import { DndFrame } from "./dnd-frame";
 
 // ViewBox 138×30 — aspect 4.6 matches widget 9×2 on A4 (≈4.61), so no letterboxing.
@@ -11,29 +12,7 @@ export function PassivePerceptionWidget() {
 
   if (!character) return null;
 
-  const pb = Math.ceil(character.identity.level / 4) + 1;
-
-  const wisAttr = character.attributes.wis;
-  const wisTotal =
-    wisAttr.override ??
-    wisAttr.base +
-      wisAttr.stack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0);
-  const wisMod = Math.floor((wisTotal - 10) / 2);
-
-  const perception = character.skills.perception;
-  const skillStack = perception.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-  const globalMod = character.skillGlobalStack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-
-  let profMod = 0;
-  if (perception.state === "Expertise") profMod = pb * 2;
-  else if (perception.state === "Proficient") profMod = pb;
-  else if (character.jackOfAllTrades) profMod = Math.floor(pb / 2);
-
-  const passivePerception = 10 + wisMod + skillStack + globalMod + profMod;
+  const passivePerception = resolvePassivePerception(character);
 
   // Text center = midpoint of space after circle (right edge ~x22) to frame right (x134.5)
   const textCX = (22 + 134.5) / 2; // ≈ 78

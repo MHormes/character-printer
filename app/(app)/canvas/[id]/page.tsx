@@ -22,7 +22,7 @@ export default function CanvasPage({
 
   const cols = useCanvasStore((s) => s.cols)
   const setCols = useCanvasStore((s) => s.setCols)
-  const widgets = useCanvasStore((s) => s.widgets)
+  const canvasPages = useCanvasStore((s) => s.pages)
   const setCanvasData = useCanvasStore((s) => s.setCanvasData)
 
   const setCharacter = useCharacterStore((s) => s.setCharacter)
@@ -38,7 +38,10 @@ export default function CanvasPage({
     loadCharacter(id).then((res) => {
       if (res) {
         setCharacter(res.data, res.autoSave)
-        setCanvasData(res.data.canvas.cols || 20, res.data.canvas.pages[0]?.widgets || [])
+        const pages = res.data.canvas.pages.length > 0
+          ? res.data.canvas.pages
+          : [{ id: crypto.randomUUID(), widgets: [] }]
+        setCanvasData(res.data.canvas.cols || 20, pages)
       }
     })
   }, [id, clearCharacter, setCharacter, setCanvasData])
@@ -46,15 +49,10 @@ export default function CanvasPage({
   // Auto-save on canvas change with 1.5s debounce
   useEffect(() => {
     if (!character || !autoSave) return
-    
-    // Create updated character data with current canvas state
+
     const updatedCharacter = {
       ...character,
-      canvas: {
-        ...character.canvas,
-        cols,
-        pages: character.canvas.pages.map((p, i) => i === 0 ? { ...p, widgets } : p)
-      }
+      canvas: { ...character.canvas, cols, pages: canvasPages }
     }
 
     if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -65,22 +63,16 @@ export default function CanvasPage({
       setTimeout(() => setSaveStatus("idle"), 2000)
     }, 1500)
 
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current)
-    }
-  }, [widgets, cols, autoSave, id]) // Note: intentionally not depending on 'character' to avoid loops if character is updated elsewhere
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
+  }, [canvasPages, cols, autoSave, id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave() {
     if (!character) return
     if (saveTimer.current) clearTimeout(saveTimer.current)
-    
+
     const updatedCharacter = {
       ...character,
-      canvas: {
-        ...character.canvas,
-        cols,
-        pages: character.canvas.pages.map((p, i) => i === 0 ? { ...p, widgets } : p)
-      }
+      canvas: { ...character.canvas, cols, pages: canvasPages }
     }
 
     setSaveStatus("saving")
@@ -94,11 +86,7 @@ export default function CanvasPage({
     if (character) {
       const updatedCharacter = {
         ...character,
-        canvas: {
-          ...character.canvas,
-          cols,
-          pages: character.canvas.pages.map((p, i) => i === 0 ? { ...p, widgets } : p)
-        }
+        canvas: { ...character.canvas, cols, pages: canvasPages }
       }
       await saveCharacter(id, updatedCharacter, checked)
     }

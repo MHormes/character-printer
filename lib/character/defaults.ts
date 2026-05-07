@@ -78,6 +78,7 @@ export function createDefaultCharacter(id: string): CharacterData {
         stack: [],
       },
     },
+    currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
     inventory: [],
     actions: [],
     features: [],

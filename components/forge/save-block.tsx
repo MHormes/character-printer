@@ -6,6 +6,8 @@ import { X, Plus, RotateCcw, CircleDot, Circle, ChevronDown, ChevronRight, Lock 
 import { cn } from "@/lib/utils"
 import type { SaveData, ModifierEntry } from "@/lib/types/character"
 
+import { resolveSaveBonus } from "@/lib/character/calculations"
+
 type SaveBlockProps = {
   label: string
   data: SaveData
@@ -15,17 +17,25 @@ type SaveBlockProps = {
   onProficiencyChange: (proficient: boolean) => void
   onStackChange: (stack: ModifierEntry[]) => void
   onOverrideChange: (override: number | null) => void
+  attrKey: AttributeKey
 }
 
 export function SaveBlock({
   label, data, attrMod, proficiencyBonus, globalStack,
-  onProficiencyChange, onStackChange, onOverrideChange,
+  onProficiencyChange, onStackChange, onOverrideChange, attrKey
 }: SaveBlockProps) {
   const [expanded, setExpanded] = useState(false)
 
+  const mockChar = {
+    saves: { [attrKey]: data },
+    attributes: { [attrKey]: { base: 10 + attrMod * 2, stack: [], override: null } }, // Hacky attr mod fallback
+    saveGlobalStack: globalStack,
+    identity: { level: (proficiencyBonus - 1) * 4 },
+    profBonusStack: [],
+  } as any
+
   const stackTotal = data.stack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
-  const globalTotal = globalStack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
-  const calculated = attrMod + (data.proficient ? proficiencyBonus : 0) + stackTotal + globalTotal
+  const calculated = resolveSaveBonus(mockChar, attrKey)
   const isOverridden = data.override !== null
 
   function toggleProficiency() {

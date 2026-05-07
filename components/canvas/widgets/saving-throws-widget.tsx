@@ -1,7 +1,8 @@
 "use client"
 
 import { useCharacterStore } from "@/lib/store/character-store"
-import type { AttributeKey, AttributeData } from "@/lib/types/character"
+import type { AttributeKey } from "@/lib/types/character"
+import { resolveSaveBonus } from "@/lib/character/calculations"
 import { DndFrame } from "./dnd-frame"
 
 const ATTRIBUTE_KEYS: AttributeKey[] = [
@@ -22,14 +23,6 @@ const SAVE_LABELS: Record<AttributeKey, string> = {
   cha: "Charisma",
 }
 
-function calculateAttrMod(attr: AttributeData) {
-  const sum = attr.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0)
-  const total = attr.override ?? attr.base + sum
-  return Math.floor((total - 10) / 2)
-}
-
 function fmt(v: number) { return v >= 0 ? `+${v}` : `${v}` }
 
 // ViewBox 88×76. 6 rows + bottom label.
@@ -40,11 +33,6 @@ export function SavingThrowsWidget() {
   const ROW_START = 12
 
   if (!character) return null
-
-  const pb = Math.ceil(character.identity.level / 4) + 1
-  const globalMod = character.saveGlobalStack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0)
 
   return (
     <svg
@@ -59,17 +47,7 @@ export function SavingThrowsWidget() {
       {ATTRIBUTE_KEYS.map((key, i) => {
         const cy = ROW_START + i * ROW_H
         const save = character.saves[key]
-        const attrMod = calculateAttrMod(character.attributes[key])
-        
-        let value = 0
-        if (save.override !== null) {
-          value = save.override
-        } else {
-          const stackSum = save.stack
-            .filter((m) => m.isActive)
-            .reduce((s, m) => s + m.value, 0)
-          value = attrMod + stackSum + globalMod + (save.proficient ? pb : 0)
-        }
+        const value = resolveSaveBonus(character, key)
 
         return (
           <g key={key}>

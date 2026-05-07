@@ -138,9 +138,8 @@
   }
 }
 
-#print-canvas {
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
+#print-all-pages {
+  display: none;
 }
 
 @media print {
@@ -149,25 +148,29 @@
     margin: 0;
   }
 
-  body * {
-    visibility: hidden;
+  /* Remove app shell from layout entirely — no leftover height */
+  body > *:not(#print-all-pages) {
+    display: none !important;
   }
 
-  #print-canvas,
-  #print-canvas * {
-    visibility: visible;
+  #print-all-pages {
+    display: block !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 
-  #print-canvas {
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    aspect-ratio: unset !important;
-    max-width: unset !important;
-    max-height: unset !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    background-color: white !important;
+  .print-page {
+    width: 210mm;
+    height: 297mm;
+    position: relative;
+    overflow: hidden;
+    background: white !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
   }
 }

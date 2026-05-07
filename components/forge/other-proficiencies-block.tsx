@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import type { OtherProficiency, AttributeKey, AttributeData } from "@/lib/types/character"
 
+import { resolveAttributeMod, resolvePb } from "@/lib/character/calculations"
+
 const CATEGORIES: OtherProficiency["category"][] = ["Tool", "Language", "Vehicle", "Weapon", "Armor"]
 const ATTR_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
 const ATTR_ABBR: Record<AttributeKey, string> = {
@@ -24,15 +26,8 @@ type OtherProficienciesBlockProps = {
   onChange: (list: OtherProficiency[]) => void
 }
 
-function attrMod(attr: AttributeKey, attributes: Record<AttributeKey, AttributeData>): number {
-  const a = attributes[attr]
-  const sum = a.stack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
-  const total = a.override ?? (a.base + sum)
-  return Math.floor((total - 10) / 2)
-}
-
 function calcModifier(prof: OtherProficiency, attributes: Record<AttributeKey, AttributeData>, pb: number): number {
-  const statBonus = prof.stat !== null ? attrMod(prof.stat, attributes) : 0
+  const statBonus = prof.stat !== null ? resolveAttributeMod(attributes[prof.stat]) : 0
   const trainingBonus = prof.training === "Expertise" ? pb * 2 : pb
   return statBonus + trainingBonus
 }

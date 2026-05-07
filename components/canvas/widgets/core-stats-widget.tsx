@@ -1,7 +1,8 @@
 "use client";
 
 import { useCharacterStore } from "@/lib/store/character-store";
-import type { AttributeKey, AttributeData } from "@/lib/types/character";
+import type { AttributeKey } from "@/lib/types/character";
+import { resolveAttributeScore, resolveAttributeMod } from "@/lib/character/calculations";
 
 const ATTRIBUTE_KEYS: AttributeKey[] = [
   "str",
@@ -20,18 +21,6 @@ const ATTRIBUTE_LABELS: Record<AttributeKey, string> = {
   wis: "WISDOM",
   cha: "CHARISMA",
 };
-
-function calculateTotal(attr: AttributeData) {
-  if (attr.override !== null) return attr.override;
-  const sum = attr.stack
-    .filter((m) => m.isActive)
-    .reduce((s, m) => s + m.value, 0);
-  return attr.base + sum;
-}
-
-function calculateMod(total: number) {
-  return Math.floor((total - 10) / 2);
-}
 
 function formatMod(mod: number): string {
   return mod >= 0 ? `+${mod}` : `${mod}`;
@@ -193,12 +182,13 @@ export function CoreStatsWidget() {
   return (
     <div className="w-full h-full flex flex-col">
       {ATTRIBUTE_KEYS.map((key) => {
-        const total = calculateTotal(character.attributes[key]);
+        const total = resolveAttributeScore(character.attributes[key]);
+        const mod = resolveAttributeMod(character.attributes[key]);
         return (
           <div key={key} className="flex-1 min-h-0">
             <StatSvg
               name={ATTRIBUTE_LABELS[key]}
-              modifier={calculateMod(total)}
+              modifier={mod}
               score={total}
             />
           </div>

@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData } from "@/lib/types/character"
 
+import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack, sumStack } from "@/lib/character/calculations"
+
 type SlotData = { base: number; stack: { id: string; source: string; value: number; isActive: boolean }[]; override: number | null }
 
 type SpellsBlockProps = {
@@ -14,6 +16,8 @@ type SpellsBlockProps = {
   castingStat: AttributeKey | null
   attributes: Record<AttributeKey, AttributeData>
   proficiencyBonus: number
+  attackStack: ModifierEntry[]
+  dcStack: ModifierEntry[]
   onSlotsChange: (slots: Record<string, SlotData>) => void
   onListChange: (list: SpellEntry[]) => void
 }
@@ -24,26 +28,26 @@ const ATTR_ABBR: Record<AttributeKey, string> = { str: "STR", dex: "DEX", con: "
 const DIE_TYPES: DieType[] = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"]
 const LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-function resolveAttrMod(data: AttributeData): number {
-  const sum = data.stack.filter(m => m.isActive).reduce((s, m) => s + m.value, 0)
-  const score = data.override ?? (data.base + sum)
-  return Math.floor((score - 10) / 2)
-}
-
 function sign(n: number) { return n >= 0 ? `+${n}` : String(n) }
 
 export function SpellsBlock({
-  slots, list, castingStat, attributes, proficiencyBonus,
+  slots, list, castingStat, attributes, proficiencyBonus, attackStack, dcStack,
   onSlotsChange, onListChange,
 }: SpellsBlockProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
-  const castingMod = castingStat ? resolveAttrMod(attributes[castingStat]) : 0
-  const spellDC = 8 + proficiencyBonus + castingMod
-  const spellAttack = proficiencyBonus + castingMod
+  const mockChar = {
+    attributes,
+    spells: { globalCastingStat: castingStat, attackStack, dcStack },
+    identity: { level: (proficiencyBonus - 1) * 4 },
+    profBonusStack: [],
+  } as any
+
+  const spellDC = resolveSpellDc(mockChar)
+  const spellAttack = resolveSpellAttack(mockChar)
 
   function attrMod(key: AttributeKey): number {
-    return resolveAttrMod(attributes[key])
+    return resolveAttributeMod(attributes[key])
   }
 
   function toggleExpand(id: string) {
@@ -93,19 +97,46 @@ export function SpellsBlock({
               </span>
               {slot && (
                 <div className="flex items-center gap-1">
-                  <input
-                    type="number" min={0} max={99}
-                    value={slot.override !== null ? slot.override : slot.base}
-                    onChange={e => patchSlot(String(lvl), { base: parseInt(e.target.value) || 0, override: null })}
-                    className={`h-5 w-10 rounded border text-center text-xs tabular-nums focus:outline-none focus:border-ring ${slot.override !== null ? "border-amber-500/50 bg-amber-500/5 text-amber-600" : "border-input bg-background"}`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={slot.override !== null ? String(slot.override) : ""}
+                      placeholder={String(slot.base + sumStack(slot.stack))}
+                      onChange={e => {
+                        const raw = e.target.value
+                        if (raw === "") { patchSlot(String(lvl), { override: null }); return }
+                        const n = parseInt(raw, 10)
+                        if (!isNaN(n)) patchSlot(String(lvl), { override: n })
+                      }}
+                      className={cn(
+                        "h-5 w-10 rounded border text-center text-xs tabular-nums focus:outline-none focus:border-ring",
+                        slot.override !== null ? "border-amber-500/50 bg-amber-500/5 text-amber-600 pr-4" : "border-input bg-background",
+                        "placeholder:text-foreground/30"
+                      )}
+                    />
+                    {slot.override !== null && (
+                      <button type="button" onClick={() => patchSlot(String(lvl), { override: null })}
+                        className="absolute right-0.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <RotateCcw className="size-2.5" />
+                      </button>
+                    )}
+                  </div>
                   <span className="text-[10px] text-muted-foreground">slots</span>
-                  {slot.override !== null && (
-                    <button type="button" onClick={() => patchSlot(String(lvl), { override: null })}
-                      className="text-muted-foreground hover:text-foreground">
-                      <RotateCcw className="size-2.5" />
-                    </button>
-                  )}
+                  <div className="flex h-5 items-center rounded border border-input bg-muted/30 px-1.5 ml-1">
+                    <span className="text-[10px] text-muted-foreground uppercase mr-1">Base</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={slot.base === 0 ? "" : String(slot.base)}
+                      placeholder="0"
+                      onChange={e => {
+                        const n = parseInt(e.target.value, 10)
+                        patchSlot(String(lvl), { base: isNaN(n) ? 0 : n })
+                      }}
+                      className="w-4 bg-transparent text-center text-[10px] font-medium focus:outline-none"
+                    />
+                  </div>
                 </div>
               )}
             </div>
