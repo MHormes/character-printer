@@ -212,9 +212,11 @@ export function CombatBlock({
   const [hpExpanded, setHpExpanded] = useState(false);
   const [initRaw, setInitRaw] = useState<string | null>(null);
 
+  const totalLevel = classes.reduce((sum, cls) => sum + cls.level, 0);
+
   // Partial character object for the resolver
   const mockChar = {
-    identity: { classes },
+    identity: { classes, level: totalLevel },
     attributes,
     combat: data,
     jackOfAllTrades,

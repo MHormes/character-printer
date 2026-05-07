@@ -10,6 +10,10 @@ const HEADER_H = 14
 const BADGE_W = 20
 const ROW_H = 11
 const BOTTOM_PAD = 3
+const ROW_RIGHT = SVG_W - MARGIN - 1   // 116 — right content edge
+const TAG_SIZE = 4                      // square/circle badge size
+const TAG_RADIUS = 2                    // circle radius
+const NAME_MAX_X = ROW_RIGHT - 13      // 103 — name clipped before badge column
 
 const ff = "Georgia, 'Times New Roman', serif"
 
@@ -51,6 +55,9 @@ export function SpellLevelBlock({ level }: { level: number }) {
       <defs>
         <clipPath id={clipId}>
           <rect x={MARGIN} y={hdrY} width={SVG_W - MARGIN * 2} height={HEADER_H} rx={7} />
+        </clipPath>
+        <clipPath id={`${clipId}-name`}>
+          <rect x={14} y={listStart} width={NAME_MAX_X - 14} height={svgH} />
         </clipPath>
       </defs>
 
@@ -113,33 +120,84 @@ export function SpellLevelBlock({ level }: { level: number }) {
         </text>
       ) : (
         spells.map((spell, i) => {
-          const cy = listStart + ROW_H * i + ROW_H / 2
+          const rowY = listStart + ROW_H * i
+          const rowCY = rowY + ROW_H / 2
+
+          const hasC = spell.tags.concentration
+          const hasR = spell.tags.ritual
           const comp = componentStr(spell.components)
+          const hasTags = hasC || hasR
+
+          // R badge: always rightmost. C badge: left of R if both, else rightmost.
+          const rX1 = ROW_RIGHT - TAG_SIZE          // 112
+          const cCX = hasR
+            ? rX1 - 1 - TAG_RADIUS                  // 109  (left of R with 1-unit gap)
+            : ROW_RIGHT - TAG_RADIUS                 // 114  (rightmost if no R)
+          const tagCY = rowY + 1 + TAG_RADIUS        // rowY + 3
+
+          // VSM y: bottom of row when tags present, centered otherwise
+          const vsmY = hasTags && comp ? rowY + ROW_H - 2 : rowCY
+
           return (
             <g key={spell.id}>
               {i > 0 && (
                 <line
-                  x1={MARGIN} y1={listStart + ROW_H * i}
-                  x2={SVG_W - MARGIN} y2={listStart + ROW_H * i}
+                  x1={MARGIN} y1={rowY}
+                  x2={SVG_W - MARGIN} y2={rowY}
                   stroke="#1a1208" strokeWidth="0.2" opacity="0.3"
                 />
               )}
+
+              {/* Bullet */}
               <text
-                x={8} y={cy} textAnchor="middle" dominantBaseline="middle"
+                x={8} y={rowCY} textAnchor="middle" dominantBaseline="middle"
                 fontSize="5" fontFamily={ff} fill="#1a1208" opacity="0.35"
               >
                 ○
               </text>
+
+              {/* Spell name — clipped to leave room for badge column */}
               <text
-                x={14} y={cy} dominantBaseline="middle"
+                x={14} y={rowCY} dominantBaseline="middle"
                 fontSize="6" fontFamily={ff} fill="#1a1208"
+                clipPath={`url(#${clipId}-name)`}
               >
                 {spell.name}
               </text>
+
+              {/* R badge — filled square, white letter */}
+              {hasR && (
+                <g>
+                  <rect x={rX1} y={rowY + 1} width={TAG_SIZE} height={TAG_SIZE} fill="#1a1208" />
+                  <text
+                    x={rX1 + TAG_SIZE / 2} y={tagCY + 0.5}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fontSize="3.5" fontWeight="700" fontFamily={ff} fill="#f5f0e8"
+                  >
+                    R
+                  </text>
+                </g>
+              )}
+
+              {/* C badge — filled circle, white letter */}
+              {hasC && (
+                <g>
+                  <circle cx={cCX} cy={tagCY} r={TAG_RADIUS} fill="#1a1208" />
+                  <text
+                    x={cCX} y={tagCY + 0.5}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fontSize="3.5" fontWeight="700" fontFamily={ff} fill="#f5f0e8"
+                  >
+                    C
+                  </text>
+                </g>
+              )}
+
+              {/* Component letters — below tags, or vertically centered if no tags */}
               {comp && (
                 <text
-                  x={SVG_W - MARGIN - 1} y={cy} textAnchor="end" dominantBaseline="middle"
-                  fontSize="5" fontFamily={ff} fill="#6a5a48"
+                  x={ROW_RIGHT} y={vsmY} textAnchor="end" dominantBaseline="middle"
+                  fontSize="4.5" fontFamily={ff} fill="#6a5a48"
                 >
                   {comp}
                 </text>
