@@ -50,6 +50,7 @@ type SkillsBlockProps = {
   jackOfAllTrades: boolean
   globalStack: ModifierEntry[]
   passivePerception: DerivedValueData
+  showManualControls: boolean
   onStateChange: (key: string, state: SkillState) => void
   onOverrideChange: (key: string, override: number | null) => void
   onJackOfAllTradesChange: (value: boolean) => void
@@ -60,6 +61,7 @@ type SkillsBlockProps = {
 
 export function SkillsBlock({
   skills, attributes, proficiencyBonus, jackOfAllTrades, globalStack, passivePerception,
+  showManualControls,
   onStateChange, onOverrideChange, onJackOfAllTradesChange, onGlobalStackChange,
   onPassivePerceptionStackChange, onPassivePerceptionOverrideChange,
 }: SkillsBlockProps) {
@@ -163,6 +165,7 @@ export function SkillsBlock({
         if (!skill) return null
         const calc = calculated(key, meta.attr)
         const isOverridden = skill.override !== null
+        const total = skill.override ?? calc
 
         return (
           <div key={key} className="flex items-center gap-1.5">
@@ -193,32 +196,38 @@ export function SkillsBlock({
               {meta.attr.toUpperCase()}
             </span>
 
-            <div className="relative w-12 shrink-0">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={isOverridden ? skill.override! : ""}
-                placeholder={calc.toString()}
-                onChange={(e) => handleOverrideChange(key, e.target.value)}
-                className={cn(
-                  "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                  "placeholder:text-foreground/30",
-                  "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
-                  "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-                  isOverridden && "pr-4",
+            {showManualControls ? (
+              <div className="relative w-12 shrink-0">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={isOverridden ? skill.override! : ""}
+                  placeholder={calc.toString()}
+                  onChange={(e) => handleOverrideChange(key, e.target.value)}
+                  className={cn(
+                    "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
+                    "placeholder:text-foreground/30",
+                    "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
+                    "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                    isOverridden && "pr-4",
+                  )}
+                />
+                {isOverridden && (
+                  <button
+                    type="button"
+                    aria-label="Reset to calculated value"
+                    onClick={() => onOverrideChange(key, null)}
+                    className="absolute right-0.5 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <RotateCcw className="size-2.5" />
+                  </button>
                 )}
-              />
-              {isOverridden && (
-                <button
-                  type="button"
-                  aria-label="Reset to calculated value"
-                  onClick={() => onOverrideChange(key, null)}
-                  className="absolute right-0.5 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <RotateCcw className="size-2.5" />
-                </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex h-6 w-12 shrink-0 items-center justify-center rounded-md border border-input bg-background text-xs font-medium tabular-nums text-foreground">
+                {total}
+              </div>
+            )}
           </div>
         )
       })}
@@ -228,49 +237,57 @@ export function SkillsBlock({
           <span className="flex-1 text-xs font-medium text-foreground">
             Passive Perception
           </span>
-          <div className="relative w-12 shrink-0">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={passiveOverridden ? passivePerception.override! : ""}
-              placeholder={passiveValue.toString()}
-              onChange={(e) => handlePassiveOverrideChange(e.target.value)}
-              className={cn(
-                "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                "placeholder:text-foreground/30",
-                "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
-                "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-                passiveOverridden && "pr-4",
+          {showManualControls ? (
+            <div className="relative w-12 shrink-0">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={passiveOverridden ? passivePerception.override! : ""}
+                placeholder={passiveValue.toString()}
+                onChange={(e) => handlePassiveOverrideChange(e.target.value)}
+                className={cn(
+                  "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
+                  "placeholder:text-foreground/30",
+                  "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
+                  "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                  passiveOverridden && "pr-4",
+                )}
+              />
+              {passiveOverridden && (
+                <button
+                  type="button"
+                  aria-label="Reset to calculated value"
+                  onClick={() => onPassivePerceptionOverrideChange(null)}
+                  className="absolute right-0.5 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <RotateCcw className="size-2.5" />
+                </button>
               )}
-            />
-            {passiveOverridden && (
-              <button
-                type="button"
-                aria-label="Reset to calculated value"
-                onClick={() => onPassivePerceptionOverrideChange(null)}
-                className="absolute right-0.5 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <RotateCcw className="size-2.5" />
-              </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex h-6 w-12 shrink-0 items-center justify-center rounded-md border border-input bg-background text-xs font-medium tabular-nums text-foreground">
+              {passivePerception.override ?? passiveValue}
+            </div>
+          )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setPassiveExpanded((v) => !v)}
-          className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {passiveExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-          Modifiers
-          {!passiveExpanded && passiveSum !== 0 && (
-            <span className="ml-auto tabular-nums">
-              {passiveSum >= 0 ? `+${passiveSum}` : passiveSum}
-            </span>
-          )}
-        </button>
+        {showManualControls && (
+          <>
+            <button
+              type="button"
+              onClick={() => setPassiveExpanded((v) => !v)}
+              className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {passiveExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+              Modifiers
+              {!passiveExpanded && passiveSum !== 0 && (
+                <span className="ml-auto tabular-nums">
+                  {passiveSum >= 0 ? `+${passiveSum}` : passiveSum}
+                </span>
+              )}
+            </button>
 
-        {passiveExpanded && (
+            {passiveExpanded && (
           <div className="flex flex-col gap-1.5">
             {passivePerception.stack.map((mod) =>
               mod.sourceId ? (
@@ -339,26 +356,28 @@ export function SkillsBlock({
               Add modifier
             </button>
           </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Global modifier stack */}
-      <div className="mt-2 flex flex-col gap-1">
-        <button
-          type="button"
-          onClick={() => setGlobalExpanded((v) => !v)}
-          className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {globalExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-          Global modifier
-          {!globalExpanded && globalSum !== 0 && (
-            <span className="ml-auto tabular-nums">
-              {globalSum >= 0 ? `+${globalSum}` : globalSum}
-            </span>
-          )}
-        </button>
+      {showManualControls && (
+        <div className="mt-2 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => setGlobalExpanded((v) => !v)}
+            className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {globalExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+            Global modifier
+            {!globalExpanded && globalSum !== 0 && (
+              <span className="ml-auto tabular-nums">
+                {globalSum >= 0 ? `+${globalSum}` : globalSum}
+              </span>
+            )}
+          </button>
 
-        {globalExpanded && (
+          {globalExpanded && (
           <div className="flex flex-col gap-1.5">
             {globalStack.map((mod) =>
               mod.sourceId ? (
@@ -427,8 +446,9 @@ export function SkillsBlock({
               Add modifier
             </button>
           </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -741,26 +741,13 @@ The following structure represents the single JSON object stored in the database
 - Disable all automation with some toggle (how this would work, idk).
 - Make race/class/background choices automatically populate stat modifier stacks, saving throw bonuses, skills,
   proficiencies, speed, and features where applicable.
-
-  ## Inventory, Combat, and Derived Rules
-  - Add compendium-backed items so common equipment can be inserted with their modifiers prefilled instead of
-    being built manually every time.
-
-  ## Features, Proficiencies, and Resources
-  - Mirror passive/item-granted features into the features list when smart items are equipped.
-  - Add tracker entries that can scale dynamically from character stats or similar linked values.
-  - Add automatic class-based tracker setups for things like Ki, Sorcery Points, Rage, Bardic Inspiration, and
-    similar resources.
-
-  ## Spellcasting Completion
-  - Auto-fill spell slot counts from class and level instead of keeping slot bases manual-only.
-  - Support the intended multiclass spell-slot behavior, not just single-class slot filling.
-  - Add full spell-slot modifier-stack editing so slot totals can include labeled bonuses/adjustments, not only
-    base values and overrides.
-  - Allow individual spells to use a different casting ability than the global spellcasting stat when needed.
+- Add automatic class-based tracker setups for things like Ki, Sorcery Points, Rage, Bardic Inspiration, and
+  similar resources.
+- Add compendium-backed items so common equipment can be inserted with their modifiers prefilled instead of
+  being built manually every time. Also auto-fill the attacks section on inserting new items
+- Mirror passive/item-granted features & trackers into the features list and trackers list respectivly when smart items are equipped.
 
   ## Canvas and Output Completion
-  - Add the per-widget print-state toggle so widgets can print either calculated values or blank tracking spaces.
   - Add optional overlap prevention/collision handling on the canvas.
   - Add user-created layout presets/templates, not just the built-in predefined layouts.
   - Add higher-quality PDF export beyond standard browser print.

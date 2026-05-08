@@ -14,21 +14,22 @@ type SaveBlockProps = {
   attrMod: number
   proficiencyBonus: number
   globalStack: ModifierEntry[]
+  attrKey: AttributeKey
+  showManualControls: boolean
   onProficiencyChange: (proficient: boolean) => void
   onStackChange: (stack: ModifierEntry[]) => void
   onOverrideChange: (override: number | null) => void
-  attrKey: AttributeKey
 }
 
 export function SaveBlock({
   label, data, attrMod, proficiencyBonus, globalStack,
-  onProficiencyChange, onStackChange, onOverrideChange, attrKey
+  onProficiencyChange, onStackChange, onOverrideChange, attrKey, showManualControls,
 }: SaveBlockProps) {
   const [expanded, setExpanded] = useState(false)
 
   const mockChar = {
     saves: { [attrKey]: data },
-    attributes: { [attrKey]: { base: 10 + attrMod * 2, stack: [], override: null } }, // Hacky attr mod fallback
+    attributes: { [attrKey]: { base: 10 + attrMod * 2, stack: [], override: null } },
     saveGlobalStack: globalStack,
     identity: { level: (proficiencyBonus - 1) * 4 },
     profBonusStack: [],
@@ -36,6 +37,7 @@ export function SaveBlock({
 
   const stackTotal = data.stack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)
   const calculated = resolveSaveBonus(mockChar, attrKey)
+  const total = data.override ?? calculated
   const isOverridden = data.override !== null
 
   function toggleProficiency() {
@@ -92,108 +94,129 @@ export function SaveBlock({
         </button>
       </div>
 
-      {/* Modifier stack — collapsable */}
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-      >
-        {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-        Modifiers
-        {!expanded && data.stack.length > 0 && (
-          <span className="ml-auto tabular-nums">
-            {stackTotal >= 0 ? `+${stackTotal}` : stackTotal}
-          </span>
-        )}
-      </button>
-
-      {expanded && (
-        <div className="flex flex-col gap-1.5">
-          {data.stack.map((mod) =>
-            mod.sourceId ? (
-              <div key={mod.id} className={cn("flex items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5", !mod.isActive && "opacity-40")}>
-                <Lock className="size-2.5 shrink-0 text-muted-foreground" />
-                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{mod.source}</span>
-                <span className="shrink-0 tabular-nums text-xs text-foreground">
-                  {mod.value >= 0 ? `+${mod.value}` : mod.value}
-                </span>
-                {mod.isActive ? <CircleDot className="size-2.5 shrink-0 text-muted-foreground" /> : <Circle className="size-2.5 shrink-0 text-muted-foreground" />}
-              </div>
-            ) : (
-              <div key={mod.id} className={cn("flex items-start gap-1", !mod.isActive && "opacity-40")}>
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <Input
-                    type="text"
-                    value={mod.source}
-                    onChange={(e) => updateSource(mod.id, e.target.value)}
-                    placeholder="Source"
-                    className="h-6 text-xs"
-                  />
-                  <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                    <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={mod.value === 0 ? "" : String(mod.value)}
-                      placeholder="0"
-                      onChange={(e) => {
-                        const raw = e.target.value
-                        if (raw === "") { updateValue(mod.id, 0); return }
-                        if (raw === "-") return
-                        const n = parseInt(raw, 10)
-                        if (!isNaN(n)) updateValue(mod.id, n)
-                      }}
-                      onBlur={(e) => { if (e.target.value === "-") updateValue(mod.id, 0) }}
-                      className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="mt-0.5 flex flex-col gap-0.5">
-                  <button type="button" onClick={() => removeModifier(mod.id)}
-                    className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
-                    <X className="size-2.5" />
-                  </button>
-                  <button type="button" onClick={() => toggleModifier(mod.id)}
-                    className="flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
-                    {mod.isActive ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
-                  </button>
-                </div>
-              </div>
-            )
-          )}
-          <button type="button" onClick={addModifier}
-            className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
-            <Plus className="size-3" />
-            Add modifier
+      {showManualControls && (
+        <>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+            Modifiers
+            {!expanded && data.stack.length > 0 && (
+              <span className="ml-auto tabular-nums">
+                {stackTotal >= 0 ? `+${stackTotal}` : stackTotal}
+              </span>
+            )}
           </button>
-        </div>
+
+          {expanded && (
+            <div className="flex flex-col gap-1.5">
+              {data.stack.map((mod) =>
+                mod.sourceId ? (
+                  <div key={mod.id} className={cn("flex items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5", !mod.isActive && "opacity-40")}>
+                    <Lock className="size-2.5 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{mod.source}</span>
+                    <span className="shrink-0 tabular-nums text-xs text-foreground">
+                      {mod.value >= 0 ? `+${mod.value}` : mod.value}
+                    </span>
+                    {mod.isActive ? <CircleDot className="size-2.5 shrink-0 text-muted-foreground" /> : <Circle className="size-2.5 shrink-0 text-muted-foreground" />}
+                  </div>
+                ) : (
+                  <div key={mod.id} className={cn("flex items-start gap-1", !mod.isActive && "opacity-40")}>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <Input
+                        type="text"
+                        value={mod.source}
+                        onChange={(e) => updateSource(mod.id, e.target.value)}
+                        placeholder="Source"
+                        className="h-6 text-xs"
+                      />
+                      <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
+                        <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={mod.value === 0 ? "" : String(mod.value)}
+                          placeholder="0"
+                          onChange={(e) => {
+                            const raw = e.target.value
+                            if (raw === "") { updateValue(mod.id, 0); return }
+                            if (raw === "-") return
+                            const n = parseInt(raw, 10)
+                            if (!isNaN(n)) updateValue(mod.id, n)
+                          }}
+                          onBlur={(e) => { if (e.target.value === "-") updateValue(mod.id, 0) }}
+                          className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-0.5 flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => removeModifier(mod.id)}
+                        className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <X className="size-2.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleModifier(mod.id)}
+                        className="flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {mod.isActive ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
+                      </button>
+                    </div>
+                  </div>
+                ),
+              )}
+              <button
+                type="button"
+                onClick={addModifier}
+                className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Plus className="size-3" />
+                Add modifier
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Total — inline */}
       <div className="flex items-center gap-2">
         <span className="shrink-0 text-xs text-muted-foreground">Total</span>
-        <div className="relative min-w-0 flex-1">
-          <input
-            type="text"
-            inputMode="numeric"
-            value={isOverridden ? data.override! : ""}
-            placeholder={calculated.toString()}
-            onChange={(e) => handleTotalChange(e.target.value)}
-            className={cn(
-              "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-              "placeholder:text-foreground/30",
-              "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
-              "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-              isOverridden && "pr-5",
+        {showManualControls ? (
+          <div className="relative min-w-0 flex-1">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={isOverridden ? data.override! : ""}
+              placeholder={calculated.toString()}
+              onChange={(e) => handleTotalChange(e.target.value)}
+              className={cn(
+                "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
+                "placeholder:text-foreground/30",
+                "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
+                "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                isOverridden && "pr-5",
+              )}
+            />
+            {isOverridden && (
+              <button
+                type="button"
+                aria-label="Reset"
+                onClick={() => onOverrideChange(null)}
+                className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <RotateCcw className="size-2.5" />
+              </button>
             )}
-          />
-          {isOverridden && (
-            <button type="button" aria-label="Reset" onClick={() => onOverrideChange(null)}
-              className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
-              <RotateCcw className="size-2.5" />
-            </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex h-6 min-w-0 flex-1 items-center justify-center rounded-md border border-input bg-background px-2 text-xs font-medium tabular-nums text-foreground">
+            {total}
+          </div>
+        )}
       </div>
     </div>
   )

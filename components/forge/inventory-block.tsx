@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { CircleDot, Circle, ChevronDown, ChevronRight, GripVertical, X, Plus } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { CircleDot, Circle, ChevronDown, ChevronRight, GripVertical, X, Plus, Search, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { InventoryItem, ModifierTarget } from "@/lib/types/character"
@@ -9,6 +9,8 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import type { DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { searchItems } from "@/lib/actions/5e-data"
+import type { ItemRow } from "@/lib/actions/5e-data"
 
 const CATEGORIES: InventoryItem["category"][] = ["Weapon", "Armor", "Tool", "Consumable", "Wondrous", "Mundane"]
 const MOD_TYPES: Array<"Bonus" | "Set To"> = ["Bonus", "Set To"]
@@ -65,13 +67,173 @@ const MODIFIER_TARGETS: { key: ModifierTarget; label: string }[] = [
   { key: "attr.wis",            label: "Wisdom Score" },
 ]
 
+const ITEM_CATEGORY_FILTERS = [
+  { value: "", label: "All categories" },
+  { value: "Weapon", label: "Weapons" },
+  { value: "Armor", label: "Armor" },
+  { value: "Adventuring Gear", label: "Adventuring Gear" },
+  { value: "Tools", label: "Tools" },
+  { value: "Mounts and Vehicles", label: "Mounts & Vehicles" },
+]
+
+function mapEquipmentCategory(eq: string): InventoryItem["category"] {
+  const lower = eq.toLowerCase()
+  if (lower.includes("weapon")) return "Weapon"
+  if (lower.includes("armor")) return "Armor"
+  if (lower.includes("tool") || lower.includes("instrument") || lower.includes("gaming set")) return "Tool"
+  if (lower.includes("ammunition")) return "Consumable"
+  return "Mundane"
+}
+
+function buildInventoryItem(item: ItemRow): InventoryItem {
+  const isShield = item.armorCategory === "Shield"
+  const isWeapon = item.equipmentCategory === "Weapon"
+  return {
+    id: crypto.randomUUID(),
+    name: item.name,
+    weight: item.weight ?? 0,
+    category: mapEquipmentCategory(item.equipmentCategory),
+    equipped: isWeapon || isShield,
+    modifiers: isShield
+      ? [{ id: crypto.randomUUID(), target: "combat.ac" as ModifierTarget, value: 2, type: "Bonus" as const }]
+      : [],
+  }
+}
+
+function itemSummary(item: ItemRow): string {
+  if (item.damageDiceCount && item.damageDieType) {
+    return `${item.damageDiceCount}${item.damageDieType} ${item.damageType ?? ""}`
+  }
+  if (item.acBase) {
+    return `AC ${item.acBase}${item.acDexBonus ? " + DEX" : ""}`
+  }
+  return item.equipmentCategory
+}
+
+// ─── Item Picker ──────────────────────────────────────────────────────────────
+
+function ItemPicker({
+  onPick,
+  onClose,
+}: {
+  onPick: (item: ItemRow) => void
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("")
+  const [results, setResults] = useState<ItemRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function runSearch(q: string, cat: string) {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    setLoading(true)
+    timerRef.current = setTimeout(async () => {
+      const res = await searchItems({
+        name: q || undefined,
+        equipmentCategory: cat || undefined,
+      })
+      setResults(res)
+      setLoading(false)
+    }, 250)
+  }
+
+  useEffect(() => {
+    runSearch("", "")
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function handleQueryChange(q: string) {
+    setQuery(q)
+    runSearch(q, categoryFilter)
+  }
+
+  function handleCategoryChange(cat: string) {
+    setCategoryFilter(cat)
+    runSearch(query, cat)
+  }
+
+  return (
+    <div className="mt-1 rounded-md border border-border bg-muted/30 p-2 space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
+          <Input
+            autoFocus
+            type="text"
+            value={query}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            placeholder="Search equipment…"
+            className="h-6 pl-6 text-xs"
+          />
+        </div>
+        <select
+          value={categoryFilter}
+          onChange={(e) => handleCategoryChange(e.target.value)}
+          className="h-6 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:border-ring"
+        >
+          {ITEM_CATEGORY_FILTERS.map((f) => (
+            <option key={f.value} value={f.value}>{f.label}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        >
+          <X className="size-3" />
+        </button>
+      </div>
+
+      <div className="max-h-52 overflow-y-auto space-y-0.5">
+        {loading && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {!loading && results.length === 0 && (
+          <p className="py-3 text-center text-xs text-muted-foreground">No items found</p>
+        )}
+        {!loading && results.map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-accent/50"
+          >
+            <div className="min-w-0 flex-1">
+              <span className="text-xs font-medium">{item.name}</span>
+            </div>
+            <span className="shrink-0 text-[10px] text-muted-foreground w-28 truncate text-right">
+              {itemSummary(item)}
+            </span>
+            {item.cost && (
+              <span className="shrink-0 text-[10px] text-muted-foreground w-12 text-right">{item.cost}</span>
+            )}
+            <button
+              type="button"
+              onClick={() => onPick(item)}
+              className="flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+            >
+              <Plus className="size-3" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main block ───────────────────────────────────────────────────────────────
+
 type InventoryBlockProps = {
   inventory: InventoryItem[]
   onChange: (list: InventoryItem[]) => void
+  onSrdItemSelected?: (item: ItemRow, invItem: InventoryItem) => void
 }
 
-export function InventoryBlock({ inventory, onChange }: InventoryBlockProps) {
+export function InventoryBlock({ inventory, onChange, onSrdItemSelected }: InventoryBlockProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [showPicker, setShowPicker] = useState(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   function toggle(id: string) {
@@ -99,6 +261,13 @@ export function InventoryBlock({ inventory, onChange }: InventoryBlockProps) {
     onChange(arrayMove(inventory, oldIdx, newIdx))
   }
 
+  function handlePickSrdItem(srdItem: ItemRow) {
+    const invItem = buildInventoryItem(srdItem)
+    onChange([...inventory, invItem])
+    onSrdItemSelected?.(srdItem, invItem)
+    setShowPicker(false)
+  }
+
   const totalWeight = inventory.filter(item => item.equipped).reduce((s, item) => s + item.weight, 0)
 
   return (
@@ -114,7 +283,7 @@ export function InventoryBlock({ inventory, onChange }: InventoryBlockProps) {
         <div className="size-5 shrink-0" />
       </div>
 
-      {inventory.length === 0 && (
+      {inventory.length === 0 && !showPicker && (
         <p className="px-2 text-xs text-muted-foreground">No items added yet.</p>
       )}
 
@@ -133,15 +302,35 @@ export function InventoryBlock({ inventory, onChange }: InventoryBlockProps) {
         </SortableContext>
       </DndContext>
 
+      {showPicker && (
+        <ItemPicker
+          onPick={handlePickSrdItem}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
+
       <div className="flex items-center justify-between px-2 pt-1">
-        <button
-          type="button"
-          onClick={add}
-          className="flex h-7 items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <Plus className="size-3.5" />
-          Add item
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={add}
+            className="flex h-7 items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Plus className="size-3.5" />
+            Add item
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowPicker((v) => !v)}
+            className={cn(
+              "flex h-7 items-center gap-1.5 text-xs transition-colors",
+              showPicker ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Search className="size-3.5" />
+            From SRD
+          </button>
+        </div>
         {inventory.length > 0 && (
           <span className="text-xs text-muted-foreground">
             Total: <span className="tabular-nums text-foreground">{totalWeight.toFixed(1)} lb</span>

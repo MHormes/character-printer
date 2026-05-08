@@ -7,14 +7,13 @@ import { Button } from "@/components/ui/button"
 import { X, Plus, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ClassRow } from "@/lib/actions/5e-data"
+import type { CharacterClassEntry } from "@/lib/types/character"
 
 const HIT_DICE = ["d6", "d8", "d10", "d12"] as const
 
-type ClassEntry = { name: string; subclass: string; level: number; hitDie: string }
-
 type ClassesFieldProps = {
-  classes: ClassEntry[]
-  onChange: (classes: ClassEntry[]) => void
+  classes: CharacterClassEntry[]
+  onChange: (classes: CharacterClassEntry[]) => void
   proficiencyBonus: number
   availableClasses?: ClassRow[]
   onClassPicked?: (dbClass: ClassRow) => void
@@ -39,7 +38,7 @@ export function ClassesField({
   }, [])
 
   function add() {
-    onChange([...classes, { name: "", subclass: "", level: 1, hitDie: "d8" }])
+    onChange([...classes, { classId: null, name: "", subclass: "", level: 1, hitDie: "d8" }])
   }
 
   function remove(index: number) {
@@ -47,14 +46,16 @@ export function ClassesField({
     if (openIdx === index) setOpenIdx(null)
   }
 
-  function update<K extends keyof ClassEntry>(index: number, key: K, value: ClassEntry[K]) {
+  function update<K extends keyof CharacterClassEntry>(index: number, key: K, value: CharacterClassEntry[K]) {
     onChange(classes.map((c, i) => (i === index ? { ...c, [key]: value } : c)))
   }
 
   function pickFromDb(index: number, dbClass: ClassRow) {
     onChange(
       classes.map((c, i) =>
-        i === index ? { ...c, name: dbClass.name, hitDie: dbClass.hitDie } : c,
+        i === index
+          ? { ...c, classId: dbClass.id, name: dbClass.name, hitDie: dbClass.hitDie }
+          : c,
       ),
     )
     onClassPicked?.(dbClass)
@@ -85,7 +86,11 @@ export function ClassesField({
                     placeholder="Class name"
                     className="min-w-0 flex-1 bg-transparent px-3 text-sm focus:outline-none"
                     onChange={(e) => {
-                      update(i, "name", e.target.value)
+                      onChange(
+                        classes.map((c, idx) =>
+                          idx === i ? { ...c, classId: null, name: e.target.value } : c,
+                        ),
+                      )
                       setOpenIdx(i)
                     }}
                     onFocus={() => setOpenIdx(i)}

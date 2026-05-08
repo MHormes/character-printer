@@ -15,6 +15,7 @@ import {
   sqliteRaces,
   sqliteSubraces,
   sqliteBackgrounds,
+  sqliteItems,
 } from "../lib/db/schema";
 
 const SYSTEM = "dnd5e";
@@ -67,10 +68,23 @@ type Raw5eClass = {
   };
 };
 
-type Raw5eBackground = {
-  index: string;
-  name: string;
-};
+type SpellSlotProgression = "none" | "full" | "half";
+
+const PHB_BACKGROUNDS: { index: string; name: string }[] = [
+  { index: "acolyte", name: "Acolyte" },
+  { index: "charlatan", name: "Charlatan" },
+  { index: "criminal", name: "Criminal" },
+  { index: "entertainer", name: "Entertainer" },
+  { index: "folk-hero", name: "Folk Hero" },
+  { index: "guild-artisan", name: "Guild Artisan" },
+  { index: "hermit", name: "Hermit" },
+  { index: "noble", name: "Noble" },
+  { index: "outlander", name: "Outlander" },
+  { index: "sage", name: "Sage" },
+  { index: "sailor", name: "Sailor" },
+  { index: "soldier", name: "Soldier" },
+  { index: "urchin", name: "Urchin" },
+];
 
 type Raw5eRace = {
   index: string;
@@ -82,6 +96,27 @@ type Raw5eSubrace = {
   index: string;
   name: string;
   race: { index: string };
+};
+
+type Raw5eEquipment = {
+  index: string;
+  name: string;
+  equipment_category: { name: string };
+  desc?: string[];
+  weight?: number;
+  cost?: { quantity: number; unit: string };
+  // Weapon fields
+  weapon_category?: string;
+  weapon_range?: string;
+  damage?: { damage_dice: string; damage_type: { name: string } };
+  two_handed_damage?: { damage_dice: string; damage_type: { name: string } };
+  properties?: { name: string }[];
+  range?: { normal: number; long?: number };
+  // Armor fields
+  armor_category?: string;
+  armor_class?: { base: number; dex_bonus: boolean; max_bonus?: number | null };
+  stealth_disadvantage?: boolean;
+  str_minimum?: number;
 };
 
 type Raw5eLevel = {
@@ -116,6 +151,16 @@ function spellId(index: string) {
 
 function classId(index: string) {
   return `${SYSTEM}:${index}`;
+}
+
+function getSpellSlotProgression(index: string): SpellSlotProgression {
+  if (["bard", "cleric", "druid", "sorcerer", "wizard"].includes(index)) {
+    return "full";
+  }
+  if (["paladin", "ranger"].includes(index)) {
+    return "half";
+  }
+  return "none";
 }
 
 const VALID_DICE = new Set(["d4", "d6", "d8", "d10", "d12", "d20", "d100"]);
@@ -194,17 +239,17 @@ async function main() {
   const db = drizzle(sqlite);
 
   console.log("Fetching 5e SRD data...");
-  const [rawSpells, rawClasses, rawLevels, rawRaces, rawSubraces, rawBackgrounds] = await Promise.all([
+  const [rawSpells, rawClasses, rawLevels, rawRaces, rawSubraces, rawEquipment] = await Promise.all([
     fetchJson<Raw5eSpell[]>(`${BASE_URL}/5e-SRD-Spells.json`),
     fetchJson<Raw5eClass[]>(`${BASE_URL}/5e-SRD-Classes.json`),
     fetchJson<Raw5eLevel[]>(`${BASE_URL}/5e-SRD-Levels.json`),
     fetchJson<Raw5eRace[]>(`${BASE_URL}/5e-SRD-Races.json`),
     fetchJson<Raw5eSubrace[]>(`${BASE_URL}/5e-SRD-Subraces.json`),
-    fetchJson<Raw5eBackground[]>(`${BASE_URL}/5e-SRD-Backgrounds.json`),
+    fetchJson<Raw5eEquipment[]>(`${BASE_URL}/5e-SRD-Equipment.json`),
   ]);
 
   console.log(
-    `  ${rawSpells.length} spells, ${rawClasses.length} classes, ${rawLevels.length} levels, ${rawRaces.length} races, ${rawSubraces.length} subraces, ${rawBackgrounds.length} backgrounds`,
+    `  ${rawSpells.length} spells, ${rawClasses.length} classes, ${rawLevels.length} levels, ${rawRaces.length} races, ${rawSubraces.length} subraces, ${PHB_BACKGROUNDS.length} backgrounds (hardcoded), ${rawEquipment.length} equipment`,
   );
 
   console.log("Clearing existing SRD data...");
@@ -213,6 +258,7 @@ async function main() {
   db.delete(sqliteRaces).where(eq(sqliteRaces.system, SYSTEM)).run();
   db.delete(sqliteClasses).where(eq(sqliteClasses.system, SYSTEM)).run();
   db.delete(sqliteSpells).where(eq(sqliteSpells.system, SYSTEM)).run();
+  db.delete(sqliteItems).where(eq(sqliteItems.system, SYSTEM)).run();
 
   console.log("Inserting spells...");
   const spellRows = rawSpells.map((s) => {
@@ -260,6 +306,7 @@ async function main() {
     name: c.name,
     hitDie: hitDieStr(c.hit_die),
     spellcastingStat: c.spellcasting?.spellcasting_ability?.index ?? null,
+    spellSlotProgression: getSpellSlotProgression(c.index),
     source: SOURCE,
     userId: null as string | null,
   }));
@@ -322,7 +369,7 @@ async function main() {
   }
 
   console.log("Inserting backgrounds...");
-  const backgroundRows = rawBackgrounds.map((b) => ({
+  const backgroundRows = PHB_BACKGROUNDS.map((b) => ({
     id: `${SYSTEM}:${b.index}`,
     system: SYSTEM,
     name: b.name,
@@ -331,8 +378,88 @@ async function main() {
   }));
   db.insert(sqliteBackgrounds).values(backgroundRows).run();
 
+  console.log("Inserting equipment...");
+  const itemRows = rawEquipment.map((e) => {
+    const cost = e.cost ? `${e.cost.quantity} ${e.cost.unit}` : null;
+    const desc = e.desc?.length ? e.desc.join("\n\n") : null;
+
+    // Weapon dice
+    let damageDiceCount: number | null = null;
+    let damageDieType: string | null = null;
+    let damageType: string | null = null;
+    if (e.damage) {
+      const parsed = parseDiceStr(e.damage.damage_dice);
+      damageDiceCount = parsed?.count ?? null;
+      damageDieType = parsed?.die ?? null;
+      damageType = e.damage.damage_type.name;
+    }
+
+    // Versatile / two-handed dice
+    let twoHandedDiceCount: number | null = null;
+    let twoHandedDieType: string | null = null;
+    let twoHandedDamageType: string | null = null;
+    if (e.two_handed_damage) {
+      const parsed = parseDiceStr(e.two_handed_damage.damage_dice);
+      twoHandedDiceCount = parsed?.count ?? null;
+      twoHandedDieType = parsed?.die ?? null;
+      twoHandedDamageType = e.two_handed_damage.damage_type.name;
+    }
+
+    const properties = e.properties?.length
+      ? JSON.stringify(e.properties.map((p) => p.name))
+      : null;
+
+    // Weapon category: "Simple Melee" → category "Simple", range "Melee"
+    let weaponCategory: string | null = null;
+    let weaponRange: string | null = null;
+    if (e.weapon_category) {
+      const parts = e.weapon_category.split(" ");
+      weaponCategory = parts[0] ?? null; // "Simple" | "Martial"
+    }
+    if (e.weapon_range) {
+      weaponRange = e.weapon_range; // "Melee" | "Ranged"
+    }
+
+    return {
+      id: `${SYSTEM}:${e.index}`,
+      system: SYSTEM,
+      name: e.name,
+      equipmentCategory: e.equipment_category.name,
+      description: desc,
+      weight: e.weight ?? null,
+      cost,
+      weaponCategory,
+      weaponRange,
+      damageDiceCount,
+      damageDieType,
+      damageType,
+      twoHandedDiceCount,
+      twoHandedDieType,
+      twoHandedDamageType,
+      properties,
+      rangeNormal: e.range?.normal ?? null,
+      rangeLong: e.range?.long ?? null,
+      armorCategory: e.armor_category ?? null,
+      acBase: e.armor_class?.base ?? null,
+      acDexBonus: e.armor_class?.dex_bonus ?? null,
+      acMaxDex: e.armor_class?.max_bonus ?? null,
+      stealthDisadvantage: e.stealth_disadvantage ?? null,
+      strMinimum: e.str_minimum ?? null,
+      source: SOURCE,
+      userId: null as string | null,
+    };
+  });
+
+  for (let i = 0; i < itemRows.length; i += 100) {
+    db.insert(sqliteItems).values(itemRows.slice(i, i + 100)).run();
+  }
+
+  const weapons = itemRows.filter((i) => i.weaponCategory !== null).length;
+  const armors = itemRows.filter((i) => i.armorCategory !== null).length;
+  console.log(`  ${itemRows.length} items | ${weapons} weapons | ${armors} armor pieces`);
+
   console.log(
-    `Done. ${spellRows.length} spells | ${classRows.length} classes | ${slotRows.length} slot rows | ${classMappingRows.length} class→spell links | ${raceRows.length} races | ${subraceRows.length} subraces | ${backgroundRows.length} backgrounds`,
+    `Done. ${spellRows.length} spells | ${classRows.length} classes | ${slotRows.length} slot rows | ${classMappingRows.length} class→spell links | ${raceRows.length} races | ${subraceRows.length} subraces | ${backgroundRows.length} backgrounds | ${itemRows.length} items`,
   );
   sqlite.close();
 }

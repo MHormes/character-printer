@@ -201,6 +201,7 @@ type CombatBlockProps = {
   classes: ClassEntry[];
   proficiencyBonus: number;
   jackOfAllTrades: boolean;
+  showManualControls: boolean;
   onAcChange: (ac: CombatData["ac"]) => void;
   onInitiativeChange: (initiative: CombatData["initiative"]) => void;
   onSpeedChange: (speed: CombatData["speed"]) => void;
@@ -213,6 +214,7 @@ export function CombatBlock({
   classes,
   proficiencyBonus,
   jackOfAllTrades,
+  showManualControls,
   onAcChange,
   onInitiativeChange,
   onSpeedChange,
@@ -332,51 +334,59 @@ export function CombatBlock({
         )}
 
         {/* Modifier stack — both modes */}
-        <ModStack
-          stack={data.ac.stack}
-          expanded={acExpanded}
-          onToggle={() => setAcExpanded((v) => !v)}
-          onStackChange={(stack) => onAcChange({ ...data.ac, stack })}
-        />
+        {showManualControls && (
+          <ModStack
+            stack={data.ac.stack}
+            expanded={acExpanded}
+            onToggle={() => setAcExpanded((v) => !v)}
+            onStackChange={(stack) => onAcChange({ ...data.ac, stack })}
+          />
+        )}
 
         {/* Ghost total */}
         <div className="flex items-center gap-2">
           <span className="shrink-0 text-xs text-muted-foreground">Total</span>
-          <div className="relative min-w-0 flex-1">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={acOverridden ? data.ac.override! : ""}
-              placeholder={String(acCalc)}
-              onChange={(e) => {
-                const raw = e.target.value;
-                if (raw === "") {
-                  onAcChange({ ...data.ac, override: null });
-                  return;
-                }
-                if (raw === "-") return;
-                if (!/^-?\d+$/.test(raw)) return;
-                const n = parseInt(raw, 10);
-                if (!isNaN(n)) onAcChange({ ...data.ac, override: n });
-              }}
-              className={cn(
-                "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                "placeholder:text-foreground/30 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
-                "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-                acOverridden && "pr-5",
+          {showManualControls ? (
+            <div className="relative min-w-0 flex-1">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={acOverridden ? data.ac.override! : ""}
+                placeholder={String(acCalc)}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    onAcChange({ ...data.ac, override: null });
+                    return;
+                  }
+                  if (raw === "-") return;
+                  if (!/^-?\d+$/.test(raw)) return;
+                  const n = parseInt(raw, 10);
+                  if (!isNaN(n)) onAcChange({ ...data.ac, override: n });
+                }}
+                className={cn(
+                  "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
+                  "placeholder:text-foreground/30 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
+                  "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                  acOverridden && "pr-5",
+                )}
+              />
+              {acOverridden && (
+                <button
+                  type="button"
+                  aria-label="Reset"
+                  onClick={() => onAcChange({ ...data.ac, override: null })}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <RotateCcw className="size-2.5" />
+                </button>
               )}
-            />
-            {acOverridden && (
-              <button
-                type="button"
-                aria-label="Reset"
-                onClick={() => onAcChange({ ...data.ac, override: null })}
-                className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <RotateCcw className="size-2.5" />
-              </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex h-6 min-w-0 flex-1 items-center justify-center rounded-md border border-input bg-background px-2 text-xs font-medium tabular-nums text-foreground">
+              {data.ac.override ?? acCalc}
+            </div>
+          )}
         </div>
       </div>
 
@@ -386,63 +396,71 @@ export function CombatBlock({
           Initiative
         </h3>
 
-        <ModStack
-          stack={data.initiative.stack}
-          expanded={initExpanded}
-          onToggle={() => setInitExpanded((v) => !v)}
-          onStackChange={(stack) =>
-            onInitiativeChange({ ...data.initiative, stack })
-          }
-        />
+        {showManualControls && (
+          <ModStack
+            stack={data.initiative.stack}
+            expanded={initExpanded}
+            onToggle={() => setInitExpanded((v) => !v)}
+            onStackChange={(stack) =>
+              onInitiativeChange({ ...data.initiative, stack })
+            }
+          />
+        )}
 
         <div className="flex items-center gap-2">
           <span className="shrink-0 text-xs text-muted-foreground">Total</span>
-          <div className="relative min-w-0 flex-1">
-            <input
-              type="text"
-              inputMode="decimal"
-              value={
-                initRaw ??
-                (initOverridden ? String(data.initiative.override!) : "")
-              }
-              placeholder={`${initCalc}.${dexScore}`}
-              onChange={(e) => {
-                const raw = e.target.value;
-                setInitRaw(raw);
-                if (raw === "") {
-                  onInitiativeChange({ ...data.initiative, override: null });
-                  setInitRaw(null);
-                  return;
+          {showManualControls ? (
+            <div className="relative min-w-0 flex-1">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={
+                  initRaw ??
+                  (initOverridden ? String(data.initiative.override!) : "")
                 }
-                if (/^-?$/.test(raw) || /^-?\d*\.$/.test(raw)) return;
-                if (!/^-?\d*\.?\d*$/.test(raw)) {
-                  setInitRaw(null);
-                  return;
-                }
-                const n = parseFloat(raw);
-                if (!isNaN(n))
-                  onInitiativeChange({ ...data.initiative, override: n });
-              }}
-              onBlur={() => setInitRaw(null)}
-              className={cn(
-                "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                "placeholder:text-foreground/30 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
-                initOverridden && "pr-5",
+                placeholder={`${initCalc}.${dexScore}`}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  setInitRaw(raw);
+                  if (raw === "") {
+                    onInitiativeChange({ ...data.initiative, override: null });
+                    setInitRaw(null);
+                    return;
+                  }
+                  if (/^-?$/.test(raw) || /^-?\d*\.$/.test(raw)) return;
+                  if (!/^-?\d*\.?\d*$/.test(raw)) {
+                    setInitRaw(null);
+                    return;
+                  }
+                  const n = parseFloat(raw);
+                  if (!isNaN(n))
+                    onInitiativeChange({ ...data.initiative, override: n });
+                }}
+                onBlur={() => setInitRaw(null)}
+                className={cn(
+                  "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
+                  "placeholder:text-foreground/30 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
+                  initOverridden && "pr-5",
+                )}
+              />
+              {initOverridden && (
+                <button
+                  type="button"
+                  aria-label="Reset"
+                  onClick={() =>
+                    onInitiativeChange({ ...data.initiative, override: null })
+                  }
+                  className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <RotateCcw className="size-2.5" />
+                </button>
               )}
-            />
-            {initOverridden && (
-              <button
-                type="button"
-                aria-label="Reset"
-                onClick={() =>
-                  onInitiativeChange({ ...data.initiative, override: null })
-                }
-                className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <RotateCcw className="size-2.5" />
-              </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex h-6 min-w-0 flex-1 items-center justify-center rounded-md border border-input bg-background px-2 text-xs font-medium tabular-nums text-foreground">
+              {data.initiative.override ?? initCalc}
+            </div>
+          )}
         </div>
       </div>
 
@@ -473,49 +491,57 @@ export function CombatBlock({
           <span className="shrink-0 text-xs text-muted-foreground">ft</span>
         </div>
 
-        <ModStack
-          stack={data.speed.stack}
-          expanded={speedExpanded}
-          onToggle={() => setSpeedExpanded((v) => !v)}
-          onStackChange={(stack) => onSpeedChange({ ...data.speed, stack })}
-        />
+        {showManualControls && (
+          <ModStack
+            stack={data.speed.stack}
+            expanded={speedExpanded}
+            onToggle={() => setSpeedExpanded((v) => !v)}
+            onStackChange={(stack) => onSpeedChange({ ...data.speed, stack })}
+          />
+        )}
 
         <div className="flex items-center gap-2">
           <span className="shrink-0 text-xs text-muted-foreground">Total</span>
-          <div className="relative min-w-0 flex-1">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={speedOverridden ? data.speed.override! : ""}
-              placeholder={`${speedCalc}`}
-              onChange={(e) => {
-                const raw = e.target.value;
-                if (raw === "") {
-                  onSpeedChange({ ...data.speed, override: null });
-                  return;
-                }
-                if (raw === "-") return;
-                if (!/^-?\d+$/.test(raw)) return;
-                const n = parseInt(raw, 10);
-                if (!isNaN(n)) onSpeedChange({ ...data.speed, override: n });
-              }}
-              className={cn(
-                "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                "placeholder:text-foreground/30 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
-                speedOverridden && "pr-5",
+          {showManualControls ? (
+            <div className="relative min-w-0 flex-1">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={speedOverridden ? data.speed.override! : ""}
+                placeholder={`${speedCalc}`}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    onSpeedChange({ ...data.speed, override: null });
+                    return;
+                  }
+                  if (raw === "-") return;
+                  if (!/^-?\d+$/.test(raw)) return;
+                  const n = parseInt(raw, 10);
+                  if (!isNaN(n)) onSpeedChange({ ...data.speed, override: n });
+                }}
+                className={cn(
+                  "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
+                  "placeholder:text-foreground/30 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
+                  speedOverridden && "pr-5",
+                )}
+              />
+              {speedOverridden && (
+                <button
+                  type="button"
+                  aria-label="Reset"
+                  onClick={() => onSpeedChange({ ...data.speed, override: null })}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <RotateCcw className="size-2.5" />
+                </button>
               )}
-            />
-            {speedOverridden && (
-              <button
-                type="button"
-                aria-label="Reset"
-                onClick={() => onSpeedChange({ ...data.speed, override: null })}
-                className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <RotateCcw className="size-2.5" />
-              </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex h-6 min-w-0 flex-1 items-center justify-center rounded-md border border-input bg-background px-2 text-xs font-medium tabular-nums text-foreground">
+              {data.speed.override ?? speedCalc}
+            </div>
+          )}
           <span className="shrink-0 text-xs text-muted-foreground">ft</span>
         </div>
       </div>
@@ -529,48 +555,56 @@ export function CombatBlock({
         <div className="flex items-end gap-3">
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">Max HP</span>
-            <div className="relative">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={hpOverridden ? String(data.hp.max!) : ""}
-                placeholder={String(hpCalc)}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  if (raw === "") {
-                    onHpChange({ ...data.hp, max: null });
-                    return;
-                  }
-                  if (raw === "-") return;
-                  if (!/^-?\d+$/.test(raw)) return;
-                  const n = parseInt(raw, 10);
-                  if (!isNaN(n)) onHpChange({ ...data.hp, max: n });
-                }}
-                className={cn(
-                  "h-9 w-20 rounded-md border border-input bg-background text-center text-lg font-semibold focus:outline-none focus:border-ring",
-                  "placeholder:text-foreground/30",
-                  hpOverridden && "pr-5",
+            {showManualControls ? (
+              <div className="relative">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={hpOverridden ? String(data.hp.max!) : ""}
+                  placeholder={String(hpCalc)}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") {
+                      onHpChange({ ...data.hp, max: null });
+                      return;
+                    }
+                    if (raw === "-") return;
+                    if (!/^-?\d+$/.test(raw)) return;
+                    const n = parseInt(raw, 10);
+                    if (!isNaN(n)) onHpChange({ ...data.hp, max: n });
+                  }}
+                  className={cn(
+                    "h-9 w-20 rounded-md border border-input bg-background text-center text-lg font-semibold focus:outline-none focus:border-ring",
+                    "placeholder:text-foreground/30",
+                    hpOverridden && "pr-5",
+                  )}
+                />
+                {hpOverridden && (
+                  <button
+                    type="button"
+                    aria-label="Reset"
+                    onClick={() => onHpChange({ ...data.hp, max: null })}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <RotateCcw className="size-2.5" />
+                  </button>
                 )}
-              />
-              {hpOverridden && (
-                <button
-                  type="button"
-                  aria-label="Reset"
-                  onClick={() => onHpChange({ ...data.hp, max: null })}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <RotateCcw className="size-2.5" />
-                </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex h-9 w-20 items-center justify-center rounded-md border border-input bg-background px-2 text-lg font-semibold tabular-nums text-foreground">
+                {data.hp.max ?? hpCalc}
+              </div>
+            )}
           </div>
           <div className="min-w-0 flex-1">
-            <ModStack
-              stack={data.hp.stack}
-              expanded={hpExpanded}
-              onToggle={() => setHpExpanded((v) => !v)}
-              onStackChange={(stack) => onHpChange({ ...data.hp, stack })}
-            />
+            {showManualControls && (
+              <ModStack
+                stack={data.hp.stack}
+                expanded={hpExpanded}
+                onToggle={() => setHpExpanded((v) => !v)}
+                onStackChange={(stack) => onHpChange({ ...data.hp, stack })}
+              />
+            )}
           </div>
         </div>
 

@@ -126,6 +126,7 @@ export const sqliteClasses = sqliteTable("classes", {
   name: text("name").notNull(),
   hitDie: text("hit_die").notNull().default("d8"), // "d6" | "d8" | "d10" | "d12"
   spellcastingStat: text("spellcasting_stat"), // "int" | "wis" | "cha" | null
+  spellSlotProgression: text("spell_slot_progression").notNull().default("none"),
   source: text("source").notNull().default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
@@ -136,6 +137,7 @@ export const pgClasses = pgTable("classes", {
   name: varchar("name", { length: 255 }).notNull(),
   hitDie: varchar("hit_die", { length: 10 }).notNull().default("d8"),
   spellcastingStat: varchar("spellcasting_stat", { length: 10 }),
+  spellSlotProgression: varchar("spell_slot_progression", { length: 20 }).notNull().default("none"),
   source: varchar("source", { length: 50 }).notNull().default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
@@ -234,6 +236,68 @@ export const pgSubraces = pgTable("subraces", {
   system: varchar("system", { length: 50 }).notNull(),
   raceId: varchar("race_id", { length: 100 }).notNull().references(() => pgRaces.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
+  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
+});
+
+// ─── Game content: equipment / items ─────────────────────────────────────────
+
+export const sqliteItems = sqliteTable("items", {
+  id: text("id").primaryKey(), // "dnd5e:longsword"
+  system: text("system").notNull(),
+  name: text("name").notNull(),
+  equipmentCategory: text("equipment_category").notNull(), // "Weapon" | "Armor" | "Tool" | "Adventuring Gear" | ...
+  description: text("description"),
+  weight: real("weight"),
+  cost: text("cost"), // "15 gp"
+  // Weapon fields
+  weaponCategory: text("weapon_category"),   // "Simple" | "Martial"
+  weaponRange: text("weapon_range"),         // "Melee" | "Ranged"
+  damageDiceCount: integer("damage_dice_count"),
+  damageDieType: text("damage_die_type"),    // "d4" | "d6" | "d8" | "d10" | "d12"
+  damageType: text("damage_type"),           // "Slashing" | "Piercing" | "Bludgeoning" | ...
+  twoHandedDiceCount: integer("two_handed_dice_count"),
+  twoHandedDieType: text("two_handed_die_type"),
+  twoHandedDamageType: text("two_handed_damage_type"),
+  properties: text("properties"),            // JSON array: ["Finesse","Versatile","Light",...]
+  rangeNormal: integer("range_normal"),
+  rangeLong: integer("range_long"),
+  // Armor fields
+  armorCategory: text("armor_category"),     // "Light" | "Medium" | "Heavy" | "Shield"
+  acBase: integer("ac_base"),
+  acDexBonus: integer("ac_dex_bonus", { mode: "boolean" }).default(true),
+  acMaxDex: integer("ac_max_dex"),
+  stealthDisadvantage: integer("stealth_disadvantage", { mode: "boolean" }).default(false),
+  strMinimum: integer("str_minimum"),
+  source: text("source").notNull().default("srd"),
+  userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
+});
+
+export const pgItems = pgTable("items", {
+  id: varchar("id", { length: 100 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  equipmentCategory: varchar("equipment_category", { length: 100 }).notNull(),
+  description: varchar("description", { length: 10000 }),
+  weight: pgInteger("weight"),
+  cost: varchar("cost", { length: 50 }),
+  weaponCategory: varchar("weapon_category", { length: 50 }),
+  weaponRange: varchar("weapon_range", { length: 20 }),
+  damageDiceCount: pgInteger("damage_dice_count"),
+  damageDieType: varchar("damage_die_type", { length: 10 }),
+  damageType: varchar("damage_type", { length: 50 }),
+  twoHandedDiceCount: pgInteger("two_handed_dice_count"),
+  twoHandedDieType: varchar("two_handed_die_type", { length: 10 }),
+  twoHandedDamageType: varchar("two_handed_damage_type", { length: 50 }),
+  properties: varchar("properties", { length: 500 }),
+  rangeNormal: pgInteger("range_normal"),
+  rangeLong: pgInteger("range_long"),
+  armorCategory: varchar("armor_category", { length: 20 }),
+  acBase: pgInteger("ac_base"),
+  acDexBonus: boolean("ac_dex_bonus").default(true),
+  acMaxDex: pgInteger("ac_max_dex"),
+  stealthDisadvantage: boolean("stealth_disadvantage").default(false),
+  strMinimum: pgInteger("str_minimum"),
   source: varchar("source", { length: 50 }).notNull().default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });

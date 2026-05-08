@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, AttributeData, ModifierEntry, TrackerBaseSource } from "@/lib/types/character"
 
 export function sumStack(stack: ModifierEntry[]): number {
   return (stack ?? [])
@@ -132,6 +132,22 @@ export function resolveSpellAttack(c: CharacterData): number {
   const pb = resolvePb(c)
   const stackSum = sumStack(c.spells.attackStack)
   return pb + mod + stackSum
+}
+
+export function resolveTrackerBase(
+  tracker: { base: number; baseSource?: TrackerBaseSource },
+  attrs: Record<AttributeKey, AttributeData>,
+  level: number,
+  pb: number,
+): number {
+  const src = tracker.baseSource
+  if (!src || src.kind === "fixed") return tracker.base
+  if (src.kind === "attr_mod") return resolveAttributeMod(attrs[src.attr])
+  if (src.kind === "level") return level
+  if (src.kind === "half_level_up") return Math.ceil(level / 2)
+  if (src.kind === "half_level_down") return Math.floor(level / 2)
+  if (src.kind === "prof_bonus") return pb
+  return tracker.base
 }
 
 export function resolveEquippedWeight(c: CharacterData): number {

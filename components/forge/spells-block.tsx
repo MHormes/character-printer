@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle, Search, Loader2 } from "lucide-react"
+import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle, Search, Loader2, Lock } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
@@ -13,7 +13,7 @@ import { CSS } from "@dnd-kit/utilities"
 import { searchSpells } from "@/lib/actions/5e-data"
 import type { ClassRow, SpellRow } from "@/lib/actions/5e-data"
 
-type SlotData = { base: number; stack: { id: string; source: string; value: number; isActive: boolean }[]; override: number | null }
+type SlotData = { base: number; stack: ModifierEntry[]; override: number | null }
 
 type SpellsBlockProps = {
   slots: Record<string, SlotData>
@@ -25,6 +25,7 @@ type SpellsBlockProps = {
   dcStack: ModifierEntry[]
   availableClasses?: ClassRow[]
   characterClasses?: { name: string }[]
+  showManualControls: boolean
   onSlotsChange: (slots: Record<string, SlotData>) => void
   onListChange: (list: SpellEntry[]) => void
 }
@@ -202,9 +203,11 @@ export function SpellsBlock({
   slots, list, castingStat, attributes, proficiencyBonus, attackStack, dcStack,
   availableClasses = [],
   characterClasses = [],
+  showManualControls,
   onSlotsChange, onListChange,
 }: SpellsBlockProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [expandedSlotLevels, setExpandedSlotLevels] = useState<Set<string>>(new Set())
   const [openPickerLevel, setOpenPickerLevel] = useState<number | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -236,8 +239,33 @@ export function SpellsBlock({
     setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
 
+  function toggleSlotExpand(level: string) {
+    setExpandedSlotLevels((prev) => {
+      const next = new Set(prev)
+      if (next.has(level)) next.delete(level)
+      else next.add(level)
+      return next
+    })
+  }
+
   function patchSlot(level: string, update: Partial<SlotData>) {
     onSlotsChange({ ...slots, [level]: { ...slots[level], ...update } })
+  }
+
+  function patchSlotModifier(level: string, id: string, patch: Partial<ModifierEntry>) {
+    patchSlot(level, {
+      stack: slots[level].stack.map((mod) => (mod.id === id ? { ...mod, ...patch } : mod)),
+    })
+  }
+
+  function addSlotModifier(level: string) {
+    patchSlot(level, {
+      stack: [...slots[level].stack, { id: crypto.randomUUID(), source: "", value: 0, isActive: true }],
+    })
+  }
+
+  function removeSlotModifier(level: string, id: string) {
+    patchSlot(level, { stack: slots[level].stack.filter((mod) => mod.id !== id) })
   }
 
   function patchSpell(id: string, update: Partial<SpellEntry>) {
@@ -257,7 +285,7 @@ export function SpellsBlock({
     onListChange([...list, {
       id, name: "", level, school: "", castingTime: "1 Action",
       range: "", duration: "",
-      mode: "Plain", attackStat: null, attackProficient: true, attackBonus: 0, fixedDC: null, saveStat: null,
+      mode: "Plain", castingStat: null, fixedDC: null, saveStat: null,
       damageStack: [], description: "", upcastDescription: "",
       components: { verbal: false, somatic: false, material: false, materialDesc: "" },
       tags: { ritual: false, concentration: false, prepared: true },
@@ -296,9 +324,7 @@ export function SpellsBlock({
       range: spell.range,
       duration: spell.duration,
       mode,
-      attackStat: null,
-      attackProficient: true,
-      attackBonus: 0,
+      castingStat: null,
       fixedDC: null,
       saveStat: (spell.dcSaveStat as AttributeKey) ?? null,
       damageStack,
@@ -333,6 +359,9 @@ export function SpellsBlock({
         const spellsAtLevel = list.filter(s => s.level === lvl)
         const slot = lvl > 0 ? slots[String(lvl)] : null
         const pickerOpen = openPickerLevel === lvl
+        const slotLevelKey = String(lvl)
+        const slotExpanded = expandedSlotLevels.has(slotLevelKey)
+        const slotStackSum = slot ? sumStack(slot.stack) : 0
 
         return (
           <div key={lvl} className="space-y-1">
@@ -341,58 +370,157 @@ export function SpellsBlock({
                 {lvl === 0 ? "Cantrips" : `Level ${lvl}`}
               </span>
               {slot && (
-                <div className="flex items-center gap-1">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={slot.override !== null ? String(slot.override) : ""}
-                      placeholder={String(slot.base + sumStack(slot.stack))}
-                      onChange={e => {
-                        const raw = e.target.value
-                        if (raw === "") { patchSlot(String(lvl), { override: null }); return }
-                        const n = parseInt(raw, 10)
-                        if (!isNaN(n)) patchSlot(String(lvl), { override: n })
-                      }}
-                      className={cn(
-                        "h-5 w-10 rounded border text-center text-xs tabular-nums focus:outline-none focus:border-ring",
-                        slot.override !== null ? "border-amber-500/50 bg-amber-500/5 text-amber-600 pr-4" : "border-input bg-background",
-                        "placeholder:text-foreground/30"
+                <div className="flex items-center gap-1.5">
+                  {showManualControls ? (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={slot.override !== null ? String(slot.override) : ""}
+                        placeholder={String(slot.base + sumStack(slot.stack))}
+                        onChange={e => {
+                          const raw = e.target.value
+                          if (raw === "") { patchSlot(String(lvl), { override: null }); return }
+                          const n = parseInt(raw, 10)
+                          if (!isNaN(n)) patchSlot(String(lvl), { override: n })
+                        }}
+                        className={cn(
+                          "h-5 w-10 rounded border text-center text-xs tabular-nums focus:outline-none focus:border-ring",
+                          slot.override !== null ? "border-amber-500/50 bg-amber-500/5 text-amber-600 pr-4" : "border-input bg-background",
+                          "placeholder:text-foreground/30"
+                        )}
+                      />
+                      {slot.override !== null && (
+                        <button type="button" onClick={() => patchSlot(slotLevelKey, { override: null })}
+                          className="absolute right-0.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                          <RotateCcw className="size-2.5" />
+                        </button>
                       )}
-                    />
-                    {slot.override !== null && (
-                      <button type="button" onClick={() => patchSlot(String(lvl), { override: null })}
-                        className="absolute right-0.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                        <RotateCcw className="size-2.5" />
-                      </button>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-5 w-10 items-center justify-center rounded border border-input bg-background text-xs font-medium tabular-nums text-foreground">
+                      {slot.override ?? slot.base + sumStack(slot.stack)}
+                    </div>
+                  )}
                   <span className="text-[10px] text-muted-foreground">slots</span>
-                  <div className="flex h-5 items-center rounded border border-input bg-muted/30 px-1.5 ml-1">
-                    <span className="text-[10px] text-muted-foreground uppercase mr-1">Base</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={slot.base === 0 ? "" : String(slot.base)}
-                      placeholder="0"
-                      onChange={e => {
-                        const n = parseInt(e.target.value, 10)
-                        patchSlot(String(lvl), { base: isNaN(n) ? 0 : n })
-                      }}
-                      className="w-4 bg-transparent text-center text-[10px] font-medium focus:outline-none"
-                    />
+                  <div className="flex h-5 items-center rounded border border-input bg-muted/30 px-1.5">
+                    <span className="text-[10px] text-muted-foreground uppercase mr-1">Derived</span>
+                    <span className="text-[10px] font-medium tabular-nums text-foreground">{slot.base}</span>
                   </div>
+                  {showManualControls && (
+                    <button
+                      type="button"
+                      onClick={() => toggleSlotExpand(slotLevelKey)}
+                      className="flex h-5 items-center gap-1 rounded border border-input bg-background px-1.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {slotExpanded ? <ChevronDown className="size-2.5" /> : <ChevronRight className="size-2.5" />}
+                      Mods
+                      {!slotExpanded && slot.stack.length > 0 && (
+                        <span className="tabular-nums">{sign(slotStackSum)}</span>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
 
             <div className="space-y-1 pl-3">
+              {showManualControls && slot && slotExpanded && (
+                <div className="mb-2 flex flex-col gap-1.5 rounded-md border border-border bg-card/60 p-2">
+                  {slot.stack.map((mod) =>
+                    mod.sourceId ? (
+                      <div
+                        key={mod.id}
+                        className={cn(
+                          "flex items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5",
+                          !mod.isActive && "opacity-40",
+                        )}
+                      >
+                        <Lock className="size-2.5 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{mod.source}</span>
+                        <span className="shrink-0 tabular-nums text-xs text-foreground">
+                          {mod.value >= 0 ? `+${mod.value}` : mod.value}
+                        </span>
+                        {mod.isActive ? (
+                          <CircleDot className="size-2.5 shrink-0 text-muted-foreground" />
+                        ) : (
+                          <Circle className="size-2.5 shrink-0 text-muted-foreground" />
+                        )}
+                      </div>
+                    ) : (
+                      <div
+                        key={mod.id}
+                        className={cn("flex items-start gap-1", !mod.isActive && "opacity-40")}
+                      >
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <Input
+                            type="text"
+                            value={mod.source}
+                            placeholder="Source"
+                            className="h-6 text-xs"
+                            onChange={(e) => patchSlotModifier(slotLevelKey, mod.id, { source: e.target.value })}
+                          />
+                          <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
+                            <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={mod.value === 0 ? "" : String(mod.value)}
+                              placeholder="0"
+                              onChange={(e) => {
+                                const raw = e.target.value
+                                if (raw === "") {
+                                  patchSlotModifier(slotLevelKey, mod.id, { value: 0 })
+                                  return
+                                }
+                                if (raw === "-") return
+                                const n = parseInt(raw, 10)
+                                if (!isNaN(n)) patchSlotModifier(slotLevelKey, mod.id, { value: n })
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value === "-") patchSlotModifier(slotLevelKey, mod.id, { value: 0 })
+                              }}
+                              className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-0.5 flex flex-col gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => removeSlotModifier(slotLevelKey, mod.id)}
+                            className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <X className="size-2.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => patchSlotModifier(slotLevelKey, mod.id, { isActive: !mod.isActive })}
+                            className="flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                          >
+                            {mod.isActive ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
+                          </button>
+                        </div>
+                      </div>
+                    ),
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => addSlotModifier(slotLevelKey)}
+                    className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Plus className="size-3" />
+                    Add modifier
+                  </button>
+                </div>
+              )}
+
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndForLevel}>
                 <SortableContext items={spellsAtLevel.map(s => s.id)} strategy={verticalListSortingStrategy}>
                   {spellsAtLevel.map(spell => (
                     <SortableSpellRow key={spell.id} spell={spell}
                       expanded={expandedIds.has(spell.id)}
                       spellDC={spellDC} spellAttack={spellAttack}
+                      globalCastingStat={castingStat}
                       attrMod={attrMod}
                       proficiencyBonus={proficiencyBonus}
                       onToggle={() => toggleExpand(spell.id)}
@@ -451,6 +579,7 @@ type SpellRowProps = {
   expanded: boolean
   spellDC: number
   spellAttack: number
+  globalCastingStat: AttributeKey | null
   attrMod: (key: AttributeKey) => number
   proficiencyBonus: number
   onToggle: () => void
@@ -482,16 +611,23 @@ function SortableSpellRow(props: Omit<SpellRowProps, "dragHandle">) {
   )
 }
 
-function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyBonus, onToggle, onPatch, onDelete, onPatchDmg, onDeleteDmg, dragHandle }: SpellRowProps) {
-  function calcToHit(): number {
-    const mod = spell.attackStat ? attrMod(spell.attackStat) : 0
-    return mod + (spell.attackProficient ? proficiencyBonus : 0) + (spell.attackBonus ?? 0)
+function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, attrMod, proficiencyBonus, onToggle, onPatch, onDelete, onPatchDmg, onDeleteDmg, dragHandle }: SpellRowProps) {
+  function resolvedAttack(): number {
+    const globalMod = globalCastingStat ? attrMod(globalCastingStat) : 0
+    const overrideMod = spell.castingStat ? attrMod(spell.castingStat) : globalMod
+    return spellAttack - globalMod + overrideMod
+  }
+
+  function resolvedDC(): number {
+    if (spell.fixedDC !== null) return spell.fixedDC
+    const globalMod = globalCastingStat ? attrMod(globalCastingStat) : 0
+    const overrideMod = spell.castingStat ? attrMod(spell.castingStat) : globalMod
+    return spellDC - globalMod + overrideMod
   }
 
   function headerLabel(): string | null {
-    if (spell.mode === "Spell") return `Spell ${sign(spellAttack)}`
-    if (spell.mode === "DC") return `DC ${spell.fixedDC ?? spellDC}${spell.saveStat ? ` ${ATTR_ABBR[spell.saveStat]}` : ""}`
-    if (spell.mode === "Attack") return `ATK ${sign(calcToHit())}`
+    if (spell.mode === "Spell") return `Spell ${sign(resolvedAttack())}`
+    if (spell.mode === "DC") return `DC ${resolvedDC()}${spell.saveStat ? ` ${ATTR_ABBR[spell.saveStat]}` : ""}`
     return null
   }
 
@@ -586,7 +722,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
           <div className="flex items-center gap-2">
             <span className="w-12 shrink-0 text-xs text-muted-foreground">Mode</span>
             <div className="flex overflow-hidden rounded-md border border-input">
-              {(["Plain", "DC", "Spell", "Attack", "Heal"] as ActionMode[]).map(m => (
+              {(["Plain", "DC", "Spell", "Heal"] as ActionMode[]).map(m => (
                 <button key={m} type="button"
                   onClick={() => onPatch({ mode: m })}
                   className={cn(
@@ -608,7 +744,17 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
               </span>
 
               {spell.mode === "Spell" && (
-                <span className="font-semibold tabular-nums text-xs">{sign(spellAttack)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold tabular-nums text-xs">{sign(resolvedAttack())}</span>
+                  <select
+                    value={spell.castingStat ?? ""}
+                    onChange={e => onPatch({ castingStat: e.target.value ? (e.target.value as AttributeKey) : null })}
+                    className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+                  >
+                    <option value="">— default stat</option>
+                    {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
+                  </select>
+                </div>
               )}
 
               {spell.mode === "DC" && (
@@ -617,7 +763,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
                     <input
                       type="text" inputMode="numeric"
                       value={spell.fixedDC !== null ? String(spell.fixedDC) : ""}
-                      placeholder={String(spellDC)}
+                      placeholder={String(resolvedDC())}
                       onChange={e => {
                         const raw = e.target.value
                         if (raw === "") { onPatch({ fixedDC: null }); return }
@@ -648,46 +794,14 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
                     <option value="">— save</option>
                     {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]} save</option>)}
                   </select>
-                </div>
-              )}
-
-              {spell.mode === "Attack" && (
-                <div className="flex items-center gap-2">
                   <select
-                    value={spell.attackStat ?? ""}
-                    onChange={e => onPatch({ attackStat: e.target.value ? (e.target.value as AttributeKey) : null })}
+                    value={spell.castingStat ?? ""}
+                    onChange={e => onPatch({ castingStat: e.target.value ? (e.target.value as AttributeKey) : null })}
                     className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
                   >
-                    <option value="">—</option>
+                    <option value="">— default stat</option>
                     {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
                   </select>
-                  <button type="button"
-                    onClick={() => onPatch({ attackProficient: !spell.attackProficient })}
-                    className={cn(
-                      "flex h-6 items-center gap-1 rounded-md border px-2 text-[10px] transition-colors",
-                      spell.attackProficient
-                        ? "border-foreground/30 bg-foreground/10 text-foreground"
-                        : "border-input text-muted-foreground hover:text-foreground",
-                    )}>
-                    Prof
-                  </button>
-                  <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                    <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
-                    <input
-                      type="text" inputMode="numeric"
-                      value={(spell.attackBonus ?? 0) === 0 ? "" : String(spell.attackBonus)}
-                      placeholder="0"
-                      onChange={e => {
-                        const raw = e.target.value
-                        if (raw === "" || raw === "-") { onPatch({ attackBonus: 0 }); return }
-                        if (!/^-?\d+$/.test(raw)) return
-                        const n = parseInt(raw, 10)
-                        if (!isNaN(n)) onPatch({ attackBonus: n })
-                      }}
-                      className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-foreground/30 focus:outline-none"
-                    />
-                  </div>
-                  <span className="font-semibold tabular-nums text-xs">{sign(calcToHit())}</span>
                 </div>
               )}
             </div>

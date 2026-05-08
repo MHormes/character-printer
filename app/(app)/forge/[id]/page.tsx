@@ -1,10 +1,10 @@
 "use client";
 
-import { use, useState, useEffect, useRef, useCallback } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useCharacterStore } from "@/lib/store/character-store";
 import { loadCharacter, saveCharacter } from "@/lib/actions/character";
-import { getClasses, getRaces, getSubraces, getBackgrounds } from "@/lib/actions/5e-data";
-import type { ClassRow, RaceRow, SubraceRow, BackgroundRow } from "@/lib/actions/5e-data";
+import { getClasses, getClassSpellSlots, getRaces, getSubraces, getBackgrounds } from "@/lib/actions/5e-data";
+import type { ClassRow, RaceRow, SubraceRow, BackgroundRow, SpellSlotRow, ItemRow } from "@/lib/actions/5e-data";
 import { StringField } from "@/components/forge/string-field";
 import { ClassesField } from "@/components/forge/classes-field";
 import { RaceField } from "@/components/forge/race-field";
@@ -41,12 +41,23 @@ import Link from "next/link";
 import type {
   AttributeKey,
   ModifierEntry,
+  ActionEntry,
+  DamageEntry,
+  DieType,
+  FeatureEntry,
+  TrackerEntry,
+  InventoryItem,
 } from "@/lib/types/character";
 
 import {
   resolvePb,
   resolveAttributeMod,
 } from "@/lib/character/calculations";
+import {
+  deriveSpellSlotBases,
+  spellSlotBasesEqual,
+  type SpellSlotBaseMap,
+} from "@/lib/character/spell-slots";
 
 const ATTRIBUTE_KEYS: AttributeKey[] = [
   "str",
@@ -73,6 +84,35 @@ const SAVE_LABELS: Record<AttributeKey, string> = {
   cha: "CHA",
 };
 
+type ManualSectionId =
+  | "coreStats"
+  | "savingThrows"
+  | "skills"
+  | "combat"
+  | "trackers"
+  | "spells";
+
+type ForgeManualUiPrefs = {
+  manualControlsEnabled: boolean;
+  sections: Record<ManualSectionId, boolean>;
+};
+
+const DEFAULT_MANUAL_UI_PREFS: ForgeManualUiPrefs = {
+  manualControlsEnabled: false,
+  sections: {
+    coreStats: false,
+    savingThrows: false,
+    skills: false,
+    combat: false,
+    trackers: false,
+    spells: false,
+  },
+};
+
+function getManualUiStorageKey(id: string) {
+  return `character-printer:forge-ui:${id}`;
+}
+
 export default function ForgePage({
   params,
 }: {
@@ -80,7 +120,12 @@ export default function ForgePage({
 }) {
   const { id } = use(params);
   const [globalSaveExpanded, setGlobalSaveExpanded] = useState(false);
+  const [manualUiPrefs, setManualUiPrefs] = useState<ForgeManualUiPrefs>(
+    DEFAULT_MANUAL_UI_PREFS,
+  );
+  const [manualUiLoadedForId, setManualUiLoadedForId] = useState<string | null>(null);
   const [availableClasses, setAvailableClasses] = useState<ClassRow[]>([]);
+  const [availableSpellSlotRows, setAvailableSpellSlotRows] = useState<SpellSlotRow[]>([]);
   const [availableRaces, setAvailableRaces] = useState<RaceRow[]>([]);
   const [availableSubraces, setAvailableSubraces] = useState<SubraceRow[]>([]);
   const [availableBackgrounds, setAvailableBackgrounds] = useState<BackgroundRow[]>([]);
@@ -138,7 +183,39 @@ export default function ForgePage({
   }, [id, clearCharacter, setCharacter]);
 
   useEffect(() => {
+    const raw = window.localStorage.getItem(getManualUiStorageKey(id));
+    if (!raw) {
+      setManualUiPrefs(DEFAULT_MANUAL_UI_PREFS);
+      setManualUiLoadedForId(id);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as Partial<ForgeManualUiPrefs>;
+      setManualUiPrefs({
+        manualControlsEnabled: parsed.manualControlsEnabled ?? false,
+        sections: {
+          ...DEFAULT_MANUAL_UI_PREFS.sections,
+          ...(parsed.sections ?? {}),
+        },
+      });
+    } catch {
+      setManualUiPrefs(DEFAULT_MANUAL_UI_PREFS);
+    }
+    setManualUiLoadedForId(id);
+  }, [id]);
+
+  useEffect(() => {
+    if (manualUiLoadedForId !== id) return;
+    window.localStorage.setItem(
+      getManualUiStorageKey(id),
+      JSON.stringify(manualUiPrefs),
+    );
+  }, [id, manualUiLoadedForId, manualUiPrefs]);
+
+  useEffect(() => {
     getClasses().then(setAvailableClasses);
+    getClassSpellSlots().then(setAvailableSpellSlotRows);
     getRaces().then(setAvailableRaces);
     getSubraces().then(setAvailableSubraces);
     getBackgrounds().then(setAvailableBackgrounds);
@@ -176,6 +253,145 @@ export default function ForgePage({
     }
   }
 
+  useEffect(() => {
+    if (!character || availableClasses.length === 0 || availableSpellSlotRows.length === 0) {
+      return;
+    }
+
+    const derivedBases = deriveSpellSlotBases({
+      classes: character.identity.classes,
+      availableClasses,
+      slotRows: availableSpellSlotRows,
+    });
+    const currentBases = Object.fromEntries(
+      Object.entries(character.spells.slots).map(([level, slot]) => [level, slot.base]),
+    ) as SpellSlotBaseMap;
+
+    if (spellSlotBasesEqual(currentBases, derivedBases)) return;
+
+    setSpellSlots(
+      Object.fromEntries(
+        Object.entries(character.spells.slots).map(([level, slot]) => [
+          level,
+          { ...slot, base: derivedBases[level] ?? 0 },
+        ]),
+      ),
+    );
+  }, [
+    availableClasses,
+    availableSpellSlotRows,
+    character,
+    setSpellSlots,
+  ]);
+
+  function applyItemFromSrd(srdItem: ItemRow, invItem: InventoryItem) {
+    const isWeapon = srdItem.equipmentCategory === "Weapon"
+    const isArmor = srdItem.armorCategory !== null && srdItem.armorCategory !== "Shield"
+
+    // Weapon → create ActionEntry
+    if (isWeapon && srdItem.damageDiceCount && srdItem.damageDieType) {
+      const props: string[] = srdItem.properties ? JSON.parse(srdItem.properties) : []
+      const isFinesse = props.includes("Finesse")
+      const isRanged = srdItem.weaponRange === "Ranged"
+      const atkStat: ActionEntry["attackStat"] = isRanged ? "dex" : "str"
+
+      const primaryDmg: DamageEntry = {
+        diceCount: srdItem.damageDiceCount,
+        dieType: srdItem.damageDieType as DieType,
+        stat: isFinesse || isRanged ? "dex" : "str",
+        flatBonus: 0,
+        type: srdItem.damageType ?? "Bludgeoning",
+        active: true,
+      }
+
+      const damageStack: DamageEntry[] = [primaryDmg]
+
+      // Versatile second entry (inactive by default)
+      if (srdItem.twoHandedDiceCount && srdItem.twoHandedDieType) {
+        damageStack.push({
+          diceCount: srdItem.twoHandedDiceCount,
+          dieType: srdItem.twoHandedDieType as DieType,
+          stat: "str",
+          flatBonus: 0,
+          type: srdItem.twoHandedDamageType ?? primaryDmg.type,
+          active: false,
+        })
+      }
+
+      const rangePart = srdItem.rangeNormal
+        ? `Range ${srdItem.rangeNormal}${srdItem.rangeLong ? `/${srdItem.rangeLong}` : ""} ft`
+        : ""
+      const propPart = props.filter((p) => p !== "Versatile").join(", ")
+      const notes = [rangePart, propPart].filter(Boolean).join(" · ")
+
+      const action: ActionEntry = {
+        id: crypto.randomUUID(),
+        name: srdItem.name,
+        mode: "Attack",
+        attackStat: atkStat,
+        attackProficient: true,
+        attackBonus: 0,
+        fixedDC: null,
+        damageStack,
+        notes,
+      }
+
+      if (character) setActions([action, ...character.actions])
+    }
+
+    // Armor (non-shield) → configure AC formula
+    if (isArmor && srdItem.acBase !== null && character) {
+      const acCategory = srdItem.armorCategory! // "Light" | "Medium" | "Heavy"
+      const addsDex = acCategory !== "Heavy"
+      setAc({
+        ...character.combat.ac,
+        mode: "Formula",
+        base: srdItem.acBase,
+        statA: addsDex ? "dex" : null,
+        statB: null,
+      })
+    }
+
+    // Description → FeatureEntry
+    if (srdItem.description && character) {
+      const feature: FeatureEntry = {
+        id: crypto.randomUUID(),
+        name: srdItem.name,
+        source: srdItem.equipmentCategory,
+        description: srdItem.description,
+      }
+      setFeatures([...character.features, feature])
+    }
+
+    // Charges in description → TrackerEntry
+    if (srdItem.description && character) {
+      const chargeMatch = srdItem.description.match(/(\d+)\s+charges?/i)
+      if (chargeMatch) {
+        const maxCharges = parseInt(chargeMatch[1], 10)
+        const desc = srdItem.description.toLowerCase()
+        const reset: TrackerEntry["reset"] = desc.includes("dawn")
+          ? "Dawn"
+          : desc.includes("long rest")
+          ? "Long Rest"
+          : desc.includes("short rest")
+          ? "Short Rest"
+          : "Special"
+
+        const tracker: TrackerEntry = {
+          id: crypto.randomUUID(),
+          name: srdItem.name,
+          base: maxCharges,
+          baseSource: { kind: "fixed" },
+          stack: [],
+          reset,
+          override: null,
+          valueLabel: "charges",
+        }
+        setTrackers([...character.trackers, tracker])
+      }
+    }
+  }
+
   if (!character)
     return (
       <main className="flex min-h-screen items-center justify-center">
@@ -202,6 +418,44 @@ export default function ForgePage({
     spells,
   } = character;
   const pb = resolvePb(character);
+  const manualControlsEnabled = manualUiPrefs.manualControlsEnabled;
+
+  function toggleManualControls() {
+    setManualUiPrefs((current) => ({
+      ...current,
+      manualControlsEnabled: !current.manualControlsEnabled,
+    }));
+  }
+
+  function setManualSection(section: ManualSectionId, visible: boolean) {
+    setManualUiPrefs((current) => ({
+      ...current,
+      sections: {
+        ...current.sections,
+        [section]: visible,
+      },
+    }));
+  }
+
+  function isManualSectionVisible(section: ManualSectionId) {
+    return manualControlsEnabled && manualUiPrefs.sections[section];
+  }
+
+  function renderManualSectionToggle(section: ManualSectionId) {
+    if (!manualControlsEnabled) return null;
+
+    const visible = manualUiPrefs.sections[section];
+    return (
+      <Button
+        type="button"
+        size="xs"
+        variant={visible ? "secondary" : "outline"}
+        onClick={() => setManualSection(section, !visible)}
+      >
+        {visible ? "Hide manual" : "Show manual"}
+      </Button>
+    );
+  }
 
   return (
     <main className="space-y-10 p-6">
@@ -224,6 +478,14 @@ export default function ForgePage({
           </Link>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            size="sm"
+            variant={manualControlsEnabled ? "secondary" : "outline"}
+            onClick={toggleManualControls}
+          >
+            {manualControlsEnabled ? "Manual controls on" : "Manual controls off"}
+          </Button>
           <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
             <input
               type="checkbox"
@@ -370,13 +632,17 @@ export default function ForgePage({
       <div className="flex flex-col xl:flex-row gap-6">
         {/* Core stats + saves stacked */}
         <div className="w-full xl:w-1/4 flex flex-col gap-4">
-          <ForgeSection title="Core Stats">
+          <ForgeSection
+            title="Core Stats"
+            headerAction={renderManualSectionToggle("coreStats")}
+          >
             <div className="grid grid-cols-3 gap-3">
               {ATTRIBUTE_KEYS.map((attr) => (
                 <StatBlock
                   key={attr}
                   label={ATTRIBUTE_LABELS[attr]}
                   data={attributes[attr]}
+                  showManualControls={isManualSectionVisible("coreStats")}
                   onBaseChange={(v) => updateAttributeBase(attr, v)}
                   onStackChange={(stack: ModifierEntry[]) =>
                     setAttributeStack(attr, stack)
@@ -389,7 +655,10 @@ export default function ForgePage({
             </div>
           </ForgeSection>
 
-          <ForgeSection title="Saving Throws">
+          <ForgeSection
+            title="Saving Throws"
+            headerAction={renderManualSectionToggle("savingThrows")}
+          >
             <div className="grid grid-cols-3 gap-3">
               {ATTRIBUTE_KEYS.map((attr) => (
                 <SaveBlock
@@ -400,6 +669,7 @@ export default function ForgePage({
                   proficiencyBonus={pb}
                   globalStack={saveGlobalStack}
                   attrKey={attr}
+                  showManualControls={isManualSectionVisible("savingThrows")}
                   onProficiencyChange={(p) => setSaveProficiency(attr, p)}
                   onStackChange={(stack) => setSaveStack(attr, stack)}
                   onOverrideChange={(override) =>
@@ -410,30 +680,32 @@ export default function ForgePage({
             </div>
 
             {/* Global save modifier */}
-            <button
-              type="button"
-              onClick={() => setGlobalSaveExpanded((v) => !v)}
-              className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {globalSaveExpanded ? (
-                <ChevronDown className="size-3" />
-              ) : (
-                <ChevronRight className="size-3" />
-              )}
-              Global modifier
-              {!globalSaveExpanded && saveGlobalStack.length > 0 && (
-                <span className="ml-auto tabular-nums">
-                  {saveGlobalStack
-                    .filter((m) => m.isActive)
-                    .reduce((s, m) => s + m.value, 0) >= 0
-                    ? `+${saveGlobalStack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)}`
-                    : saveGlobalStack
+            {isManualSectionVisible("savingThrows") && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setGlobalSaveExpanded((v) => !v)}
+                  className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {globalSaveExpanded ? (
+                    <ChevronDown className="size-3" />
+                  ) : (
+                    <ChevronRight className="size-3" />
+                  )}
+                  Global modifier
+                  {!globalSaveExpanded && saveGlobalStack.length > 0 && (
+                    <span className="ml-auto tabular-nums">
+                      {saveGlobalStack
                         .filter((m) => m.isActive)
-                        .reduce((s, m) => s + m.value, 0)}
-                </span>
-              )}
-            </button>
-            {globalSaveExpanded && (
+                        .reduce((s, m) => s + m.value, 0) >= 0
+                        ? `+${saveGlobalStack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)}`
+                        : saveGlobalStack
+                            .filter((m) => m.isActive)
+                            .reduce((s, m) => s + m.value, 0)}
+                    </span>
+                  )}
+                </button>
+                {globalSaveExpanded && (
               <div className="flex flex-col gap-1.5">
                 {saveGlobalStack.map((mod) =>
                   mod.sourceId ? (
@@ -558,12 +830,18 @@ export default function ForgePage({
                   Add modifier
                 </button>
               </div>
+                )}
+              </>
             )}
           </ForgeSection>
         </div>
 
         {/* Skills */}
-        <ForgeSection title="Skills" className="w-full xl:w-62 shrink-0">
+        <ForgeSection
+          title="Skills"
+          className="w-full xl:w-62 shrink-0"
+          headerAction={renderManualSectionToggle("skills")}
+        >
           <SkillsBlock
             skills={skills}
             attributes={attributes}
@@ -571,6 +849,7 @@ export default function ForgePage({
             jackOfAllTrades={jackOfAllTrades}
             globalStack={skillGlobalStack}
             passivePerception={passivePerception}
+            showManualControls={isManualSectionVisible("skills")}
             onStateChange={setSkillState}
             onOverrideChange={setSkillOverride}
             onJackOfAllTradesChange={setJackOfAllTrades}
@@ -595,13 +874,17 @@ export default function ForgePage({
 
         {/* Combat */}
         <div className="w-full xl:flex-1 min-w-0 flex flex-col gap-4">
-          <ForgeSection title="Combat">
+          <ForgeSection
+            title="Combat"
+            headerAction={renderManualSectionToggle("combat")}
+          >
             <CombatBlock
               data={combat}
               attributes={attributes}
               classes={identity.classes}
               proficiencyBonus={pb}
               jackOfAllTrades={jackOfAllTrades}
+              showManualControls={isManualSectionVisible("combat")}
               onAcChange={setAc}
               onInitiativeChange={setInitiative}
               onSpeedChange={setSpeed}
@@ -629,8 +912,19 @@ export default function ForgePage({
           <FeaturesBlock features={features} onChange={setFeatures} />
         </ForgeSection>
 
-        <ForgeSection title="Trackers" className="flex-1 min-w-0">
-          <TrackersBlock trackers={trackers} onChange={setTrackers} />
+        <ForgeSection
+          title="Trackers"
+          className="flex-1 min-w-0"
+          headerAction={renderManualSectionToggle("trackers")}
+        >
+          <TrackersBlock
+            trackers={trackers}
+            showManualControls={isManualSectionVisible("trackers")}
+            attributes={attributes}
+            level={identity.level}
+            pb={pb}
+            onChange={setTrackers}
+          />
         </ForgeSection>
 
         <ForgeSection title="Custom Stats" className="w-full md:w-72 shrink-0">
@@ -640,10 +934,18 @@ export default function ForgePage({
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
         <ForgeSection title="Inventory" className="w-full md:w-1/3">
-          <InventoryBlock inventory={inventory} onChange={setInventory} />
+          <InventoryBlock
+            inventory={inventory}
+            onChange={setInventory}
+            onSrdItemSelected={applyItemFromSrd}
+          />
         </ForgeSection>
 
-        <ForgeSection title="Spellcasting" className="w-full md:w-2/3">
+        <ForgeSection
+          title="Spellcasting"
+          className="w-full md:w-2/3"
+          headerAction={renderManualSectionToggle("spells")}
+        >
           <SpellsBlock
             slots={spells.slots}
             list={spells.list}
@@ -654,6 +956,7 @@ export default function ForgePage({
             dcStack={spells.dcStack}
             availableClasses={availableClasses}
             characterClasses={identity.classes}
+            showManualControls={isManualSectionVisible("spells")}
             onSlotsChange={setSpellSlots}
             onListChange={setSpellList}
           />

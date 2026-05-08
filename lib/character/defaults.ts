@@ -50,7 +50,7 @@ export function createDefaultCharacter(id: string): CharacterData {
       hair: "",
       skin: "",
       level: 1,
-      classes: [{ name: "", subclass: "", level: 1, hitDie: "d8" }],
+      classes: [{ classId: null, name: "", subclass: "", level: 1, hitDie: "d8" }],
     },
     attributes: Object.fromEntries(
       ATTRIBUTE_KEYS.map((k): [AttributeKey, AttributeData] => [k, { base: 10, stack: [], override: null }])

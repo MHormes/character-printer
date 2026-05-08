@@ -1,21 +1,45 @@
 "use server"
 
 import { db } from "@/lib/db/client"
-import { sqliteCharacters } from "@/lib/db/schema"
+import { sqliteCharacters, sqliteClasses } from "@/lib/db/schema"
 import { createDefaultCharacter } from "@/lib/character/defaults"
-import type { CharacterData } from "@/lib/types/character"
+import type { CharacterData, AttributeKey } from "@/lib/types/character"
 import { eq } from "drizzle-orm"
 import { randomUUID } from "crypto"
 
 const anyDb = db as any
 
-function hydrateCharacter(id: string, data: CharacterData): CharacterData {
+async function hydrateCharacter(id: string, data: CharacterData): Promise<CharacterData> {
   const defaults = createDefaultCharacter(id)
+  const dbClasses = await anyDb
+    .select({
+      id: sqliteClasses.id,
+      name: sqliteClasses.name,
+    })
+    .from(sqliteClasses)
+
+  const classIdByName = new Map(
+    dbClasses.map((dbClass: { id: string; name: string }) => [
+      dbClass.name.trim().toLowerCase(),
+      dbClass.id,
+    ]),
+  )
+  const hydratedClasses = (data.identity?.classes ?? defaults.identity.classes).map((cls) => ({
+    classId: cls.classId ?? classIdByName.get(cls.name.trim().toLowerCase()) ?? null,
+    name: cls.name,
+    subclass: cls.subclass,
+    level: cls.level,
+    hitDie: cls.hitDie,
+  }))
 
   return {
     ...defaults,
     ...data,
-    identity: { ...defaults.identity, ...data.identity },
+    identity: {
+      ...defaults.identity,
+      ...data.identity,
+      classes: hydratedClasses,
+    },
     attributes: { ...defaults.attributes, ...data.attributes },
     saves: { ...defaults.saves, ...data.saves },
     skills: { ...defaults.skills, ...data.skills },
@@ -38,6 +62,12 @@ function hydrateCharacter(id: string, data: CharacterData): CharacterData {
       ...defaults.spells,
       ...data.spells,
       slots: { ...defaults.spells.slots, ...data.spells?.slots },
+      list: (data.spells?.list ?? []).map(s => {
+        const raw = s as typeof s & { attackStat?: AttributeKey | null; castingStat?: AttributeKey | null }
+        const castingStat = s.mode === "Attack" ? (raw.attackStat ?? null) : (raw.castingStat ?? null)
+        const mode = s.mode === "Attack" ? ("Spell" as const) : s.mode
+        return { ...s, mode, castingStat }
+      }),
     },
     canvas: { ...defaults.canvas, ...data.canvas },
   }
@@ -79,7 +109,7 @@ export async function loadCharacter(id: string): Promise<{ data: CharacterData; 
 
   if (!rows[0]) return null
   return {
-    data: hydrateCharacter(id, rows[0].data as CharacterData),
+    data: await hydrateCharacter(id, rows[0].data as CharacterData),
     autoSave: rows[0].autoSave,
   }
 }

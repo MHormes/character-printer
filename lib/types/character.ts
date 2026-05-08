@@ -9,6 +9,7 @@ export type ModifierEntry = {
 };
 
 export type AttributeKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
+export type SpellSlotProgression = "none" | "full" | "half";
 
 export type AttributeData = {
   base: number;
@@ -122,10 +123,19 @@ export type FeatureEntry = {
   description: string;
 };
 
+export type TrackerBaseSource =
+  | { kind: "fixed" }
+  | { kind: "attr_mod"; attr: AttributeKey }
+  | { kind: "level" }
+  | { kind: "half_level_up" }
+  | { kind: "half_level_down" }
+  | { kind: "prof_bonus" };
+
 export type TrackerEntry = {
   id: string;
   name: string;
   base: number;
+  baseSource?: TrackerBaseSource;
   stack: ModifierEntry[];
   reset: "Short Rest" | "Long Rest" | "Dawn" | "Special";
   override: number | null;
@@ -147,9 +157,7 @@ export type SpellEntry = {
   range: string;
   duration: string;
   mode: ActionMode;
-  attackStat: AttributeKey | null;
-  attackProficient: boolean;
-  attackBonus: number;
+  castingStat: AttributeKey | null;
   fixedDC: number | null;
   saveStat: AttributeKey | null;
   damageStack: DamageEntry[];
@@ -162,6 +170,13 @@ export type SpellEntry = {
 import type { CanvasWidget } from "./canvas";
 
 export type Currency = { cp: number; sp: number; ep: number; gp: number; pp: number };
+export type CharacterClassEntry = {
+  classId: string | null;
+  name: string;
+  subclass: string;
+  level: number;
+  hitDie: string;
+};
 
 export type CharacterData = {
   version: string;
@@ -182,7 +197,7 @@ export type CharacterData = {
     hair: string;
     skin: string;
     level: number;
-    classes: { name: string; subclass: string; level: number; hitDie: string }[];
+    classes: CharacterClassEntry[];
   };
   attributes: Record<AttributeKey, AttributeData>;
   saves: Record<AttributeKey, SaveData>;

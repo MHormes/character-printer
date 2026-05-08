@@ -9,6 +9,7 @@ import {
   sqliteRaces,
   sqliteSubraces,
   sqliteBackgrounds,
+  sqliteItems,
 } from "@/lib/db/schema";
 import { eq, and, like, asc } from "drizzle-orm";
 
@@ -16,6 +17,7 @@ import { eq, and, like, asc } from "drizzle-orm";
 const anyDb = db as any;
 
 export type ClassRow = typeof sqliteClasses.$inferSelect;
+export type ItemRow = typeof sqliteItems.$inferSelect;
 export type SpellRow = typeof sqliteSpells.$inferSelect;
 export type SpellSlotRow = typeof sqliteClassSpellSlots.$inferSelect;
 export type RaceRow = typeof sqliteRaces.$inferSelect;
@@ -63,6 +65,27 @@ export async function getClasses(system = "dnd5e"): Promise<ClassRow[]> {
     .orderBy(asc(sqliteClasses.name));
 }
 
+export async function getClassSpellSlots(system = "dnd5e"): Promise<SpellSlotRow[]> {
+  return anyDb
+    .select({
+      classId: sqliteClassSpellSlots.classId,
+      level: sqliteClassSpellSlots.level,
+      slot1: sqliteClassSpellSlots.slot1,
+      slot2: sqliteClassSpellSlots.slot2,
+      slot3: sqliteClassSpellSlots.slot3,
+      slot4: sqliteClassSpellSlots.slot4,
+      slot5: sqliteClassSpellSlots.slot5,
+      slot6: sqliteClassSpellSlots.slot6,
+      slot7: sqliteClassSpellSlots.slot7,
+      slot8: sqliteClassSpellSlots.slot8,
+      slot9: sqliteClassSpellSlots.slot9,
+    })
+    .from(sqliteClassSpellSlots)
+    .innerJoin(sqliteClasses, eq(sqliteClasses.id, sqliteClassSpellSlots.classId))
+    .where(eq(sqliteClasses.system, system))
+    .orderBy(asc(sqliteClassSpellSlots.classId), asc(sqliteClassSpellSlots.level));
+}
+
 // ─── Spell slots for a class at a given level ─────────────────────────────────
 
 export async function getSpellSlots(
@@ -102,6 +125,43 @@ export type SpellSearchParams = {
   school?: string;
   classId?: string;
 };
+
+// ─── Items / Equipment ────────────────────────────────────────────────────────
+
+export type ItemSearchParams = {
+  system?: string;
+  name?: string;
+  equipmentCategory?: string;
+};
+
+export async function searchItems(params: ItemSearchParams): Promise<ItemRow[]> {
+  const system = params.system ?? "dnd5e";
+  return anyDb
+    .select()
+    .from(sqliteItems)
+    .where(
+      and(
+        eq(sqliteItems.system, system),
+        params.equipmentCategory
+          ? eq(sqliteItems.equipmentCategory, params.equipmentCategory)
+          : undefined,
+        params.name ? like(sqliteItems.name, `%${params.name}%`) : undefined,
+      ),
+    )
+    .orderBy(asc(sqliteItems.name))
+    .limit(60);
+}
+
+export async function getItem(id: string): Promise<ItemRow | null> {
+  const rows = await anyDb
+    .select()
+    .from(sqliteItems)
+    .where(eq(sqliteItems.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+// ─── Spell search ─────────────────────────────────────────────────────────────
 
 export async function searchSpells(
   params: SpellSearchParams,
