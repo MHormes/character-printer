@@ -1,6 +1,10 @@
 "use client";
 
 import { useCharacterStore } from "@/lib/store/character-store";
+import {
+  isOverCarryCapacity,
+  resolveEquippedWeight,
+} from "@/lib/character/calculations";
 import { DndFrame } from "./dnd-frame";
 
 // viewBox width 132 — matches w=9 palette columns
@@ -45,10 +49,8 @@ export function EquipmentWidget() {
   const cur = currency ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
   const coinValues = [cur.cp, cur.sp, cur.ep, cur.gp, cur.pp];
 
-  const totalWeight = inventory.reduce(
-    (s, item) => s + item.weight * (item.quantity ?? 1),
-    0,
-  );
+  const totalWeight = resolveEquippedWeight(character);
+  const overCapacity = isOverCarryCapacity(character);
   const weightStr = Number.isInteger(totalWeight)
     ? String(totalWeight)
     : totalWeight.toFixed(2);
@@ -292,7 +294,7 @@ export function EquipmentWidget() {
         fontSize="8"
         fontWeight="700"
         fontFamily={ff}
-        fill="#1a1208"
+        fill={overCapacity ? "#b42318" : "#1a1208"}
       >
         {weightStr}
       </text>

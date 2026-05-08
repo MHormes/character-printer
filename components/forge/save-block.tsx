@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { X, Plus, RotateCcw, CircleDot, Circle, ChevronDown, ChevronRight, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { SaveData, ModifierEntry } from "@/lib/types/character"
+import type { SaveData, ModifierEntry, AttributeKey } from "@/lib/types/character"
 
 import { resolveSaveBonus } from "@/lib/character/calculations"
 

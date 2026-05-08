@@ -1,0 +1,1 @@
+ALTER TABLE `spells` ADD `dc_save_stat` text;

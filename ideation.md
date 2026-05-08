@@ -428,6 +428,7 @@ Each spell entry is a comprehensive object designed to generate a "Spell Card" i
 ## 11. Full-Page Overlays
 
 Users can toggle full-page view overlays over the canvas to display comprehensive data, regardless of grid size:
+
 - **Features & Traits Overlay:** Displays full name and description for all character features.
 - **Spellbook Overlay:** Lists all known spells with their full details.
 - **Interaction:** These overlays are triggered via a new control section located above the element palette, allowing users to switch between the main canvas and full-page information views.
@@ -468,16 +469,16 @@ Implemented with **dnd-kit**.
 
 Each placed widget carries the following runtime state (persisted in the `canvas` JSON blob):
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | uuid | Unique instance identifier |
-| `type` | enum | Widget kind (`Box`, `StatsWidget`, …) |
-| `col` | integer | Left edge column (0-indexed) |
-| `row` | integer | Top edge row (0-indexed) |
-| `w` | integer | Width in grid columns |
-| `h` | integer | Height in grid rows |
-| `rotation` | 0 \| 90 \| 180 \| 270 | Clockwise degrees. When 90° or 270°, the effective footprint swaps `w` and `h` for collision and bounds checking. |
-| `locked` | boolean | When `true`, drag is disabled. Rotation and other controls remain accessible. |
+| Field        | Type                    | Description                                                                                                        |
+| ------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `id`         | uuid                    | Unique instance identifier                                                                                         |
+| `type`       | enum                    | Widget kind (`Box`, `StatsWidget`, …)                                                                              |
+| `col`        | integer                 | Left edge column (0-indexed)                                                                                       |
+| `row`        | integer                 | Top edge row (0-indexed)                                                                                           |
+| `w`          | integer                 | Width in grid columns                                                                                              |
+| `h`          | integer                 | Height in grid rows                                                                                                |
+| `rotation`   | 0 \| 90 \| 180 \| 270   | Clockwise degrees. When 90° or 270°, the effective footprint swaps `w` and `h` for collision and bounds checking.  |
+| `locked`     | boolean                 | When `true`, drag is disabled. Rotation and other controls remain accessible.                                      |
 | `printState` | `Calculated` \| `Blank` | Controls printed output: `Calculated` shows the live data value; `Blank` prints an empty line for pencil tracking. |
 
 ### 11.5 Per-Widget Controls
@@ -622,7 +623,14 @@ The following structure represents the single JSON object stored in the database
       "attackBonus": 0,
       "fixedDC": null,
       "damageStack": [
-        { "diceCount": 1, "dieType": "d6", "stat": "str|null", "flatBonus": 0, "type": "string", "active": true }
+        {
+          "diceCount": 1,
+          "dieType": "d6",
+          "stat": "str|null",
+          "flatBonus": 0,
+          "type": "string",
+          "active": true
+        }
       ],
       "notes": "string"
     }
@@ -667,11 +675,23 @@ The following structure represents the single JSON object stored in the database
         "attackBonus": 0,
         "fixedDC": null,
         "damageStack": [
-          { "diceCount": 1, "dieType": "d6", "stat": "str|null", "flatBonus": 0, "type": "string", "active": true }
+          {
+            "diceCount": 1,
+            "dieType": "d6",
+            "stat": "str|null",
+            "flatBonus": 0,
+            "type": "string",
+            "active": true
+          }
         ],
         "description": "string",
         "upcastDescription": "string",
-        "components": { "verbal": false, "somatic": false, "material": false, "materialDesc": "string" },
+        "components": {
+          "verbal": false,
+          "somatic": false,
+          "material": false,
+          "materialDesc": "string"
+        },
         "tags": { "ritual": false, "concentration": false, "prepared": true }
       }
     ]
@@ -715,3 +735,40 @@ The following structure represents the single JSON object stored in the database
 ```
 
 `itemId` is set only for entries injected by the inventory broadcast system. These entries are read-only in the UI and are removed/recreated automatically when inventory changes.
+
+# Still to do:
+
+- Disable all automation with some toggle (how this would work, idk).
+- Make race/class/background choices automatically populate stat modifier stacks, saving throw bonuses, skills,
+  proficiencies, speed, and features where applicable.
+
+  ## Inventory, Combat, and Derived Rules
+  - Add compendium-backed items so common equipment can be inserted with their modifiers prefilled instead of
+    being built manually every time.
+
+  ## Features, Proficiencies, and Resources
+  - Mirror passive/item-granted features into the features list when smart items are equipped.
+  - Add tracker entries that can scale dynamically from character stats or similar linked values.
+  - Add automatic class-based tracker setups for things like Ki, Sorcery Points, Rage, Bardic Inspiration, and
+    similar resources.
+
+  ## Spellcasting Completion
+  - Auto-fill spell slot counts from class and level instead of keeping slot bases manual-only.
+  - Support the intended multiclass spell-slot behavior, not just single-class slot filling.
+  - Add full spell-slot modifier-stack editing so slot totals can include labeled bonuses/adjustments, not only
+    base values and overrides.
+  - Allow individual spells to use a different casting ability than the global spellcasting stat when needed.
+
+  ## Canvas and Output Completion
+  - Add the per-widget print-state toggle so widgets can print either calculated values or blank tracking spaces.
+  - Add optional overlap prevention/collision handling on the canvas.
+  - Add user-created layout presets/templates, not just the built-in predefined layouts.
+  - Add higher-quality PDF export beyond standard browser print.
+
+  ## Assumptions
+  - Existing class selection is considered complete for this pass, except for the downstream automation it should
+    trigger.
+  - Existing spell lookup/autofill is considered complete for this pass, except for slot automation and per-spell
+    casting-stat overrides.
+  - Existing full-page views, multi-page support, and built-in template drops are considered complete for this
+    pass.

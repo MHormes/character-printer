@@ -88,7 +88,7 @@ export type InventoryItem = {
   modifiers: { id: string; target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[];
 };
 
-export type ActionMode = "Spell" | "DC" | "Attack" | "Heal";
+export type ActionMode = "Spell" | "DC" | "Attack" | "Heal" | "Plain";
 
 export type DieType = "d4" | "d6" | "d8" | "d10" | "d12" | "d20" | "d100";
 
@@ -151,6 +151,7 @@ export type SpellEntry = {
   attackProficient: boolean;
   attackBonus: number;
   fixedDC: number | null;
+  saveStat: AttributeKey | null;
   damageStack: DamageEntry[];
   description: string;
   upcastDescription: string;

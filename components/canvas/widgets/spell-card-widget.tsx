@@ -1,7 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import type { SpellEntry } from "@/lib/types/character";
+import type { AttributeKey } from "@/lib/types/character";
 import { useCharacterStore } from "@/lib/store/character-store";
+import { getSpell } from "@/lib/actions/5e-data";
+import type { SpellRow } from "@/lib/actions/5e-data";
 
 export const SPELL_CARD_GRID_W = 7;
 export const SPELL_CARD_GRID_H = 10;
@@ -406,6 +410,7 @@ const DANCING_LIGHTS: SpellEntry = {
   attackProficient: false,
   attackBonus: 0,
   fixedDC: null,
+  saveStat: null,
   damageStack: [],
   description:
     "You create up to four torch-sized lights within range, making them appear as torches, lanterns, or glowing orbs that hover in the air for the duration. You can also combine the four lights into one glowing humanoid form of Medium size. Whichever form you choose, each light sheds dim light in a 10-foot radius.\n\nAs a bonus action on your turn, you can move the lights up to 60 feet to a new spot within range. A light must be within 20 feet of another light created by this spell, and a light winks out if it exceeds the spell's range.",
@@ -419,9 +424,48 @@ const DANCING_LIGHTS: SpellEntry = {
   tags: { ritual: false, concentration: false, prepared: true },
 };
 
+function spellRowToEntry(row: SpellRow): SpellEntry {
+  return {
+    id: row.id,
+    name: row.name,
+    level: row.level,
+    school: row.school,
+    castingTime: row.castingTime,
+    range: row.range,
+    duration: row.duration,
+    mode: "Spell",
+    attackStat: null,
+    attackProficient: false,
+    attackBonus: 0,
+    fixedDC: null,
+    saveStat: row.dcSaveStat as AttributeKey | null,
+    damageStack: [],
+    description: row.description,
+    upcastDescription: row.upcastDesc,
+    components: {
+      verbal: row.verbal,
+      somatic: row.somatic,
+      material: row.material,
+      materialDesc: row.materialDesc,
+    },
+    tags: { ritual: row.ritual, concentration: row.concentration, prepared: false },
+  };
+}
+
 export function SpellCardWidget({ spellId }: { spellId?: string }) {
   const character = useCharacterStore((s) => s.character);
-  const spell =
-    character?.spells.list.find((s) => s.id === spellId) ?? DANCING_LIGHTS;
+  const charSpell = character?.spells.list.find((s) => s.id === spellId);
+  const [dbSpell, setDbSpell] = useState<SpellEntry | null>(null);
+
+  useEffect(() => {
+    if (!spellId || charSpell) { setDbSpell(null); return; }
+    let cancelled = false;
+    getSpell(spellId).then((row) => {
+      if (!cancelled && row) setDbSpell(spellRowToEntry(row));
+    });
+    return () => { cancelled = true; };
+  }, [spellId, charSpell]);
+
+  const spell = charSpell ?? dbSpell ?? DANCING_LIGHTS;
   return <SpellCardSvg spell={spell} />;
 }

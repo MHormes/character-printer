@@ -156,6 +156,15 @@ export function SpellLevelBlock({ level }: { level: number }) {
           >
             {slotsTotal}
           </text>
+          <line
+            x1={MARGIN + BADGE_W + 50}
+            y1={hdrY + 2}
+            x2={MARGIN + BADGE_W + 50}
+            y2={hdrY + HEADER_H - 2}
+            stroke="#1a1208"
+            strokeWidth="0.5"
+            opacity="0.4"
+          />
         </>
       )}
 

@@ -1,10 +1,14 @@
 "use client";
 
-import { use, useState, useEffect, useRef } from "react";
+import { use, useState, useEffect, useRef, useCallback } from "react";
 import { useCharacterStore } from "@/lib/store/character-store";
 import { loadCharacter, saveCharacter } from "@/lib/actions/character";
+import { getClasses, getRaces, getSubraces, getBackgrounds } from "@/lib/actions/5e-data";
+import type { ClassRow, RaceRow, SubraceRow, BackgroundRow } from "@/lib/actions/5e-data";
 import { StringField } from "@/components/forge/string-field";
 import { ClassesField } from "@/components/forge/classes-field";
+import { RaceField } from "@/components/forge/race-field";
+import { BackgroundField } from "@/components/forge/background-field";
 import { StatBlock } from "@/components/forge/stat-block";
 import { SaveBlock } from "@/components/forge/save-block";
 import { SkillsBlock } from "@/components/forge/skills-block";
@@ -76,6 +80,10 @@ export default function ForgePage({
 }) {
   const { id } = use(params);
   const [globalSaveExpanded, setGlobalSaveExpanded] = useState(false);
+  const [availableClasses, setAvailableClasses] = useState<ClassRow[]>([]);
+  const [availableRaces, setAvailableRaces] = useState<RaceRow[]>([]);
+  const [availableSubraces, setAvailableSubraces] = useState<SubraceRow[]>([]);
+  const [availableBackgrounds, setAvailableBackgrounds] = useState<BackgroundRow[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
@@ -128,6 +136,13 @@ export default function ForgePage({
       if (res) setCharacter(res.data, res.autoSave);
     });
   }, [id, clearCharacter, setCharacter]);
+
+  useEffect(() => {
+    getClasses().then(setAvailableClasses);
+    getRaces().then(setAvailableRaces);
+    getSubraces().then(setAvailableSubraces);
+    getBackgrounds().then(setAvailableBackgrounds);
+  }, []);
 
   // Auto-save on change with 1.5s debounce
   useEffect(() => {
@@ -252,23 +267,18 @@ export default function ForgePage({
             onChange={(v) => updateIdentityField("name", v)}
             placeholder="Character name"
           />
-          <StringField
-            label="Race"
-            value={identity.race}
-            onChange={(v) => updateIdentityField("race", v)}
-            placeholder="e.g. Human"
+          <RaceField
+            race={identity.race}
+            subrace={identity.subrace}
+            onRaceChange={(v) => updateIdentityField("race", v)}
+            onSubraceChange={(v) => updateIdentityField("subrace", v)}
+            availableRaces={availableRaces}
+            availableSubraces={availableSubraces}
           />
-          <StringField
-            label="Subrace"
-            value={identity.subrace}
-            onChange={(v) => updateIdentityField("subrace", v)}
-            placeholder="e.g. High Elf"
-          />
-          <StringField
-            label="Background"
+          <BackgroundField
             value={identity.background}
             onChange={(v) => updateIdentityField("background", v)}
-            placeholder="e.g. Soldier"
+            availableBackgrounds={availableBackgrounds}
           />
           <StringField
             label="Deity"
@@ -302,6 +312,12 @@ export default function ForgePage({
               classes={identity.classes}
               onChange={setClasses}
               proficiencyBonus={pb}
+              availableClasses={availableClasses}
+              onClassPicked={(dbClass) => {
+                if (!spells.globalCastingStat && dbClass.spellcastingStat) {
+                  setSpellCastingStat(dbClass.spellcastingStat as AttributeKey);
+                }
+              }}
             />
           </div>
         </div>
@@ -636,6 +652,8 @@ export default function ForgePage({
             proficiencyBonus={pb}
             attackStack={spells.attackStack}
             dcStack={spells.dcStack}
+            availableClasses={availableClasses}
+            characterClasses={identity.classes}
             onSlotsChange={setSpellSlots}
             onListChange={setSpellList}
           />

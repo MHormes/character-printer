@@ -6,7 +6,8 @@
       "Bash(npm install *)",
       "Bash(npx shadcn@latest *)",
       "Bash(npx tsc *)",
-      "Bash(sqlite3 dev.db \".tables\")"
+      "Bash(sqlite3 dev.db \".tables\")",
+      "Bash(npm run *)"
     ]
   }
 }

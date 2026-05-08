@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle, Search, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
@@ -10,6 +10,8 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import type { DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { searchSpells } from "@/lib/actions/5e-data"
+import type { ClassRow, SpellRow } from "@/lib/actions/5e-data"
 
 type SlotData = { base: number; stack: { id: string; source: string; value: number; isActive: boolean }[]; override: number | null }
 
@@ -21,6 +23,8 @@ type SpellsBlockProps = {
   proficiencyBonus: number
   attackStack: ModifierEntry[]
   dcStack: ModifierEntry[]
+  availableClasses?: ClassRow[]
+  characterClasses?: { name: string }[]
   onSlotsChange: (slots: Record<string, SlotData>) => void
   onListChange: (list: SpellEntry[]) => void
 }
@@ -33,11 +37,175 @@ const LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 function sign(n: number) { return n >= 0 ? `+${n}` : String(n) }
 
+// ─── Spell picker ─────────────────────────────────────────────────────────────
+
+type PickerState = {
+  level: number
+  query: string
+  classFilter: string
+  results: SpellRow[]
+  loading: boolean
+  addedIds: Set<string>
+}
+
+function SpellPicker({
+  level,
+  availableClasses,
+  defaultClassId,
+  alreadyInList,
+  onAdd,
+  onClose,
+}: {
+  level: number
+  availableClasses: ClassRow[]
+  defaultClassId: string
+  alreadyInList: Set<string>
+  onAdd: (spell: SpellRow) => void
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState("")
+  const [classFilter, setClassFilter] = useState(defaultClassId)
+  const [results, setResults] = useState<SpellRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [addedNames, setAddedNames] = useState<Set<string>>(new Set())
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function runSearch(q: string, cls: string) {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    setLoading(true)
+    timerRef.current = setTimeout(async () => {
+      const res = await searchSpells({
+        level,
+        name: q || undefined,
+        classId: cls || undefined,
+      })
+      setResults(res)
+      setLoading(false)
+    }, 250)
+  }
+
+  useEffect(() => {
+    runSearch(query, classFilter)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function handleQueryChange(q: string) {
+    setQuery(q)
+    runSearch(q, classFilter)
+  }
+
+  function handleClassChange(cls: string) {
+    setClassFilter(cls)
+    runSearch(query, cls)
+  }
+
+  function handleAdd(spell: SpellRow) {
+    onAdd(spell)
+    setAddedNames(prev => new Set([...prev, spell.name]))
+  }
+
+  return (
+    <div className="mt-1 rounded-md border border-border bg-muted/30 p-2 space-y-2">
+      {/* Search controls */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
+          <Input
+            autoFocus
+            type="text"
+            value={query}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            placeholder="Search spells…"
+            className="h-6 pl-6 text-xs"
+          />
+        </div>
+        {availableClasses.length > 0 && (
+          <select
+            value={classFilter}
+            onChange={(e) => handleClassChange(e.target.value)}
+            className="h-6 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:border-ring"
+          >
+            <option value="">All classes</option>
+            {availableClasses.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        >
+          <X className="size-3" />
+        </button>
+      </div>
+
+      {/* Results */}
+      <div className="max-h-52 overflow-y-auto space-y-0.5">
+        {loading && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {!loading && results.length === 0 && (
+          <p className="py-3 text-center text-xs text-muted-foreground">No spells found</p>
+        )}
+        {!loading && results.map((spell) => {
+          const added = addedNames.has(spell.name)
+          const duplicate = alreadyInList.has(spell.name)
+          return (
+            <div
+              key={spell.id}
+              className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-accent/50"
+            >
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-medium">{spell.name}</span>
+                {spell.concentration && (
+                  <span className="ml-1 text-[10px] text-muted-foreground" title="Concentration">◎</span>
+                )}
+                {spell.ritual && (
+                  <span className="ml-1 text-[10px] text-muted-foreground" title="Ritual">ℝ</span>
+                )}
+              </div>
+              <span className="shrink-0 text-[10px] text-muted-foreground w-20 truncate">{spell.school}</span>
+              <span className="shrink-0 text-[10px] text-muted-foreground w-10">
+                {[spell.verbal && "V", spell.somatic && "S", spell.material && "M"].filter(Boolean).join(" ")}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleAdd(spell)}
+                disabled={added}
+                className={cn(
+                  "flex shrink-0 size-5 items-center justify-center rounded-full text-xs transition-colors",
+                  added
+                    ? "text-muted-foreground cursor-default"
+                    : duplicate
+                    ? "text-amber-500 hover:bg-amber-500/10"
+                    : "text-muted-foreground hover:bg-foreground/10 hover:text-foreground",
+                )}
+                title={added ? "Added" : duplicate ? "Already in list (add again?)" : "Add spell"}
+              >
+                {added ? "✓" : <Plus className="size-3" />}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function SpellsBlock({
   slots, list, castingStat, attributes, proficiencyBonus, attackStack, dcStack,
+  availableClasses = [],
+  characterClasses = [],
   onSlotsChange, onListChange,
 }: SpellsBlockProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [openPickerLevel, setOpenPickerLevel] = useState<number | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   const mockChar = {
@@ -49,6 +217,16 @@ export function SpellsBlock({
 
   const spellDC = resolveSpellDc(mockChar)
   const spellAttack = resolveSpellAttack(mockChar)
+
+  // Default class for spell picker: match first character class name to DB class
+  const defaultPickerClassId = (() => {
+    if (!characterClasses.length || !availableClasses.length) return ""
+    const firstName = characterClasses[0].name.toLowerCase()
+    const match = availableClasses.find((c) => c.name.toLowerCase() === firstName)
+    return match?.id ?? ""
+  })()
+
+  const existingSpellNames = new Set(list.map((s) => s.name))
 
   function attrMod(key: AttributeKey): number {
     return resolveAttributeMod(attributes[key])
@@ -79,12 +257,66 @@ export function SpellsBlock({
     onListChange([...list, {
       id, name: "", level, school: "", castingTime: "1 Action",
       range: "", duration: "",
-      mode: "DC", attackStat: null, attackProficient: true, attackBonus: 0, fixedDC: null,
+      mode: "Plain", attackStat: null, attackProficient: true, attackBonus: 0, fixedDC: null, saveStat: null,
       damageStack: [], description: "", upcastDescription: "",
       components: { verbal: false, somatic: false, material: false, materialDesc: "" },
       tags: { ritual: false, concentration: false, prepared: true },
     }])
     setExpandedIds(prev => new Set([...prev, id]))
+  }
+
+  function importSpell(spell: SpellRow) {
+    const id = crypto.randomUUID()
+
+    const mode: ActionMode =
+      spell.attackType ? "Spell"
+      : spell.damageTypeName === "Healing" ? "Heal"
+      : spell.damageDiceCount ? "DC"
+      : "Plain"
+
+    const validDice: DieType[] = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"]
+    const damageStack: DamageEntry[] =
+      spell.damageDiceCount && spell.damageDieType && validDice.includes(spell.damageDieType as DieType)
+        ? [{
+            diceCount: spell.damageDiceCount,
+            dieType: spell.damageDieType as DieType,
+            stat: null,
+            flatBonus: 0,
+            type: spell.damageTypeName ?? "",
+            active: true,
+          }]
+        : []
+
+    const entry: SpellEntry = {
+      id,
+      name: spell.name,
+      level: spell.level,
+      school: spell.school,
+      castingTime: spell.castingTime,
+      range: spell.range,
+      duration: spell.duration,
+      mode,
+      attackStat: null,
+      attackProficient: true,
+      attackBonus: 0,
+      fixedDC: null,
+      saveStat: (spell.dcSaveStat as AttributeKey) ?? null,
+      damageStack,
+      description: spell.description,
+      upcastDescription: spell.upcastDesc,
+      components: {
+        verbal: spell.verbal,
+        somatic: spell.somatic,
+        material: spell.material,
+        materialDesc: spell.materialDesc,
+      },
+      tags: {
+        ritual: spell.ritual,
+        concentration: spell.concentration,
+        prepared: true,
+      },
+    }
+    onListChange([...list, entry])
   }
 
   return (
@@ -100,6 +332,7 @@ export function SpellsBlock({
       {LEVELS.map(lvl => {
         const spellsAtLevel = list.filter(s => s.level === lvl)
         const slot = lvl > 0 ? slots[String(lvl)] : null
+        const pickerOpen = openPickerLevel === lvl
 
         return (
           <div key={lvl} className="space-y-1">
@@ -172,11 +405,37 @@ export function SpellsBlock({
                 </SortableContext>
               </DndContext>
 
-              <button type="button" onClick={() => addSpell(lvl)}
-                className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
-                <Plus className="size-3" />
-                {lvl === 0 ? "Add cantrip" : `Add level ${lvl} spell`}
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => addSpell(lvl)}
+                  className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
+                  <Plus className="size-3" />
+                  {lvl === 0 ? "Add cantrip" : `Add level ${lvl} spell`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenPickerLevel(pickerOpen ? null : lvl)}
+                  className={cn(
+                    "flex h-6 items-center gap-1 text-xs transition-colors",
+                    pickerOpen
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Search className="size-3" />
+                  Find
+                </button>
+              </div>
+
+              {pickerOpen && (
+                <SpellPicker
+                  level={lvl}
+                  availableClasses={availableClasses}
+                  defaultClassId={defaultPickerClassId}
+                  alreadyInList={existingSpellNames}
+                  onAdd={(spell) => importSpell(spell)}
+                  onClose={() => setOpenPickerLevel(null)}
+                />
+              )}
             </div>
           </div>
         )
@@ -184,6 +443,8 @@ export function SpellsBlock({
     </div>
   )
 }
+
+// ─── Spell rows (unchanged) ───────────────────────────────────────────────────
 
 type SpellRowProps = {
   spell: SpellEntry
@@ -229,7 +490,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
 
   function headerLabel(): string | null {
     if (spell.mode === "Spell") return `Spell ${sign(spellAttack)}`
-    if (spell.mode === "DC") return `DC ${spell.fixedDC ?? spellDC}`
+    if (spell.mode === "DC") return `DC ${spell.fixedDC ?? spellDC}${spell.saveStat ? ` ${ATTR_ABBR[spell.saveStat]}` : ""}`
     if (spell.mode === "Attack") return `ATK ${sign(calcToHit())}`
     return null
   }
@@ -293,7 +554,6 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
 
       {expanded && (
         <div className="space-y-3 border-t border-border p-3">
-          {/* School / Cast */}
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">School</span>
@@ -310,7 +570,6 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
             </div>
           </div>
 
-          {/* Range / Duration */}
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">Range</span>
@@ -324,11 +583,10 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
             </div>
           </div>
 
-          {/* Mode */}
           <div className="flex items-center gap-2">
             <span className="w-12 shrink-0 text-xs text-muted-foreground">Mode</span>
             <div className="flex overflow-hidden rounded-md border border-input">
-              {(["Attack", "Spell", "DC", "Heal"] as ActionMode[]).map(m => (
+              {(["Plain", "DC", "Spell", "Attack", "Heal"] as ActionMode[]).map(m => (
                 <button key={m} type="button"
                   onClick={() => onPatch({ mode: m })}
                   className={cn(
@@ -343,8 +601,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
             </div>
           </div>
 
-          {/* To Hit / DC — hidden for Heal */}
-          {spell.mode !== "Heal" && (
+          {spell.mode !== "Heal" && spell.mode !== "Plain" && (
             <div className="flex items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">
                 {spell.mode === "DC" ? "Save DC" : "To Hit"}
@@ -355,32 +612,42 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
               )}
 
               {spell.mode === "DC" && (
-                <div className="relative">
-                  <input
-                    type="text" inputMode="numeric"
-                    value={spell.fixedDC !== null ? String(spell.fixedDC) : ""}
-                    placeholder={String(spellDC)}
-                    onChange={e => {
-                      const raw = e.target.value
-                      if (raw === "") { onPatch({ fixedDC: null }); return }
-                      if (raw === "-") return
-                      if (!/^-?\d+$/.test(raw)) return
-                      const n = parseInt(raw, 10)
-                      if (!isNaN(n)) onPatch({ fixedDC: n })
-                    }}
-                    className={cn(
-                      "h-6 w-16 rounded-md border border-input bg-background text-center text-xs",
-                      "placeholder:text-foreground/30 focus:outline-none focus:border-ring",
-                      spell.fixedDC !== null && "pr-5",
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <input
+                      type="text" inputMode="numeric"
+                      value={spell.fixedDC !== null ? String(spell.fixedDC) : ""}
+                      placeholder={String(spellDC)}
+                      onChange={e => {
+                        const raw = e.target.value
+                        if (raw === "") { onPatch({ fixedDC: null }); return }
+                        if (raw === "-") return
+                        if (!/^-?\d+$/.test(raw)) return
+                        const n = parseInt(raw, 10)
+                        if (!isNaN(n)) onPatch({ fixedDC: n })
+                      }}
+                      className={cn(
+                        "h-6 w-16 rounded-md border border-input bg-background text-center text-xs",
+                        "placeholder:text-foreground/30 focus:outline-none focus:border-ring",
+                        spell.fixedDC !== null && "pr-5",
+                      )}
+                    />
+                    {spell.fixedDC !== null && (
+                      <button type="button" aria-label="Reset"
+                        onClick={() => onPatch({ fixedDC: null })}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
+                        <RotateCcw className="size-2.5" />
+                      </button>
                     )}
-                  />
-                  {spell.fixedDC !== null && (
-                    <button type="button" aria-label="Reset"
-                      onClick={() => onPatch({ fixedDC: null })}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
-                      <RotateCcw className="size-2.5" />
-                    </button>
-                  )}
+                  </div>
+                  <select
+                    value={spell.saveStat ?? ""}
+                    onChange={e => onPatch({ saveStat: e.target.value ? (e.target.value as AttributeKey) : null })}
+                    className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+                  >
+                    <option value="">— save</option>
+                    {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]} save</option>)}
+                  </select>
                 </div>
               )}
 
@@ -426,7 +693,6 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
             </div>
           )}
 
-          {/* Components */}
           <div className="flex items-center gap-3">
             <span className="w-12 shrink-0 text-xs text-muted-foreground">Comp.</span>
             {(["verbal", "somatic", "material"] as const).map(c => (
@@ -448,7 +714,6 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
             />
           </div>
 
-          {/* Damage stack */}
           <div className="space-y-1.5">
             <span className="text-xs text-muted-foreground">
               {spell.mode === "Heal" ? "Healing" : "Damage / Effect"}
@@ -468,18 +733,12 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
                   }}
                   className="h-6 w-8 rounded-md border border-input bg-background text-center text-xs placeholder:text-foreground/30 focus:outline-none focus:border-ring"
                 />
-                <select
-                  value={dmg.dieType}
-                  onChange={e => onPatchDmg(idx, { dieType: e.target.value as DieType })}
-                  className="h-6 rounded-md border border-input bg-background px-1 text-xs text-foreground focus:outline-none focus:border-ring"
-                >
+                <select value={dmg.dieType} onChange={e => onPatchDmg(idx, { dieType: e.target.value as DieType })}
+                  className="h-6 rounded-md border border-input bg-background px-1 text-xs text-foreground focus:outline-none focus:border-ring">
                   {DIE_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
-                <select
-                  value={dmg.stat ?? ""}
-                  onChange={e => onPatchDmg(idx, { stat: e.target.value ? (e.target.value as AttributeKey) : null })}
-                  className="h-6 rounded-md border border-input bg-background px-1 text-xs text-foreground focus:outline-none focus:border-ring"
-                >
+                <select value={dmg.stat ?? ""} onChange={e => onPatchDmg(idx, { stat: e.target.value ? (e.target.value as AttributeKey) : null })}
+                  className="h-6 rounded-md border border-input bg-background px-1 text-xs text-foreground focus:outline-none focus:border-ring">
                   <option value="">—</option>
                   {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
                 </select>
@@ -499,15 +758,11 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
                     className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-foreground/30 focus:outline-none"
                   />
                 </div>
-                <input
-                  type="text"
-                  value={dmg.type}
-                  placeholder={spell.mode === "Heal" ? "Healing" : "Fire"}
+                <input type="text" value={dmg.type} placeholder={spell.mode === "Heal" ? "Healing" : "Fire"}
                   onChange={e => onPatchDmg(idx, { type: e.target.value })}
                   className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
                 />
-                <button type="button"
-                  onClick={() => onPatchDmg(idx, { active: !dmg.active })}
+                <button type="button" onClick={() => onPatchDmg(idx, { active: !dmg.active })}
                   className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
                   {dmg.active ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
                 </button>
@@ -525,7 +780,6 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
             </button>
           </div>
 
-          {/* Tags */}
           <div className="flex gap-3">
             {(["concentration", "ritual"] as const).map(tag => (
               <label key={tag} className="flex cursor-pointer items-center gap-1">
@@ -537,7 +791,6 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
             ))}
           </div>
 
-          {/* Description */}
           <div className="space-y-1">
             <span className="text-xs text-muted-foreground">Description</span>
             <textarea value={spell.description} placeholder="Spell description..."
@@ -547,7 +800,6 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, attrMod, proficiencyB
             />
           </div>
 
-          {/* Upcast */}
           {spell.level > 0 && (
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground">At Higher Levels</span>

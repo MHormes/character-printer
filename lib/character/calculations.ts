@@ -133,3 +133,17 @@ export function resolveSpellAttack(c: CharacterData): number {
   const stackSum = sumStack(c.spells.attackStack)
   return pb + mod + stackSum
 }
+
+export function resolveEquippedWeight(c: CharacterData): number {
+  return (c.inventory ?? [])
+    .filter((item) => item.equipped)
+    .reduce((sum, item) => sum + item.weight * (item.quantity ?? 1), 0)
+}
+
+export function resolveCarryCapacity(c: CharacterData): number {
+  return resolveAttributeScore(c.attributes.str) * 15
+}
+
+export function isOverCarryCapacity(c: CharacterData): boolean {
+  return resolveEquippedWeight(c) > resolveCarryCapacity(c)
+}

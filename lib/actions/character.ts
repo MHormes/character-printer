@@ -7,6 +7,8 @@ import type { CharacterData } from "@/lib/types/character"
 import { eq } from "drizzle-orm"
 import { randomUUID } from "crypto"
 
+const anyDb = db as any
+
 function hydrateCharacter(id: string, data: CharacterData): CharacterData {
   const defaults = createDefaultCharacter(id)
 
@@ -45,12 +47,11 @@ export async function createCharacter(userId: string): Promise<{ id: string }> {
   const id = randomUUID()
   const data = createDefaultCharacter(id)
 
-  await db.insert(sqliteCharacters).values({
+  await anyDb.insert(sqliteCharacters).values({
     id,
     userId,
     name: "",
     autoSave: true,
-    // @ts-expect-error drizzle union type, correct at runtime
     data,
   })
 
@@ -58,9 +59,8 @@ export async function createCharacter(userId: string): Promise<{ id: string }> {
 }
 
 export async function saveCharacter(id: string, data: CharacterData, autoSave?: boolean): Promise<void> {
-  await db
+  await anyDb
     .update(sqliteCharacters)
-    // @ts-expect-error drizzle union type, correct at runtime
     .set({
       name: data.identity.name,
       data,
@@ -71,7 +71,7 @@ export async function saveCharacter(id: string, data: CharacterData, autoSave?: 
 }
 
 export async function loadCharacter(id: string): Promise<{ data: CharacterData; autoSave: boolean } | null> {
-  const rows = await db
+  const rows = await anyDb
     .select({ data: sqliteCharacters.data, autoSave: sqliteCharacters.autoSave })
     .from(sqliteCharacters)
     .where(eq(sqliteCharacters.id, id))
@@ -85,7 +85,7 @@ export async function loadCharacter(id: string): Promise<{ data: CharacterData; 
 }
 
 export async function listAllCharacters(): Promise<{ id: string; name: string; updatedAt: Date | null }[]> {
-  return db
+  return anyDb
     .select({
       id: sqliteCharacters.id,
       name: sqliteCharacters.name,
@@ -96,5 +96,5 @@ export async function listAllCharacters(): Promise<{ id: string; name: string; u
 }
 
 export async function deleteCharacter(id: string): Promise<void> {
-  await db.delete(sqliteCharacters).where(eq(sqliteCharacters.id, id))
+  await anyDb.delete(sqliteCharacters).where(eq(sqliteCharacters.id, id))
 }

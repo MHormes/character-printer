@@ -7,6 +7,8 @@ import { useState, useRef, useEffect } from "react";
 import type { CanvasWidget, WidgetType } from "@/lib/types/canvas";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useCharacterStore } from "@/lib/store/character-store";
+import { searchSpells } from "@/lib/actions/5e-data";
+import type { SpellRow } from "@/lib/actions/5e-data";
 import { featureCardGridH } from "@/components/canvas/widgets/feature-card-widget";
 import { CoreStatsWidget } from "@/components/canvas/widgets/core-stats-widget";
 import { InspirationWidget } from "@/components/canvas/widgets/inspiration-widget";
@@ -126,24 +128,39 @@ export function PlacedWidget({
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const updateWidgetData = useCanvasStore((s) => s.updateWidgetData);
-  const spells = useCharacterStore((s) => s.character?.spells.list ?? []);
+  const charSpells = useCharacterStore((s) => s.character?.spells.list ?? []);
   const features = useCharacterStore((s) => s.character?.features ?? []);
   const statBoxes = useCharacterStore((s) => s.character?.statBoxes ?? []);
 
-  const sortedSpells = [...spells].sort((a, b) =>
-    a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
-  );
+  const [spellSearch, setSpellSearch] = useState("");
+  const [spellResults, setSpellResults] = useState<SpellRow[]>([]);
+
+  const q = spellSearch.toLowerCase();
+  const filteredCharSpells = charSpells
+    .filter((s) => !q || s.name.toLowerCase().includes(q))
+    .sort((a, b) => a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name));
+  const charSpellNames = new Set(charSpells.map((s) => s.name.toLowerCase()));
+  const dedupedDbSpells = spellResults.filter((s) => !charSpellNames.has(s.name.toLowerCase()));
 
   useEffect(() => {
     if (!pickerOpen) return;
     function handleClick(e: MouseEvent) {
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
         setPickerOpen(false);
+        setSpellSearch("");
       }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [pickerOpen]);
+
+  useEffect(() => {
+    if (!pickerOpen || widget.type !== "SpellCard") return;
+    const t = setTimeout(() => {
+      searchSpells({ name: spellSearch || undefined }).then(setSpellResults);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [pickerOpen, spellSearch, widget.type]);
 
   const { setNodeRef, listeners, attributes, transform, isDragging } =
     useDraggable({
@@ -236,7 +253,7 @@ export function PlacedWidget({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setPickerOpen((v) => !v);
+                setPickerOpen((v) => { if (v) setSpellSearch(""); return !v; });
               }}
               className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
               title={widget.type === "SpellCard" ? "Choose spell" : widget.type === "StatBox" ? "Choose stat" : "Choose feature"}
@@ -250,34 +267,76 @@ export function PlacedWidget({
       {pickerOpen && widget.type === "SpellCard" && (
         <div
           ref={pickerRef}
-          className="absolute left-0 z-50 w-52 rounded border border-border bg-card shadow-md"
+          className="absolute left-0 z-50 w-56 rounded border border-border bg-card shadow-md"
           style={{ top: "calc(100% + 2px)" }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="max-h-64 overflow-y-auto py-1">
-            {sortedSpells.length === 0 && (
+          <div className="border-b border-border px-2 py-1.5">
+            <input
+              type="text"
+              value={spellSearch}
+              onChange={(e) => setSpellSearch(e.target.value)}
+              placeholder="Search all spells…"
+              className="w-full rounded bg-background px-2 py-1 text-xs text-foreground outline-none placeholder:text-muted-foreground"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-60 overflow-y-auto py-1">
+            {filteredCharSpells.length === 0 && dedupedDbSpells.length === 0 && (
               <p className="px-3 py-2 text-xs text-muted-foreground">No spells found</p>
             )}
-            {sortedSpells.map((spell) => (
-              <button
-                key={spell.id}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  updateWidgetData(widget.id, { spellId: spell.id });
-                  setPickerOpen(false);
-                }}
-                className={cn(
-                  "flex w-full flex-col px-3 py-1.5 text-left transition-colors hover:bg-accent",
-                  widget.spellId === spell.id && "bg-accent"
-                )}
-              >
-                <span className="text-xs font-medium text-foreground">{spell.name}</span>
-                <span className="text-[10px] text-muted-foreground">
-                  {spell.level === 0 ? "Cantrip" : `Level ${spell.level}`} · {spell.school}
-                </span>
-              </button>
-            ))}
+            {filteredCharSpells.length > 0 && (
+              <>
+                <p className="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Your spells</p>
+                {filteredCharSpells.map((spell) => (
+                  <button
+                    key={spell.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateWidgetData(widget.id, { spellId: spell.id });
+                      setPickerOpen(false);
+                      setSpellSearch("");
+                    }}
+                    className={cn(
+                      "flex w-full flex-col px-3 py-1.5 text-left transition-colors hover:bg-accent",
+                      widget.spellId === spell.id && "bg-accent"
+                    )}
+                  >
+                    <span className="text-xs font-medium text-foreground">{spell.name}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {spell.level === 0 ? "Cantrip" : `Level ${spell.level}`} · {spell.school}
+                    </span>
+                  </button>
+                ))}
+              </>
+            )}
+            {dedupedDbSpells.length > 0 && (
+              <>
+                <p className="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">SRD spells</p>
+                {dedupedDbSpells.map((spell) => (
+                  <button
+                    key={spell.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateWidgetData(widget.id, { spellId: spell.id });
+                      setPickerOpen(false);
+                      setSpellSearch("");
+                    }}
+                    className={cn(
+                      "flex w-full flex-col px-3 py-1.5 text-left transition-colors hover:bg-accent",
+                      widget.spellId === spell.id && "bg-accent"
+                    )}
+                  >
+                    <span className="text-xs font-medium text-foreground">{spell.name}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {spell.level === 0 ? "Cantrip" : `Level ${spell.level}`} · {spell.school}
+                    </span>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}

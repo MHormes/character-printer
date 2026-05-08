@@ -195,6 +195,18 @@ function ModStack({
 
 type ClassEntry = { name: string; level: number; hitDie: string };
 
+type CombatBlockProps = {
+  data: CombatData;
+  attributes: Record<AttributeKey, AttributeData>;
+  classes: ClassEntry[];
+  proficiencyBonus: number;
+  jackOfAllTrades: boolean;
+  onAcChange: (ac: CombatData["ac"]) => void;
+  onInitiativeChange: (initiative: CombatData["initiative"]) => void;
+  onSpeedChange: (speed: CombatData["speed"]) => void;
+  onHpChange: (hp: CombatData["hp"]) => void;
+};
+
 export function CombatBlock({
   data,
   attributes,

@@ -15,6 +15,41 @@
       "when": 1778149823542,
       "tag": "0001_cloudy_silhouette",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778241863213,
+      "tag": "0002_boring_violations",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778244727414,
+      "tag": "0003_chunky_microbe",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1778246010667,
+      "tag": "0004_tense_doorman",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1778250012430,
+      "tag": "0005_groovy_elektra",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1778250752249,
+      "tag": "0006_volatile_storm",
+      "breakpoints": true
     }
   ]
 }
