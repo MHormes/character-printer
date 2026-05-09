@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db/client"
 import { sqliteCharacters, sqliteClasses } from "@/lib/db/schema"
+import { normalizeCanvasPages } from "@/lib/canvas/page-utils"
 import { createDefaultCharacter } from "@/lib/character/defaults"
 import type { CharacterData, AttributeKey } from "@/lib/types/character"
 import { eq } from "drizzle-orm"
@@ -25,12 +26,19 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
     ]),
   )
   const hydratedClasses = (data.identity?.classes ?? defaults.identity.classes).map((cls) => ({
-    classId: cls.classId ?? classIdByName.get(cls.name.trim().toLowerCase()) ?? null,
+    classId: (cls.classId ?? classIdByName.get(cls.name.trim().toLowerCase()) ?? null) as string | null,
     name: cls.name,
     subclass: cls.subclass,
     level: cls.level,
     hitDie: cls.hitDie,
   }))
+
+  const normalizedPages = normalizeCanvasPages(
+    data.canvas?.pages,
+    data.canvas && "cols" in data.canvas && typeof data.canvas.cols === "number"
+      ? data.canvas.cols
+      : defaults.canvas.pages[0].cols,
+  )
 
   return {
     ...defaults,
@@ -69,7 +77,11 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
         return { ...s, mode, castingStat }
       }),
     },
-    canvas: { ...defaults.canvas, ...data.canvas },
+    canvas: {
+      ...defaults.canvas,
+      ...data.canvas,
+      pages: normalizedPages,
+    },
   }
 }
 

@@ -749,7 +749,6 @@ The following structure represents the single JSON object stored in the database
 
   ## Canvas and Output Completion
   - Add optional overlap prevention/collision handling on the canvas.
-  - Add user-created layout presets/templates, not just the built-in predefined layouts.
   - Add higher-quality PDF export beyond standard browser print.
 
   ## Assumptions

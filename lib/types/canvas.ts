@@ -1,3 +1,5 @@
+export const DEFAULT_CANVAS_COLS = 28
+
 export type WidgetType =
   | "Box"
   | "CoreStats" | "Inspiration" | "Proficiency" | "PassivePerception"
@@ -35,4 +37,22 @@ export type CanvasWidget = {
   spellId?: string
   featureId?: string
   statId?: string
+}
+
+export type CanvasTemplateWidget = Omit<CanvasWidget, "id">
+
+export type CanvasPage = {
+  id: string
+  cols: number
+  widgets: CanvasWidget[]
+}
+
+export type CanvasTemplate = {
+  id: string
+  userId: string
+  name: string
+  cols: number
+  widgets: CanvasTemplateWidget[]
+  createdAt: Date | null
+  updatedAt: Date | null
 }

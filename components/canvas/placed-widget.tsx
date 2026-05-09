@@ -162,7 +162,7 @@ export function PlacedWidget({
     return () => clearTimeout(t);
   }, [pickerOpen, spellSearch, widget.type]);
 
-  const { setNodeRef, listeners, attributes, transform, isDragging } =
+  const { setNodeRef, listeners, attributes, isDragging } =
     useDraggable({
       id: widget.id,
       data: { source: "canvas", widgetId: widget.id },
@@ -200,7 +200,7 @@ export function PlacedWidget({
       {...attributes}
       style={{
         ...posStyle,
-        zIndex: selected ? 10 : 1,
+        zIndex: selected ? 30 : 1,
         opacity: isDragging ? 0.25 : 1,
       }}
       onClick={onSelect}

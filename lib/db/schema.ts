@@ -5,6 +5,7 @@ import {
   integer,
   real,
   primaryKey,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import {
   pgTable,
@@ -14,6 +15,7 @@ import {
   timestamp,
   boolean,
   primaryKey as pgPrimaryKey,
+  uniqueIndex as pgUniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // ─── SQLite schema (development) ─────────────────────────────────────────────
@@ -43,6 +45,22 @@ export const sqliteCharacters = sqliteTable("characters", {
     .default(sql`(unixepoch())`),
 });
 
+export const sqliteCanvasTemplates = sqliteTable("canvas_templates", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => sqliteUsers.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  cols: integer("cols").notNull(),
+  widgets: text("widgets", { mode: "json" }).notNull().default("[]"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+}, (t) => [uniqueIndex("canvas_templates_user_name_unique").on(t.userId, t.name)]);
+
 // ─── PostgreSQL schema (production) ──────────────────────────────────────────
 
 export const pgUsers = pgTable("users", {
@@ -63,6 +81,18 @@ export const pgCharacters = pgTable("characters", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const pgCanvasTemplates = pgTable("canvas_templates", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 })
+    .notNull()
+    .references(() => pgUsers.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  cols: pgInteger("cols").notNull(),
+  widgets: jsonb("widgets").notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => [pgUniqueIndex("canvas_templates_user_name_unique").on(t.userId, t.name)]);
 
 // ─── Game content: spells ─────────────────────────────────────────────────────
 

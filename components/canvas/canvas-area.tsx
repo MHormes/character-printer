@@ -14,11 +14,18 @@ import {
   type DragStartEvent,
   type Modifier,
 } from "@dnd-kit/core";
+import { rowsForCols, sanitizeTemplateWidgets } from "@/lib/canvas/page-utils";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useCharacterStore } from "@/lib/store/character-store";
-import type { CanvasWidget, WidgetType } from "@/lib/types/canvas";
+import {
+  DEFAULT_CANVAS_COLS,
+  type CanvasTemplate,
+  type CanvasWidget,
+  type WidgetType,
+} from "@/lib/types/canvas";
 import { PaletteTile } from "@/components/canvas/palette-tile";
 import { PlacedWidget } from "@/components/canvas/placed-widget";
+import { SavedTemplateTile } from "@/components/canvas/saved-template-tile";
 import {
   SPELL_CARD_GRID_H,
   SPELL_CARD_GRID_W,
@@ -32,7 +39,6 @@ import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
 import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
 import { featureCardGridH } from "@/components/canvas/widgets/feature-card-widget";
 import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
-import { FullPageMainWidget } from "@/components/canvas/widgets/full-page-main-widget";
 
 const centerOnCursor: Modifier = ({
   activatorEvent,
@@ -65,12 +71,13 @@ const centerOnCursor: Modifier = ({
 };
 
 type ActiveData = {
-  source: "palette" | "canvas";
+  source: "palette" | "canvas" | "template";
   type?: string;
   w?: number;
   h?: number;
   widgetId?: string;
   fullPage?: boolean;
+  templateId?: string;
 };
 
 const SLIM_W = 10;
@@ -268,7 +275,12 @@ const TEMPLATE_PAGE1_WIDGETS = [
   },
 ] as const;
 
-export function CanvasArea() {
+type Props = {
+  templates: CanvasTemplate[];
+  onDeleteTemplate: (templateId: string) => void;
+};
+
+export function CanvasArea({ templates, onDeleteTemplate }: Props) {
   const {
     cols,
     pages,
@@ -276,7 +288,6 @@ export function CanvasArea() {
     widgets,
     selectedId,
     addWidget,
-    addWidgets,
     addWidgetsMultiPage,
     moveWidget,
     rotateWidget,
@@ -286,8 +297,9 @@ export function CanvasArea() {
     addPage,
     deletePage,
     setPage,
+    replaceCurrentPage,
   } = useCanvasStore();
-  const rows = Math.ceil((cols * 297) / 210);
+  const rows = rowsForCols(cols);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -325,6 +337,9 @@ export function CanvasArea() {
   const inventoryCount = character?.inventory.length ?? 0;
   const trackersCount = character?.trackers.length ?? 0;
   const featuresCount = character?.features.length ?? 0;
+  const validSpellIds = new Set(character?.spells.list.map((spell) => spell.id) ?? []);
+  const validFeatureIds = new Set(character?.features.map((feature) => feature.id) ?? []);
+  const validStatIds = new Set(character?.statBoxes?.map((stat) => stat.id) ?? []);
 
   // h = rows × (w/cols) × (210/297) × (svgH/viewBoxW)
   const slimToolH = Math.max(
@@ -556,7 +571,8 @@ export function CanvasArea() {
         return;
 
       if (data.type === "TemplatePage1") {
-        addWidgets(
+        replaceCurrentPage(
+          DEFAULT_CANVAS_COLS,
           TEMPLATE_PAGE1_WIDGETS.map((w) => ({
             ...w,
             printState: w.printState as "Calculated" | "Blank",
@@ -592,7 +608,7 @@ export function CanvasArea() {
           });
         }
 
-        addWidgets([
+        replaceCurrentPage(DEFAULT_CANVAS_COLS, [
           {
             type: "SpellcastingInfo",
             col: 0,
@@ -620,11 +636,12 @@ export function CanvasArea() {
         const rowsPerPage = Math.floor(rows / CARD_H);
         const perPage = perRow * rowsPerPage;
 
-        const pageWidgets: Omit<CanvasWidget, "id">[][] = [];
+        const pageWidgets: { cols?: number; widgets: Omit<CanvasWidget, "id">[] }[] = [];
         for (let i = 0; i < spells.length; i += perPage) {
           const chunk = spells.slice(i, i + perPage);
-          pageWidgets.push(
-            chunk.map((spell, j) => ({
+          pageWidgets.push({
+            cols,
+            widgets: chunk.map((spell, j) => ({
               type: "SpellCard" as WidgetType,
               col: (j % perRow) * CARD_W,
               row: Math.floor(j / perRow) * CARD_H,
@@ -635,7 +652,7 @@ export function CanvasArea() {
               printState: "Calculated" as const,
               spellId: spell.id,
             })),
-          );
+          });
         }
         addWidgetsMultiPage(pageWidgets);
         return;
@@ -646,25 +663,30 @@ export function CanvasArea() {
         if (features.length === 0) return;
 
         // 3 columns: col 0, 10, 20 — each 9 wide (last capped at page edge)
+        const templateCols = DEFAULT_CANVAS_COLS;
+        const templateRows = rowsForCols(templateCols);
         const COL_STARTS = [0, 10, 20];
         const CARD_W = 9;
 
-        const pageWidgets: Omit<CanvasWidget, "id">[][] = [];
+        const pageWidgets: { cols?: number; widgets: Omit<CanvasWidget, "id">[] }[] = [];
         let currentPage: Omit<CanvasWidget, "id">[] = [];
         let currentCol = 0;
         let currentRow = 0;
 
         for (const feature of features) {
-          const cardW = Math.min(CARD_W, cols - COL_STARTS[currentCol]);
-          const h = Math.min(featureCardGridH(feature.description, cardW, cols, rows), rows);
+          const cardW = Math.min(CARD_W, templateCols - COL_STARTS[currentCol]);
+          const h = Math.min(
+            featureCardGridH(feature.description, cardW, templateCols, templateRows),
+            templateRows,
+          );
 
-          if (currentRow + h > rows) {
+          if (currentRow + h > templateRows) {
             // Column full — advance to next column
             currentCol++;
             currentRow = 0;
             if (currentCol >= COL_STARTS.length) {
               // All columns full — new page
-              pageWidgets.push(currentPage);
+              pageWidgets.push({ cols: templateCols, widgets: currentPage });
               currentPage = [];
               currentCol = 0;
             }
@@ -674,7 +696,7 @@ export function CanvasArea() {
             type: "FeatureCard" as WidgetType,
             col: COL_STARTS[currentCol],
             row: currentRow,
-            w: Math.min(CARD_W, cols - COL_STARTS[currentCol]),
+            w: Math.min(CARD_W, templateCols - COL_STARTS[currentCol]),
             h,
             rotation: 0 as const,
             locked: false,
@@ -683,7 +705,7 @@ export function CanvasArea() {
           });
           currentRow += h;
         }
-        if (currentPage.length > 0) pageWidgets.push(currentPage);
+        if (currentPage.length > 0) pageWidgets.push({ cols: templateCols, widgets: currentPage });
         addWidgetsMultiPage(pageWidgets);
         return;
       }
@@ -722,6 +744,30 @@ export function CanvasArea() {
         locked: false,
         printState: "Calculated",
       });
+    } else if (data.source === "template" && data.templateId) {
+      const translated = active.rect.current?.translated;
+      if (!translated) return;
+      const midX = translated.left + translated.width / 2;
+      const midY = translated.top + translated.height / 2;
+      if (
+        midX < gridRect.left ||
+        midX > gridRect.right ||
+        midY < gridRect.top ||
+        midY > gridRect.bottom
+      ) {
+        return;
+      }
+      const template = templates.find((item) => item.id === data.templateId);
+      if (!template) return;
+      replaceCurrentPage(
+        template.cols,
+        sanitizeTemplateWidgets(
+          template.widgets,
+          validSpellIds,
+          validFeatureIds,
+          validStatIds,
+        ),
+      );
     } else if (data.source === "canvas" && data.widgetId) {
       const widget = widgets.find((w) => w.id === data.widgetId);
       if (!widget || widget.locked) return;
@@ -757,6 +803,22 @@ export function CanvasArea() {
         {/* Sidebar palette */}
         <aside className="sticky top-0 h-screen w-1/4 shrink-0 self-start overflow-y-auto border-r border-border bg-section p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Your Templates
+          </p>
+          {templates.length > 0 ? (
+            <div className="grid grid-cols-2 gap-2">
+              {templates.map((template) => (
+                <SavedTemplateTile
+                  key={template.id}
+                  template={template}
+                  onDelete={onDeleteTemplate}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Save a page to reuse it here.</p>
+          )}
+          <p className="pt-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Full Page
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -814,7 +876,7 @@ export function CanvasArea() {
             <div
               id="canvas-editor"
               ref={setGridRef}
-              className="relative aspect-[210/297] w-full max-w-5xl overflow-hidden bg-card shadow-lg"
+              className="relative aspect-[210/297] w-full max-w-5xl overflow-visible bg-card shadow-lg"
               style={{
                 backgroundImage: [
                   "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
@@ -879,12 +941,13 @@ export function CanvasArea() {
                     w.type === "FullPageSpellSheet",
                 );
                 if (fullPageWidget) {
+                  const pageRows = rowsForCols(page.cols);
                   return (
                     <div key={page.id} className="full-page-print">
                       <PlacedWidget
                         widget={fullPageWidget}
-                        cols={cols}
-                        rows={rows}
+                        cols={page.cols}
+                        rows={pageRows}
                         selected={false}
                         printMode
                         onSelect={() => {}}
@@ -897,20 +960,23 @@ export function CanvasArea() {
                 }
                 return (
                   <div key={page.id} className="print-page">
-                    {page.widgets.map((widget) => (
-                      <PlacedWidget
-                        key={widget.id}
-                        widget={widget}
-                        cols={cols}
-                        rows={rows}
-                        selected={false}
-                        printMode
-                        onSelect={() => {}}
-                        onRotate={() => {}}
-                        onToggleLock={() => {}}
-                        onDelete={() => {}}
-                      />
-                    ))}
+                    {(() => {
+                      const pageRows = rowsForCols(page.cols);
+                      return page.widgets.map((widget) => (
+                        <PlacedWidget
+                          key={widget.id}
+                          widget={widget}
+                          cols={page.cols}
+                          rows={pageRows}
+                          selected={false}
+                          printMode
+                          onSelect={() => {}}
+                          onRotate={() => {}}
+                          onToggleLock={() => {}}
+                          onDelete={() => {}}
+                        />
+                      ));
+                    })()}
                   </div>
                 );
               })}
@@ -931,6 +997,12 @@ export function CanvasArea() {
                     height: `${(activeData.h ?? 1) * 32}px`,
                   }
             }
+          />
+        )}
+        {activeData?.source === "template" && (
+          <div
+            className="rounded border-2 border-primary bg-card/80 opacity-80"
+            style={{ width: "80px", height: "113px" }}
           />
         )}
         {activeWidget && (

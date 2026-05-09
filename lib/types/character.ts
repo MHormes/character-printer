@@ -167,7 +167,7 @@ export type SpellEntry = {
   tags: { ritual: boolean; concentration: boolean; prepared: boolean };
 };
 
-import type { CanvasWidget } from "./canvas";
+import type { CanvasPage } from "./canvas";
 
 export type Currency = { cp: number; sp: number; ep: number; gp: number; pp: number };
 export type CharacterClassEntry = {
@@ -222,7 +222,6 @@ export type CharacterData = {
     list: SpellEntry[];
   };
   canvas: {
-    cols: number;
-    pages: { id: string; widgets: CanvasWidget[] }[];
+    pages: CanvasPage[];
   };
 };

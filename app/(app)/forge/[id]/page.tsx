@@ -57,6 +57,7 @@ import {
   deriveSpellSlotBases,
   spellSlotBasesEqual,
   type SpellSlotBaseMap,
+  type SpellSlotClassLike,
 } from "@/lib/character/spell-slots";
 
 const ATTRIBUTE_KEYS: AttributeKey[] = [
@@ -260,7 +261,7 @@ export default function ForgePage({
 
     const derivedBases = deriveSpellSlotBases({
       classes: character.identity.classes,
-      availableClasses,
+      availableClasses: availableClasses as SpellSlotClassLike[],
       slotRows: availableSpellSlotRows,
     });
     const currentBases = Object.fromEntries(

@@ -1,4 +1,5 @@
 import type { CharacterData, AttributeKey, AttributeData, SaveData } from "@/lib/types/character"
+import { DEFAULT_CANVAS_COLS } from "@/lib/types/canvas"
 
 const ATTRIBUTE_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
 
@@ -97,8 +98,7 @@ export function createDefaultCharacter(id: string): CharacterData {
       list: [],
     },
     canvas: {
-      cols: 20,
-      pages: [{ id: `${id}-page-1`, widgets: [] }],
+      pages: [{ id: `${id}-page-1`, cols: DEFAULT_CANVAS_COLS, widgets: [] }],
     },
   }
 }
