@@ -7,6 +7,7 @@ import {
   Hammer,
   Grid3x3,
   Printer,
+  FileDown,
   Loader2,
   Check,
   Save,
@@ -44,6 +45,7 @@ export default function CanvasPage({
   const [templateStatus, setTemplateStatus] = useState<"idle" | "saving">(
     "idle",
   );
+  const [pdfStatus, setPdfStatus] = useState<"idle" | "exporting">("idle");
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -159,6 +161,84 @@ export default function CanvasPage({
     );
   }
 
+  async function handleExportPdf() {
+    if (pdfStatus === "exporting") return;
+
+    const printRoot = document.getElementById("print-all-pages");
+    if (!printRoot) return;
+
+    setPdfStatus("exporting");
+
+    const exportHost = document.createElement("div");
+    exportHost.setAttribute("aria-hidden", "true");
+    exportHost.style.position = "fixed";
+    exportHost.style.left = "-100000px";
+    exportHost.style.top = "0";
+    exportHost.style.pointerEvents = "none";
+    exportHost.style.opacity = "0";
+    exportHost.style.background = "white";
+
+    try {
+      if ("fonts" in document) {
+        await document.fonts.ready;
+      }
+
+      const [{ toJpeg }, { jsPDF }] = await Promise.all([
+        import("html-to-image"),
+        import("jspdf"),
+      ]);
+
+      const clonedRoot = printRoot.cloneNode(true) as HTMLDivElement;
+      clonedRoot.id = "pdf-export-pages";
+      clonedRoot.style.display = "block";
+      exportHost.appendChild(clonedRoot);
+      document.body.appendChild(exportHost);
+
+      const pageNodes = Array.from(clonedRoot.children).filter(
+        (node): node is HTMLElement => node instanceof HTMLElement,
+      );
+
+      if (pageNodes.length === 0) return;
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+        compress: true,
+      });
+
+      for (const [index, pageNode] of pageNodes.entries()) {
+        // Ensure the node is visible and has dimensions
+        const width = pageNode.offsetWidth || 794; // fallback to ~210mm at 96dpi
+        const height = pageNode.offsetHeight || 1123; // fallback to ~297mm at 96dpi
+        
+        const imageData = await toJpeg(pageNode, {
+          backgroundColor: "#ffffff",
+          cacheBust: true,
+          pixelRatio: 2,
+          quality: 0.95,
+          width: width,
+          height: height,
+        });
+        
+        const pageHeight = (height * 210) / width;
+
+        if (index > 0) {
+          pdf.addPage("a4", "portrait");
+        }
+
+        pdf.addImage(imageData, "JPEG", 0, 0, 210, pageHeight, undefined, "FAST");
+      }
+
+      const baseName = character?.identity.name?.trim() || "character-sheet";
+      const fileName = `${baseName.replace(/[<>:\"/\\|?*\u0000-\u001F]+/g, "-")}.pdf`;
+      pdf.save(fileName);
+    } finally {
+      exportHost.remove();
+      setPdfStatus("idle");
+    }
+  }
+
   if (!character) {
     return (
       <main className="flex min-h-screen items-center justify-center">
@@ -263,14 +343,33 @@ export default function CanvasPage({
             Save
           </Button>
           <div className="h-4 w-px bg-border mx-1" />
-          <button
-            type="button"
-            onClick={() => setShowGridConfig((v) => !v)}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            <Grid3x3 className="size-4" />
-            Grid
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowGridConfig((v) => !v)}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Grid3x3 className="size-4" />
+              Grid
+            </button>
+            {showGridConfig && (
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 flex min-w-64 items-center gap-2 rounded-lg border border-border bg-section px-3 py-2 shadow-md">
+                <span className="text-xs text-muted-foreground">Columns</span>
+                <Input
+                  type="number"
+                  min={1}
+                  value={cols}
+                  onChange={(e) =>
+                    setCols(Math.max(1, parseInt(e.target.value) || 1))
+                  }
+                  className="h-7 w-16 text-xs"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {rows} rows on this page
+                </span>
+              </div>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => window.print()}
@@ -279,31 +378,21 @@ export default function CanvasPage({
             <Printer className="size-4" />
             Print
           </button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={pdfStatus === "exporting"}
+          >
+            {pdfStatus === "exporting" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FileDown className="size-4" />
+            )}
+            Export PDF
+          </Button>
         </div>
       </header>
-
-      {showGridConfig && (
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-section px-6 py-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Columns</span>
-            <Input
-              type="number"
-              min={1}
-              value={cols}
-              onChange={(e) =>
-                setCols(Math.max(1, parseInt(e.target.value) || 1))
-              }
-              className="h-7 w-16 text-xs"
-            />
-            <span className="text-xs text-muted-foreground">
-              {rows} rows on this page
-            </span>
-          </div>
-          {templateError && (
-            <span className="text-xs text-destructive">{templateError}</span>
-          )}
-        </div>
-      )}
 
       {!showGridConfig && templateError && (
         <div className="border-b border-border bg-section px-6 py-2 text-xs text-destructive">

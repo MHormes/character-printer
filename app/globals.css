@@ -138,27 +138,8 @@
   }
 }
 
-#print-all-pages {
-  display: none;
-}
-
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 0;
-  }
-
-  /* Remove app shell from layout entirely — no leftover height */
-  body > *:not(#print-all-pages) {
-    display: none !important;
-  }
-
-  #print-all-pages {
-    display: block !important;
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-
+#print-all-pages,
+#pdf-export-pages {
   .print-page {
     width: 210mm;
     height: 297mm;
@@ -186,5 +167,27 @@
   .full-page-print:last-child {
     break-after: auto;
     page-break-after: auto;
+  }
+}
+
+#print-all-pages {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  /* Remove app shell from layout entirely — no leftover height */
+  body > *:not(#print-all-pages) {
+    display: none !important;
+  }
+
+  #print-all-pages {
+    display: block !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

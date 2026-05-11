@@ -98,6 +98,14 @@ type Raw5eSubrace = {
   race: { index: string };
 };
 
+type Raw5eMagicItem = {
+  index: string;
+  name: string;
+  equipment_category: { name: string };
+  rarity: { name: string };
+  desc?: string[];
+};
+
 type Raw5eEquipment = {
   index: string;
   name: string;
@@ -239,17 +247,18 @@ async function main() {
   const db = drizzle(sqlite);
 
   console.log("Fetching 5e SRD data...");
-  const [rawSpells, rawClasses, rawLevels, rawRaces, rawSubraces, rawEquipment] = await Promise.all([
+  const [rawSpells, rawClasses, rawLevels, rawRaces, rawSubraces, rawEquipment, rawMagicItems] = await Promise.all([
     fetchJson<Raw5eSpell[]>(`${BASE_URL}/5e-SRD-Spells.json`),
     fetchJson<Raw5eClass[]>(`${BASE_URL}/5e-SRD-Classes.json`),
     fetchJson<Raw5eLevel[]>(`${BASE_URL}/5e-SRD-Levels.json`),
     fetchJson<Raw5eRace[]>(`${BASE_URL}/5e-SRD-Races.json`),
     fetchJson<Raw5eSubrace[]>(`${BASE_URL}/5e-SRD-Subraces.json`),
     fetchJson<Raw5eEquipment[]>(`${BASE_URL}/5e-SRD-Equipment.json`),
+    fetchJson<Raw5eMagicItem[]>(`${BASE_URL}/5e-SRD-Magic-Items.json`),
   ]);
 
   console.log(
-    `  ${rawSpells.length} spells, ${rawClasses.length} classes, ${rawLevels.length} levels, ${rawRaces.length} races, ${rawSubraces.length} subraces, ${PHB_BACKGROUNDS.length} backgrounds (hardcoded), ${rawEquipment.length} equipment`,
+    `  ${rawSpells.length} spells, ${rawClasses.length} classes, ${rawLevels.length} levels, ${rawRaces.length} races, ${rawSubraces.length} subraces, ${PHB_BACKGROUNDS.length} backgrounds (hardcoded), ${rawEquipment.length} equipment, ${rawMagicItems.length} magic items`,
   );
 
   console.log("Clearing existing SRD data...");
@@ -458,8 +467,43 @@ async function main() {
   const armors = itemRows.filter((i) => i.armorCategory !== null).length;
   console.log(`  ${itemRows.length} items | ${weapons} weapons | ${armors} armor pieces`);
 
+  console.log("Inserting magic items...");
+  const magicItemRows = rawMagicItems.map((m) => ({
+    id: `${SYSTEM}:magic:${m.index}`,
+    system: SYSTEM,
+    name: m.name,
+    equipmentCategory: m.equipment_category.name,
+    description: m.desc?.length ? m.desc.join("\n\n") : null,
+    weight: null as number | null,
+    cost: null as string | null,
+    weaponCategory: null as string | null,
+    weaponRange: null as string | null,
+    damageDiceCount: null as number | null,
+    damageDieType: null as string | null,
+    damageType: null as string | null,
+    twoHandedDiceCount: null as number | null,
+    twoHandedDieType: null as string | null,
+    twoHandedDamageType: null as string | null,
+    properties: null as string | null,
+    rangeNormal: null as number | null,
+    rangeLong: null as number | null,
+    armorCategory: null as string | null,
+    acBase: null as number | null,
+    acDexBonus: null as boolean | null,
+    acMaxDex: null as number | null,
+    stealthDisadvantage: null as boolean | null,
+    strMinimum: null as number | null,
+    source: SOURCE,
+    userId: null as string | null,
+  }));
+
+  for (let i = 0; i < magicItemRows.length; i += 100) {
+    db.insert(sqliteItems).values(magicItemRows.slice(i, i + 100)).run();
+  }
+  console.log(`  ${magicItemRows.length} magic items`);
+
   console.log(
-    `Done. ${spellRows.length} spells | ${classRows.length} classes | ${slotRows.length} slot rows | ${classMappingRows.length} class→spell links | ${raceRows.length} races | ${subraceRows.length} subraces | ${backgroundRows.length} backgrounds | ${itemRows.length} items`,
+    `Done. ${spellRows.length} spells | ${classRows.length} classes | ${slotRows.length} slot rows | ${classMappingRows.length} class→spell links | ${raceRows.length} races | ${subraceRows.length} subraces | ${backgroundRows.length} backgrounds | ${itemRows.length} equipment | ${magicItemRows.length} magic items`,
   );
   sqlite.close();
 }

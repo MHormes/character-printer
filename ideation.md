@@ -739,22 +739,9 @@ The following structure represents the single JSON object stored in the database
 # Still to do:
 
 - Disable all automation with some toggle (how this would work, idk).
-- Make race/class/background choices automatically populate stat modifier stacks, saving throw bonuses, skills,
-  proficiencies, speed, and features where applicable.
+- Make race/class/background choices automatically populate stat modifier stacks, saving throw bonuses, skills, proficiencies, speed, and features where applicable.
 - Add automatic class-based tracker setups for things like Ki, Sorcery Points, Rage, Bardic Inspiration, and
   similar resources.
-- Add compendium-backed items so common equipment can be inserted with their modifiers prefilled instead of
-  being built manually every time. Also auto-fill the attacks section on inserting new items
-- Mirror passive/item-granted features & trackers into the features list and trackers list respectivly when smart items are equipped.
 
   ## Canvas and Output Completion
-  - Add optional overlap prevention/collision handling on the canvas.
   - Add higher-quality PDF export beyond standard browser print.
-
-  ## Assumptions
-  - Existing class selection is considered complete for this pass, except for the downstream automation it should
-    trigger.
-  - Existing spell lookup/autofill is considered complete for this pass, except for slot automation and per-spell
-    casting-stat overrides.
-  - Existing full-page views, multi-page support, and built-in template drops are considered complete for this
-    pass.
