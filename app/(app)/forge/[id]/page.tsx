@@ -3,8 +3,21 @@
 import { use, useState, useEffect, useRef } from "react";
 import { useCharacterStore } from "@/lib/store/character-store";
 import { loadCharacter, saveCharacter } from "@/lib/actions/character";
-import { getClasses, getClassSpellSlots, getRaces, getSubraces, getBackgrounds } from "@/lib/actions/5e-data";
-import type { ClassRow, RaceRow, SubraceRow, BackgroundRow, SpellSlotRow, ItemRow } from "@/lib/actions/5e-data";
+import {
+  getClasses,
+  getClassSpellSlots,
+  getRaces,
+  getSubraces,
+  getBackgrounds,
+  getAllClassFeatures,
+  getAllClassProficiencies,
+  getAllRaceTraits,
+  getAllClassSkillChoices,
+  searchFeats,
+} from "@/lib/actions/5e-data";
+import type { ClassRow, RaceRow, SubraceRow, BackgroundRow, SpellSlotRow, ItemRow, ClassFeatureRow, ClassProficiencyRow, RaceTraitRow, ClassSkillChoiceRow, FeatRow } from "@/lib/actions/5e-data";
+import { ClassChoicesPanel } from "@/components/forge/class-choices-panel";
+import { derivePendingChoices, type PendingChoice } from "@/lib/character/derive-pending-choices";
 import { StringField } from "@/components/forge/string-field";
 import { ClassesField } from "@/components/forge/classes-field";
 import { RaceField } from "@/components/forge/race-field";
@@ -59,6 +72,7 @@ import {
   type SpellSlotBaseMap,
   type SpellSlotClassLike,
 } from "@/lib/character/spell-slots";
+import { applyRace, applyClasses, applyBackground } from "@/lib/character/apply-srd";
 
 const ATTRIBUTE_KEYS: AttributeKey[] = [
   "str",
@@ -130,6 +144,12 @@ export default function ForgePage({
   const [availableRaces, setAvailableRaces] = useState<RaceRow[]>([]);
   const [availableSubraces, setAvailableSubraces] = useState<SubraceRow[]>([]);
   const [availableBackgrounds, setAvailableBackgrounds] = useState<BackgroundRow[]>([]);
+  const [allClassFeatureRows, setAllClassFeatureRows] = useState<ClassFeatureRow[]>([]);
+  const [allClassProfRows, setAllClassProfRows] = useState<ClassProficiencyRow[]>([]);
+  const [allRaceTraitRows, setAllRaceTraitRows] = useState<RaceTraitRow[]>([]);
+  const [allClassSkillChoiceRows, setAllClassSkillChoiceRows] = useState<ClassSkillChoiceRow[]>([]);
+  const [availableFeats, setAvailableFeats] = useState<FeatRow[]>([]);
+  const [pendingChoices, setPendingChoices] = useState<PendingChoice[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
@@ -175,6 +195,7 @@ export default function ForgePage({
   const setSpellCastingStat = useCharacterStore((s) => s.setSpellCastingStat);
   const setSpellSlots = useCharacterStore((s) => s.setSpellSlots);
   const setSpellList = useCharacterStore((s) => s.setSpellList);
+  const replaceCharacter = useCharacterStore((s) => s.replaceCharacter);
 
   useEffect(() => {
     clearCharacter();
@@ -220,6 +241,11 @@ export default function ForgePage({
     getRaces().then(setAvailableRaces);
     getSubraces().then(setAvailableSubraces);
     getBackgrounds().then(setAvailableBackgrounds);
+    getAllClassFeatures().then(setAllClassFeatureRows);
+    getAllClassProficiencies().then(setAllClassProfRows);
+    getAllRaceTraits().then(setAllRaceTraitRows);
+    getAllClassSkillChoices().then(setAllClassSkillChoiceRows);
+    searchFeats({}).then(setAvailableFeats);
   }, []);
 
   // Auto-save on change with 1.5s debounce
@@ -284,6 +310,105 @@ export default function ForgePage({
     character,
     setSpellSlots,
   ]);
+
+  // Keep a ref so the SRD effect can read the latest character without `character` being a dep.
+  const characterRef = useRef(character);
+  characterRef.current = character;
+
+  // Single combined effect: apply race → class → background in sequence so each transform
+  // sees the output of the previous. This prevents a race condition where separate effects
+  // fire in the same render cycle and overwrite each other via stale ref snapshots.
+  const classStateKey = (character?.identity.classes ?? [])
+    .filter((c) => c.classId)
+    .map((c) => `${c.classId}:${c.level}`)
+    .join(",");
+  const raceKey = `${character?.identity.race ?? ""}::${character?.identity.subrace ?? ""}`;
+  const bgKey = character?.identity.background ?? "";
+  const srdKey = `${classStateKey}|${raceKey}|${bgKey}`;
+
+  useEffect(() => {
+    const char = characterRef.current;
+    // Wait until all static data has loaded and character is available.
+    if (
+      !char ||
+      allClassFeatureRows.length === 0 ||
+      allRaceTraitRows.length === 0 ||
+      availableRaces.length === 0 ||
+      availableBackgrounds.length === 0
+    ) return;
+
+    let updated = char;
+
+    // 1. Class features + primary-class saving throw proficiencies
+    updated = applyClasses(updated, char.identity.classes, allClassFeatureRows, allClassProfRows);
+
+    // 2. Race traits + speed
+    if (char.identity.race) {
+      const matchedRace = availableRaces.find(
+        (r) => r.name.toLowerCase() === char.identity.race.toLowerCase(),
+      );
+      if (matchedRace) {
+        const raceTraits = allRaceTraitRows.filter((t) => t.raceId === matchedRace.id);
+        const matchedSubrace = char.identity.subrace
+          ? availableSubraces.find(
+              (s) =>
+                s.raceId === matchedRace.id &&
+                s.name.toLowerCase() === char.identity.subrace.toLowerCase(),
+            )
+          : undefined;
+        const subraceTraits = matchedSubrace
+          ? allRaceTraitRows.filter((t) => t.subraceId === matchedSubrace.id)
+          : undefined;
+        updated = applyRace(updated, matchedRace, raceTraits, matchedSubrace, subraceTraits);
+      }
+    }
+
+    // 3. Background skill proficiencies
+    if (char.identity.background) {
+      const bgRow = availableBackgrounds.find(
+        (b) => b.name.toLowerCase() === char.identity.background.toLowerCase(),
+      );
+      if (bgRow) updated = applyBackground(updated, bgRow);
+    }
+
+    replaceCharacter(updated);
+  // srdKey captures all identity-level changes; static arrays change once at load.
+  // Intentionally omitting `character` to avoid infinite loops.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    srdKey,
+    allClassFeatureRows,
+    allClassProfRows,
+    allRaceTraitRows,
+    availableRaces,
+    availableSubraces,
+    availableBackgrounds,
+  ]);
+
+  // Derive pending choices whenever character or static data changes.
+  useEffect(() => {
+    if (!character || allClassFeatureRows.length === 0 || allClassSkillChoiceRows.length === 0) {
+      setPendingChoices([]);
+      return;
+    }
+    setPendingChoices(
+      derivePendingChoices(
+        character,
+        character.identity.classes,
+        allClassFeatureRows,
+        allClassSkillChoiceRows,
+      ),
+    );
+  }, [character, allClassFeatureRows, allClassSkillChoiceRows]);
+
+  function handleConfirmChoice(choices: import("@/lib/types/character").ClassChoiceMade | import("@/lib/types/character").ClassChoiceMade[]) {
+    if (!character) return;
+    const incoming = Array.isArray(choices) ? choices : [choices];
+    const existing = character.classChoices ?? [];
+    const withChoices = { ...character, classChoices: [...existing, ...incoming] };
+    const applied = applyClasses(withChoices, withChoices.identity.classes, allClassFeatureRows, allClassProfRows);
+    replaceCharacter(applied);
+  }
 
   function applyItemFromSrd(srdItem: ItemRow, invItem: InventoryItem) {
     const isWeapon = srdItem.equipmentCategory === "Weapon"
@@ -570,7 +695,7 @@ export default function ForgePage({
               <option value="Chaotic Evil">Chaotic Evil</option>
             </select>
           </div>
-          <div className="col-span-2">
+          <div className="col-span-2 space-y-3">
             <ClassesField
               classes={identity.classes}
               onChange={setClasses}
@@ -581,6 +706,11 @@ export default function ForgePage({
                   setSpellCastingStat(dbClass.spellcastingStat as AttributeKey);
                 }
               }}
+            />
+            <ClassChoicesPanel
+              pendingChoices={pendingChoices}
+              availableFeats={availableFeats}
+              onConfirmChoice={handleConfirmChoice}
             />
           </div>
         </div>

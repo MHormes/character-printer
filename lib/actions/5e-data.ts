@@ -13,6 +13,7 @@ import {
   sqliteClassFeatures,
   sqliteRaceTraits,
   sqliteClassProficiencies,
+  sqliteClassSkillChoices,
   sqliteLanguages,
   sqliteSubclasses,
   sqliteFeats,
@@ -23,6 +24,7 @@ import { eq, and, like, asc } from "drizzle-orm";
 const anyDb = db as any;
 
 export type ClassRow = typeof sqliteClasses.$inferSelect;
+export type ClassSkillChoiceRow = typeof sqliteClassSkillChoices.$inferSelect;
 export type ClassFeatureRow = typeof sqliteClassFeatures.$inferSelect;
 export type RaceTraitRow = typeof sqliteRaceTraits.$inferSelect;
 export type ClassProficiencyRow = typeof sqliteClassProficiencies.$inferSelect;
@@ -280,6 +282,38 @@ export async function getClassFeatures(
       ),
     )
     .orderBy(asc(sqliteClassFeatures.level), asc(sqliteClassFeatures.name));
+}
+
+export async function getAllClassFeatures(system = "dnd5e"): Promise<ClassFeatureRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteClassFeatures)
+    .where(eq(sqliteClassFeatures.system, system))
+    .orderBy(asc(sqliteClassFeatures.classId), asc(sqliteClassFeatures.level), asc(sqliteClassFeatures.name));
+}
+
+export async function getAllClassProficiencies(system = "dnd5e"): Promise<ClassProficiencyRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteClassProficiencies)
+    .where(eq(sqliteClassProficiencies.system, system))
+    .orderBy(asc(sqliteClassProficiencies.classId), asc(sqliteClassProficiencies.profType));
+}
+
+export async function getAllRaceTraits(system = "dnd5e"): Promise<RaceTraitRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteRaceTraits)
+    .where(eq(sqliteRaceTraits.system, system))
+    .orderBy(asc(sqliteRaceTraits.raceId), asc(sqliteRaceTraits.name));
+}
+
+export async function getAllClassSkillChoices(system = "dnd5e"): Promise<ClassSkillChoiceRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteClassSkillChoices)
+    .where(eq(sqliteClassSkillChoices.system, system))
+    .orderBy(asc(sqliteClassSkillChoices.classId), asc(sqliteClassSkillChoices.skillKey));
 }
 
 // ─── Spell search ─────────────────────────────────────────────────────────────

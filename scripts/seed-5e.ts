@@ -19,6 +19,7 @@ import {
   sqliteClassFeatures,
   sqliteRaceTraits,
   sqliteClassProficiencies,
+  sqliteClassSkillChoices,
   sqliteLanguages,
   sqliteSubclasses,
   sqliteFeats,
@@ -72,7 +73,19 @@ type Raw5eClass = {
   spellcasting?: {
     spellcasting_ability: { index: string };
   };
+  proficiency_choices?: {
+    choose: number;
+    type: string;
+    from: {
+      option_set_type: string;
+      options: { option_type: string; item: { index: string } }[];
+    };
+  }[];
 };
+
+function kebabToCamel(s: string): string {
+  return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
 
 type SpellSlotProgression = "none" | "full" | "half";
 
@@ -337,6 +350,7 @@ async function main() {
   db.delete(sqliteFeats).where(eq(sqliteFeats.system, SYSTEM)).run();
   db.delete(sqliteSubclasses).where(eq(sqliteSubclasses.system, SYSTEM)).run();
   db.delete(sqliteLanguages).where(eq(sqliteLanguages.system, SYSTEM)).run();
+  db.delete(sqliteClassSkillChoices).where(eq(sqliteClassSkillChoices.system, SYSTEM)).run();
   db.delete(sqliteClassProficiencies).where(eq(sqliteClassProficiencies.system, SYSTEM)).run();
   db.delete(sqliteRaceTraits).where(eq(sqliteRaceTraits.system, SYSTEM)).run();
   db.delete(sqliteClassFeatures).where(eq(sqliteClassFeatures.system, SYSTEM)).run();
@@ -668,6 +682,35 @@ async function main() {
     db.insert(sqliteClassProficiencies).values(classProfRows.slice(i, i + 100)).run();
   }
   console.log(`  ${classProfRows.length} class proficiency entries`);
+
+  console.log("Inserting class skill choices...");
+  const classSkillChoiceRows: {
+    id: string; system: string; classId: string; skillKey: string; chooseCount: number;
+  }[] = [];
+  for (const cls of rawClasses) {
+    const cid = classIdByIndex.get(cls.index);
+    if (!cid) continue;
+    const skillGroup = cls.proficiency_choices?.find(
+      (g) => g.from?.options?.[0]?.item?.index?.startsWith("skill-"),
+    );
+    if (!skillGroup) continue;
+    const count = skillGroup.choose;
+    for (const opt of skillGroup.from.options) {
+      const rawKey = opt.item.index.replace(/^skill-/, ""); // "animal-handling" etc.
+      const skillKey = kebabToCamel(rawKey);                // "animalHandling"
+      classSkillChoiceRows.push({
+        id: `${SYSTEM}:${cls.index}:skill-choice:${rawKey}`,
+        system: SYSTEM,
+        classId: cid,
+        skillKey,
+        chooseCount: count,
+      });
+    }
+  }
+  for (let i = 0; i < classSkillChoiceRows.length; i += 100) {
+    db.insert(sqliteClassSkillChoices).values(classSkillChoiceRows.slice(i, i + 100)).run();
+  }
+  console.log(`  ${classSkillChoiceRows.length} class skill choice entries`);
 
   console.log("Inserting languages...");
   const languageRows = rawLanguages.map((l) => ({

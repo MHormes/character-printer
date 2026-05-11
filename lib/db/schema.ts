@@ -402,6 +402,24 @@ export const pgClassProficiencies = pgTable("class_proficiencies", {
   source: varchar("source", { length: 50 }).notNull().default("srd"),
 });
 
+// ─── Game content: class skill choices ────────────────────────────────────────
+
+export const sqliteClassSkillChoices = sqliteTable("class_skill_choices", {
+  id: text("id").primaryKey(),          // "dnd5e:wizard:skill-arcana"
+  system: text("system").notNull(),
+  classId: text("class_id").notNull().references(() => sqliteClasses.id, { onDelete: "cascade" }),
+  skillKey: text("skill_key").notNull(), // camelCase: "arcana", "animalHandling"
+  chooseCount: integer("choose_count").notNull(),
+});
+
+export const pgClassSkillChoices = pgTable("class_skill_choices", {
+  id: varchar("id", { length: 150 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  classId: varchar("class_id", { length: 100 }).notNull().references(() => pgClasses.id, { onDelete: "cascade" }),
+  skillKey: varchar("skill_key", { length: 60 }).notNull(),
+  chooseCount: pgInteger("choose_count").notNull(),
+});
+
 // ─── Game content: languages ──────────────────────────────────────────────────
 
 export const sqliteLanguages = sqliteTable("languages", {

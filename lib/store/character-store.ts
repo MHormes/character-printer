@@ -40,6 +40,7 @@ type CharacterStore = {
   setSpellCastingStat: (stat: AttributeKey | null) => void;
   setSpellSlots: (slots: CharacterData["spells"]["slots"]) => void;
   setSpellList: (list: SpellEntry[]) => void;
+  replaceCharacter: (data: CharacterData) => void;
 };
 
 export const useCharacterStore = create<CharacterStore>()(
@@ -267,6 +268,12 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.spells.list = list;
+        state.isDirty = true;
+      }),
+
+    replaceCharacter: (data) =>
+      set((state) => {
+        state.character = data;
         state.isDirty = true;
       }),
   }))

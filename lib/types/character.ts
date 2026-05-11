@@ -124,6 +124,7 @@ export type FeatureEntry = {
   id: string;
   name: string;
   source: string;
+  sourceId?: string; // namespaced: "race:<id>", "subrace:<id>", "class:<id>" — set means system-managed
   description: string;
 };
 
@@ -182,6 +183,26 @@ export type CharacterClassEntry = {
   hitDie: string;
 };
 
+export type ClassChoiceMade = {
+  id: string;
+  classId: string;
+  atLevel: number;
+  type: "asi" | "skill" | "feat";
+  // ASI: up to two improvements (+2 one OR +1/+1 two)
+  improvements?: { attr: AttributeKey; bonus: number }[];
+  // Skill
+  skillKey?: string;
+  // Feat
+  featId?: string;
+  featName?: string;
+  featDescription?: string;
+};
+
+export type SrdGrants = {
+  saveProficiencies: string[];
+  skillProficiencies: string[];
+};
+
 export type CharacterData = {
   version: string;
   profBonusStack: ModifierEntry[];
@@ -228,4 +249,6 @@ export type CharacterData = {
   canvas: {
     pages: CanvasPage[];
   };
+  srdGrants?: SrdGrants;
+  classChoices?: ClassChoiceMade[];
 };

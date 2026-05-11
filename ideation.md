@@ -738,10 +738,4 @@ The following structure represents the single JSON object stored in the database
 
 # Still to do:
 
-- Disable all automation with some toggle (how this would work, idk).
-- Make race/class/background choices automatically populate stat modifier stacks, saving throw bonuses, skills, proficiencies, speed, and features where applicable.
-- Add automatic class-based tracker setups for things like Ki, Sorcery Points, Rage, Bardic Inspiration, and
-  similar resources.
-
-  ## Canvas and Output Completion
-  - Add higher-quality PDF export beyond standard browser print.
+- Make race/background choices automatically populate stat modifier stacks, skills, proficiencies (especially tricky for choose options - and SPI on lvl 4 etc)
