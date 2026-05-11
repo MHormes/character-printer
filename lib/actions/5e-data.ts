@@ -10,6 +10,12 @@ import {
   sqliteSubraces,
   sqliteBackgrounds,
   sqliteItems,
+  sqliteClassFeatures,
+  sqliteRaceTraits,
+  sqliteClassProficiencies,
+  sqliteLanguages,
+  sqliteSubclasses,
+  sqliteFeats,
 } from "@/lib/db/schema";
 import { eq, and, like, asc } from "drizzle-orm";
 
@@ -17,6 +23,12 @@ import { eq, and, like, asc } from "drizzle-orm";
 const anyDb = db as any;
 
 export type ClassRow = typeof sqliteClasses.$inferSelect;
+export type ClassFeatureRow = typeof sqliteClassFeatures.$inferSelect;
+export type RaceTraitRow = typeof sqliteRaceTraits.$inferSelect;
+export type ClassProficiencyRow = typeof sqliteClassProficiencies.$inferSelect;
+export type LanguageRow = typeof sqliteLanguages.$inferSelect;
+export type SubclassRow = typeof sqliteSubclasses.$inferSelect;
+export type FeatRow = typeof sqliteFeats.$inferSelect;
 export type ItemRow = typeof sqliteItems.$inferSelect;
 export type SpellRow = typeof sqliteSpells.$inferSelect;
 export type SpellSlotRow = typeof sqliteClassSpellSlots.$inferSelect;
@@ -159,6 +171,115 @@ export async function getItem(id: string): Promise<ItemRow | null> {
     .where(eq(sqliteItems.id, id))
     .limit(1);
   return rows[0] ?? null;
+}
+
+// ─── Spell search ─────────────────────────────────────────────────────────────
+
+// ─── Race traits ──────────────────────────────────────────────────────────────
+
+export async function getRaceTraits(
+  raceId: string,
+  system = "dnd5e",
+): Promise<RaceTraitRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteRaceTraits)
+    .where(
+      and(eq(sqliteRaceTraits.raceId, raceId), eq(sqliteRaceTraits.system, system)),
+    )
+    .orderBy(asc(sqliteRaceTraits.name));
+}
+
+export async function getSubraceTraits(
+  subraceId: string,
+  system = "dnd5e",
+): Promise<RaceTraitRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteRaceTraits)
+    .where(
+      and(eq(sqliteRaceTraits.subraceId, subraceId), eq(sqliteRaceTraits.system, system)),
+    )
+    .orderBy(asc(sqliteRaceTraits.name));
+}
+
+// ─── Class proficiencies ──────────────────────────────────────────────────────
+
+export async function getClassProficiencies(
+  classId: string,
+  system = "dnd5e",
+): Promise<ClassProficiencyRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteClassProficiencies)
+    .where(
+      and(eq(sqliteClassProficiencies.classId, classId), eq(sqliteClassProficiencies.system, system)),
+    )
+    .orderBy(asc(sqliteClassProficiencies.profType), asc(sqliteClassProficiencies.name));
+}
+
+// ─── Languages ────────────────────────────────────────────────────────────────
+
+export async function getLanguages(system = "dnd5e"): Promise<LanguageRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteLanguages)
+    .where(eq(sqliteLanguages.system, system))
+    .orderBy(asc(sqliteLanguages.name));
+}
+
+// ─── Subclasses ───────────────────────────────────────────────────────────────
+
+export async function getSubclasses(
+  classId?: string,
+  system = "dnd5e",
+): Promise<SubclassRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteSubclasses)
+    .where(
+      classId
+        ? and(eq(sqliteSubclasses.classId, classId), eq(sqliteSubclasses.system, system))
+        : eq(sqliteSubclasses.system, system),
+    )
+    .orderBy(asc(sqliteSubclasses.name));
+}
+
+// ─── Feats ────────────────────────────────────────────────────────────────────
+
+export async function searchFeats(
+  name?: string,
+  system = "dnd5e",
+): Promise<FeatRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteFeats)
+    .where(
+      and(
+        eq(sqliteFeats.system, system),
+        name ? like(sqliteFeats.name, `%${name}%`) : undefined,
+      ),
+    )
+    .orderBy(asc(sqliteFeats.name))
+    .limit(60);
+}
+
+// ─── Class features ───────────────────────────────────────────────────────────
+
+export async function getClassFeatures(
+  classId: string,
+  system = "dnd5e",
+): Promise<ClassFeatureRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteClassFeatures)
+    .where(
+      and(
+        eq(sqliteClassFeatures.classId, classId),
+        eq(sqliteClassFeatures.system, system),
+      ),
+    )
+    .orderBy(asc(sqliteClassFeatures.level), asc(sqliteClassFeatures.name));
 }
 
 // ─── Spell search ─────────────────────────────────────────────────────────────

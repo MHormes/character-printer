@@ -139,6 +139,9 @@ function buildInventoryItem(item: ItemRow): InventoryItem {
           },
         ]
       : [],
+    acMaxDex: item.acMaxDex ?? null,
+    stealthDisadvantage: item.stealthDisadvantage ?? null,
+    strMinimum: item.strMinimum ?? null,
   };
 }
 

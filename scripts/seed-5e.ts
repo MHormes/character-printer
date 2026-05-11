@@ -16,6 +16,12 @@ import {
   sqliteSubraces,
   sqliteBackgrounds,
   sqliteItems,
+  sqliteClassFeatures,
+  sqliteRaceTraits,
+  sqliteClassProficiencies,
+  sqliteLanguages,
+  sqliteSubclasses,
+  sqliteFeats,
 } from "../lib/db/schema";
 
 const SYSTEM = "dnd5e";
@@ -70,26 +76,74 @@ type Raw5eClass = {
 
 type SpellSlotProgression = "none" | "full" | "half";
 
-const PHB_BACKGROUNDS: { index: string; name: string }[] = [
-  { index: "acolyte", name: "Acolyte" },
-  { index: "charlatan", name: "Charlatan" },
-  { index: "criminal", name: "Criminal" },
-  { index: "entertainer", name: "Entertainer" },
-  { index: "folk-hero", name: "Folk Hero" },
-  { index: "guild-artisan", name: "Guild Artisan" },
-  { index: "hermit", name: "Hermit" },
-  { index: "noble", name: "Noble" },
-  { index: "outlander", name: "Outlander" },
-  { index: "sage", name: "Sage" },
-  { index: "sailor", name: "Sailor" },
-  { index: "soldier", name: "Soldier" },
-  { index: "urchin", name: "Urchin" },
+// Backgrounds are PHB content — SRD JSON only has Acolyte, so we maintain
+// the full list here with hardcoded skill grants (camelCase skill keys).
+const PHB_BACKGROUNDS: { index: string; name: string; skills: string[] }[] = [
+  { index: "acolyte",       name: "Acolyte",      skills: ["insight", "religion"] },
+  { index: "charlatan",     name: "Charlatan",     skills: ["deception", "sleightOfHand"] },
+  { index: "criminal",      name: "Criminal",      skills: ["deception", "stealth"] },
+  { index: "entertainer",   name: "Entertainer",   skills: ["acrobatics", "performance"] },
+  { index: "folk-hero",     name: "Folk Hero",     skills: ["animalHandling", "survival"] },
+  { index: "guild-artisan", name: "Guild Artisan", skills: ["insight", "persuasion"] },
+  { index: "hermit",        name: "Hermit",        skills: ["medicine", "religion"] },
+  { index: "noble",         name: "Noble",         skills: ["history", "persuasion"] },
+  { index: "outlander",     name: "Outlander",     skills: ["athletics", "survival"] },
+  { index: "sage",          name: "Sage",          skills: ["arcana", "history"] },
+  { index: "sailor",        name: "Sailor",        skills: ["athletics", "perception"] },
+  { index: "soldier",       name: "Soldier",       skills: ["athletics", "intimidation"] },
+  { index: "urchin",        name: "Urchin",        skills: ["sleightOfHand", "stealth"] },
 ];
 
 type Raw5eRace = {
   index: string;
   name: string;
+  speed: number;
   subraces: { index: string; name: string }[];
+};
+
+
+type Raw5eFeature = {
+  index: string;
+  name: string;
+  level: number;
+  class: { index: string };
+  subclass?: { index: string } | null;
+  desc: string[];
+};
+
+type Raw5eTrait = {
+  index: string;
+  name: string;
+  races: { index: string }[];
+  subraces: { index: string }[];
+  desc: string[];
+};
+
+type Raw5eProficiency = {
+  index: string;
+  name: string;
+  type: string;
+  classes: { index: string }[];
+  races: { index: string }[];
+};
+
+type Raw5eLanguage = {
+  index: string;
+  name: string;
+};
+
+type Raw5eSubclass = {
+  index: string;
+  name: string;
+  class: { index: string };
+  subclass_flavor: string;
+  desc: string[];
+};
+
+type Raw5eFeat = {
+  index: string;
+  name: string;
+  desc: string[];
 };
 
 type Raw5eSubrace = {
@@ -148,6 +202,7 @@ type Raw5eLevel = {
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
 
 function hitDieStr(n: number): string {
   return `d${n}`;
@@ -247,21 +302,44 @@ async function main() {
   const db = drizzle(sqlite);
 
   console.log("Fetching 5e SRD data...");
-  const [rawSpells, rawClasses, rawLevels, rawRaces, rawSubraces, rawEquipment, rawMagicItems] = await Promise.all([
+  const [
+    rawSpells, rawClasses, rawLevels, rawRaces, rawSubraces,
+    rawFeatures, rawTraits, rawProficiencies, rawLanguages,
+    rawSubclasses, rawFeats, rawEquipment, rawMagicItems,
+  ] = await Promise.all([
     fetchJson<Raw5eSpell[]>(`${BASE_URL}/5e-SRD-Spells.json`),
     fetchJson<Raw5eClass[]>(`${BASE_URL}/5e-SRD-Classes.json`),
     fetchJson<Raw5eLevel[]>(`${BASE_URL}/5e-SRD-Levels.json`),
     fetchJson<Raw5eRace[]>(`${BASE_URL}/5e-SRD-Races.json`),
     fetchJson<Raw5eSubrace[]>(`${BASE_URL}/5e-SRD-Subraces.json`),
+    fetchJson<Raw5eFeature[]>(`${BASE_URL}/5e-SRD-Features.json`),
+    fetchJson<Raw5eTrait[]>(`${BASE_URL}/5e-SRD-Traits.json`),
+    fetchJson<Raw5eProficiency[]>(`${BASE_URL}/5e-SRD-Proficiencies.json`),
+    fetchJson<Raw5eLanguage[]>(`${BASE_URL}/5e-SRD-Languages.json`),
+    fetchJson<Raw5eSubclass[]>(`${BASE_URL}/5e-SRD-Subclasses.json`),
+    fetchJson<Raw5eFeat[]>(`${BASE_URL}/5e-SRD-Feats.json`),
     fetchJson<Raw5eEquipment[]>(`${BASE_URL}/5e-SRD-Equipment.json`),
     fetchJson<Raw5eMagicItem[]>(`${BASE_URL}/5e-SRD-Magic-Items.json`),
   ]);
 
+  // Base class features only (no subclass features)
+  const baseClassFeatures = rawFeatures.filter((f) => !f.subclass);
+
   console.log(
-    `  ${rawSpells.length} spells, ${rawClasses.length} classes, ${rawLevels.length} levels, ${rawRaces.length} races, ${rawSubraces.length} subraces, ${PHB_BACKGROUNDS.length} backgrounds (hardcoded), ${rawEquipment.length} equipment, ${rawMagicItems.length} magic items`,
+    `  ${rawSpells.length} spells, ${rawClasses.length} classes, ${rawLevels.length} levels, ` +
+    `${rawRaces.length} races, ${rawSubraces.length} subraces, ${PHB_BACKGROUNDS.length} backgrounds (hardcoded), ` +
+    `${baseClassFeatures.length} class features, ${rawTraits.length} traits, ${rawProficiencies.length} proficiencies, ` +
+    `${rawLanguages.length} languages, ${rawSubclasses.length} subclasses, ${rawFeats.length} feats, ` +
+    `${rawEquipment.length} equipment, ${rawMagicItems.length} magic items`,
   );
 
   console.log("Clearing existing SRD data...");
+  db.delete(sqliteFeats).where(eq(sqliteFeats.system, SYSTEM)).run();
+  db.delete(sqliteSubclasses).where(eq(sqliteSubclasses.system, SYSTEM)).run();
+  db.delete(sqliteLanguages).where(eq(sqliteLanguages.system, SYSTEM)).run();
+  db.delete(sqliteClassProficiencies).where(eq(sqliteClassProficiencies.system, SYSTEM)).run();
+  db.delete(sqliteRaceTraits).where(eq(sqliteRaceTraits.system, SYSTEM)).run();
+  db.delete(sqliteClassFeatures).where(eq(sqliteClassFeatures.system, SYSTEM)).run();
   db.delete(sqliteBackgrounds).where(eq(sqliteBackgrounds.system, SYSTEM)).run();
   db.delete(sqliteSubraces).where(eq(sqliteSubraces.system, SYSTEM)).run();
   db.delete(sqliteRaces).where(eq(sqliteRaces.system, SYSTEM)).run();
@@ -359,6 +437,7 @@ async function main() {
     id: `${SYSTEM}:${r.index}`,
     system: SYSTEM,
     name: r.name,
+    speed: r.speed ?? null,
     source: SOURCE,
     userId: null as string | null,
   }));
@@ -382,6 +461,7 @@ async function main() {
     id: `${SYSTEM}:${b.index}`,
     system: SYSTEM,
     name: b.name,
+    skillGrants: JSON.stringify(b.skills),
     source: SOURCE,
     userId: null as string | null,
   }));
@@ -502,8 +582,143 @@ async function main() {
   }
   console.log(`  ${magicItemRows.length} magic items`);
 
+  console.log("Inserting class features...");
+  // Build a classId lookup from index → DB id
+  const classIdByIndex = new Map(rawClasses.map((c) => [c.index, classId(c.index)]));
+  const featureRows = baseClassFeatures
+    .filter((f) => classIdByIndex.has(f.class.index))
+    .map((f) => ({
+      id: `${SYSTEM}:${f.index}`,
+      system: SYSTEM,
+      classId: classIdByIndex.get(f.class.index)!,
+      level: f.level,
+      name: f.name,
+      description: f.desc.join("\n\n"),
+      source: SOURCE,
+      userId: null as string | null,
+    }));
+
+  for (let i = 0; i < featureRows.length; i += 100) {
+    db.insert(sqliteClassFeatures).values(featureRows.slice(i, i + 100)).run();
+  }
+  console.log(`  ${featureRows.length} class features`);
+
+  console.log("Inserting race traits...");
+  // Build lookup: race index → DB id, subrace index → DB id
+  const raceIdByIndex = new Map(rawRaces.map((r) => [r.index, `${SYSTEM}:${r.index}`]));
+  const subraceIdByIndex = new Map(rawSubraces.map((s) => [s.index, `${SYSTEM}:${s.index}`]));
+
+  const traitRows: {
+    id: string; system: string; raceId: string | null; subraceId: string | null;
+    name: string; description: string; source: string;
+  }[] = [];
+  for (const t of rawTraits) {
+    for (const r of t.races) {
+      if (raceIdByIndex.has(r.index)) {
+        traitRows.push({
+          id: `${SYSTEM}:trait:${t.index}:${r.index}`,
+          system: SYSTEM,
+          raceId: raceIdByIndex.get(r.index)!,
+          subraceId: null,
+          name: t.name,
+          description: t.desc.join("\n\n"),
+          source: SOURCE,
+        });
+      }
+    }
+    for (const s of t.subraces) {
+      if (subraceIdByIndex.has(s.index)) {
+        traitRows.push({
+          id: `${SYSTEM}:trait:${t.index}:${s.index}`,
+          system: SYSTEM,
+          raceId: null,
+          subraceId: subraceIdByIndex.get(s.index)!,
+          name: t.name,
+          description: t.desc.join("\n\n"),
+          source: SOURCE,
+        });
+      }
+    }
+  }
+  for (let i = 0; i < traitRows.length; i += 100) {
+    db.insert(sqliteRaceTraits).values(traitRows.slice(i, i + 100)).run();
+  }
+  console.log(`  ${traitRows.length} race trait entries`);
+
+  console.log("Inserting class proficiencies...");
+  const classProfRows: {
+    id: string; system: string; classId: string; name: string; profType: string; source: string;
+  }[] = [];
+  for (const p of rawProficiencies) {
+    for (const cls of p.classes) {
+      const cid = classIdByIndex.get(cls.index);
+      if (cid) {
+        classProfRows.push({
+          id: `${SYSTEM}:prof:${cls.index}:${p.index}`,
+          system: SYSTEM,
+          classId: cid,
+          name: p.name,
+          profType: p.type,
+          source: SOURCE,
+        });
+      }
+    }
+  }
+  for (let i = 0; i < classProfRows.length; i += 100) {
+    db.insert(sqliteClassProficiencies).values(classProfRows.slice(i, i + 100)).run();
+  }
+  console.log(`  ${classProfRows.length} class proficiency entries`);
+
+  console.log("Inserting languages...");
+  const languageRows = rawLanguages.map((l) => ({
+    id: `${SYSTEM}:${l.index}`,
+    system: SYSTEM,
+    name: l.name,
+    source: SOURCE,
+  }));
+  if (languageRows.length) db.insert(sqliteLanguages).values(languageRows).run();
+  console.log(`  ${languageRows.length} languages`);
+
+  console.log("Inserting subclasses...");
+  const subclassRows = rawSubclasses
+    .filter((s) => classIdByIndex.has(s.class.index))
+    .map((s) => ({
+      id: `${SYSTEM}:${s.index}`,
+      system: SYSTEM,
+      classId: classIdByIndex.get(s.class.index)!,
+      name: s.name,
+      subclassFlavor: s.subclass_flavor ?? null,
+      description: Array.isArray(s.desc) ? s.desc.join("\n\n") : (s.desc ?? ""),
+      source: SOURCE,
+      userId: null as string | null,
+    }));
+  for (let i = 0; i < subclassRows.length; i += 100) {
+    db.insert(sqliteSubclasses).values(subclassRows.slice(i, i + 100)).run();
+  }
+  console.log(`  ${subclassRows.length} subclasses`);
+
+  console.log("Inserting feats...");
+  const featRows = rawFeats.map((f) => ({
+    id: `${SYSTEM}:${f.index}`,
+    system: SYSTEM,
+    name: f.name,
+    description: Array.isArray(f.desc) ? f.desc.join("\n\n") : (f.desc ?? ""),
+    source: SOURCE,
+    userId: null as string | null,
+  }));
+  if (featRows.length) {
+    for (let i = 0; i < featRows.length; i += 100) {
+      db.insert(sqliteFeats).values(featRows.slice(i, i + 100)).run();
+    }
+  }
+  console.log(`  ${featRows.length} feats`);
+
   console.log(
-    `Done. ${spellRows.length} spells | ${classRows.length} classes | ${slotRows.length} slot rows | ${classMappingRows.length} class→spell links | ${raceRows.length} races | ${subraceRows.length} subraces | ${backgroundRows.length} backgrounds | ${itemRows.length} equipment | ${magicItemRows.length} magic items`,
+    `Done. ${spellRows.length} spells | ${classRows.length} classes | ${slotRows.length} slot rows | ` +
+    `${classMappingRows.length} class→spell links | ${raceRows.length} races | ${subraceRows.length} subraces | ` +
+    `${PHB_BACKGROUNDS.length} backgrounds | ${featureRows.length} class features | ${traitRows.length} race traits | ` +
+    `${classProfRows.length} class profs | ${languageRows.length} languages | ${subclassRows.length} subclasses | ` +
+    `${featRows.length} feats | ${itemRows.length} equipment | ${magicItemRows.length} magic items`,
   );
   sqlite.close();
 }

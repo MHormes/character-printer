@@ -87,6 +87,10 @@ export type InventoryItem = {
   category: "Weapon" | "Armor" | "Tool" | "Consumable" | "Wondrous" | "Mundane";
   equipped: boolean;
   modifiers: { id: string; target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[];
+  // Armor constraints — populated when item is imported from SRD
+  acMaxDex?: number | null;
+  stealthDisadvantage?: boolean | null;
+  strMinimum?: number | null;
 };
 
 export type ActionMode = "Spell" | "DC" | "Attack" | "Heal" | "Plain";

@@ -220,6 +220,7 @@ export const sqliteBackgrounds = sqliteTable("backgrounds", {
   id: text("id").primaryKey(), // "dnd5e:acolyte"
   system: text("system").notNull(),
   name: text("name").notNull(),
+  skillGrants: text("skill_grants"), // JSON: ["acrobatics","insight",...] camelCase keys
   source: text("source").notNull().default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
@@ -228,6 +229,7 @@ export const pgBackgrounds = pgTable("backgrounds", {
   id: varchar("id", { length: 100 }).primaryKey(),
   system: varchar("system", { length: 50 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
+  skillGrants: jsonb("skill_grants"), // string[]
   source: varchar("source", { length: 50 }).notNull().default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
@@ -238,6 +240,7 @@ export const sqliteRaces = sqliteTable("races", {
   id: text("id").primaryKey(), // "dnd5e:elf"
   system: text("system").notNull(),
   name: text("name").notNull(),
+  speed: integer("speed"),               // walking speed in feet (30, 25, etc.)
   source: text("source").notNull().default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
@@ -246,6 +249,7 @@ export const pgRaces = pgTable("races", {
   id: varchar("id", { length: 100 }).primaryKey(),
   system: varchar("system", { length: 50 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
+  speed: pgInteger("speed"),
   source: varchar("source", { length: 50 }).notNull().default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
@@ -328,6 +332,132 @@ export const pgItems = pgTable("items", {
   acMaxDex: pgInteger("ac_max_dex"),
   stealthDisadvantage: boolean("stealth_disadvantage").default(false),
   strMinimum: pgInteger("str_minimum"),
+  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
+});
+
+// ─── Game content: class features ────────────────────────────────────────────
+
+export const sqliteClassFeatures = sqliteTable("class_features", {
+  id: text("id").primaryKey(),          // "dnd5e:action-surge-1-use"
+  system: text("system").notNull(),
+  classId: text("class_id").notNull().references(() => sqliteClasses.id, { onDelete: "cascade" }),
+  level: integer("level").notNull(),    // character level when feature is gained
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  source: text("source").notNull().default("srd"),
+  userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
+});
+
+export const pgClassFeatures = pgTable("class_features", {
+  id: varchar("id", { length: 100 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  classId: varchar("class_id", { length: 100 }).notNull().references(() => pgClasses.id, { onDelete: "cascade" }),
+  level: pgInteger("level").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: varchar("description", { length: 10000 }).notNull().default(""),
+  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
+});
+
+// ─── Game content: race traits ────────────────────────────────────────────────
+
+export const sqliteRaceTraits = sqliteTable("race_traits", {
+  id: text("id").primaryKey(),          // "dnd5e:trait:darkvision:elf"
+  system: text("system").notNull(),
+  raceId: text("race_id").references(() => sqliteRaces.id, { onDelete: "cascade" }),
+  subraceId: text("subrace_id").references(() => sqliteSubraces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  source: text("source").notNull().default("srd"),
+});
+
+export const pgRaceTraits = pgTable("race_traits", {
+  id: varchar("id", { length: 150 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  raceId: varchar("race_id", { length: 100 }).references(() => pgRaces.id, { onDelete: "cascade" }),
+  subraceId: varchar("subrace_id", { length: 100 }).references(() => pgSubraces.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: varchar("description", { length: 10000 }).notNull().default(""),
+  source: varchar("source", { length: 50 }).notNull().default("srd"),
+});
+
+// ─── Game content: class proficiencies ───────────────────────────────────────
+
+export const sqliteClassProficiencies = sqliteTable("class_proficiencies", {
+  id: text("id").primaryKey(),          // "dnd5e:fighter:longswords"
+  system: text("system").notNull(),
+  classId: text("class_id").notNull().references(() => sqliteClasses.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),         // "Longswords"
+  profType: text("prof_type").notNull(), // "Weapons" | "Armor" | "Tools" | "Skills" | "Saving Throws"
+  source: text("source").notNull().default("srd"),
+});
+
+export const pgClassProficiencies = pgTable("class_proficiencies", {
+  id: varchar("id", { length: 150 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  classId: varchar("class_id", { length: 100 }).notNull().references(() => pgClasses.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  profType: varchar("prof_type", { length: 50 }).notNull(),
+  source: varchar("source", { length: 50 }).notNull().default("srd"),
+});
+
+// ─── Game content: languages ──────────────────────────────────────────────────
+
+export const sqliteLanguages = sqliteTable("languages", {
+  id: text("id").primaryKey(),          // "dnd5e:common"
+  system: text("system").notNull(),
+  name: text("name").notNull(),
+  source: text("source").notNull().default("srd"),
+});
+
+export const pgLanguages = pgTable("languages", {
+  id: varchar("id", { length: 100 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  source: varchar("source", { length: 50 }).notNull().default("srd"),
+});
+
+// ─── Game content: subclasses ─────────────────────────────────────────────────
+
+export const sqliteSubclasses = sqliteTable("subclasses", {
+  id: text("id").primaryKey(),          // "dnd5e:berserker"
+  system: text("system").notNull(),
+  classId: text("class_id").notNull().references(() => sqliteClasses.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  subclassFlavor: text("subclass_flavor"), // e.g. "Primal Path", "Arcane Tradition"
+  description: text("description").notNull().default(""),
+  source: text("source").notNull().default("srd"),
+  userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
+});
+
+export const pgSubclasses = pgTable("subclasses", {
+  id: varchar("id", { length: 100 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  classId: varchar("class_id", { length: 100 }).notNull().references(() => pgClasses.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  subclassFlavor: varchar("subclass_flavor", { length: 100 }),
+  description: varchar("description", { length: 10000 }).notNull().default(""),
+  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
+});
+
+// ─── Game content: feats ──────────────────────────────────────────────────────
+
+export const sqliteFeats = sqliteTable("feats", {
+  id: text("id").primaryKey(),          // "dnd5e:grappler"
+  system: text("system").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  source: text("source").notNull().default("srd"),
+  userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
+});
+
+export const pgFeats = pgTable("feats", {
+  id: varchar("id", { length: 100 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: varchar("description", { length: 10000 }).notNull().default(""),
   source: varchar("source", { length: 50 }).notNull().default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
