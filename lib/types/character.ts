@@ -91,6 +91,8 @@ export type InventoryItem = {
   acMaxDex?: number | null;
   stealthDisadvantage?: boolean | null;
   strMinimum?: number | null;
+  // System-managed: "class-start:{classId}" — do not edit in UI
+  sourceId?: string;
 };
 
 export type ActionMode = "Spell" | "DC" | "Attack" | "Heal" | "Plain";
@@ -181,6 +183,12 @@ export type CharacterClassEntry = {
   subclass: string;
   level: number;
   hitDie: string;
+  ignoreAutomation?: boolean;
+};
+
+export type SelectionIgnores = {
+  race: boolean;
+  background: boolean;
 };
 
 export type ClassChoiceMade = {
@@ -207,6 +215,12 @@ export type RaceChoiceMade = {
   skillKey?: string;
 };
 
+export type EquipmentChoiceMade = {
+  id: string;
+  classId: string;
+  choiceIndex: number;
+};
+
 export type SrdGrants = {
   saveProficiencies: string[];
   skillProficiencies: string[];
@@ -216,6 +230,10 @@ export type SrdGrants = {
 export type CharacterData = {
   version: string;
   profBonusStack: ModifierEntry[];
+  selectionIgnores?: SelectionIgnores;
+  dismissedClassChoiceKeys?: string[];
+  dismissedRaceChoiceKeys?: string[];
+  dismissedEquipmentChoiceKeys?: string[];
   identity: {
     name: string;
     race: string;
@@ -262,4 +280,5 @@ export type CharacterData = {
   srdGrants?: SrdGrants;
   classChoices?: ClassChoiceMade[];
   raceChoices?: RaceChoiceMade[];
+  equipmentChoicesMade?: EquipmentChoiceMade[];
 };

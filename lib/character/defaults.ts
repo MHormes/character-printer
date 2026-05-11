@@ -35,6 +35,13 @@ export function createDefaultCharacter(id: string): CharacterData {
   return {
     version: "1.0.0",
     profBonusStack: [],
+    selectionIgnores: {
+      race: false,
+      background: false,
+    },
+    dismissedClassChoiceKeys: [],
+    dismissedRaceChoiceKeys: [],
+    dismissedEquipmentChoiceKeys: [],
     identity: {
       name: "",
       race: "",
@@ -51,7 +58,7 @@ export function createDefaultCharacter(id: string): CharacterData {
       hair: "",
       skin: "",
       level: 1,
-      classes: [{ classId: null, name: "", subclass: "", level: 1, hitDie: "d8" }],
+      classes: [{ classId: null, name: "", subclass: "", level: 1, hitDie: "d8", ignoreAutomation: false }],
     },
     attributes: Object.fromEntries(
       ATTRIBUTE_KEYS.map((k): [AttributeKey, AttributeData] => [k, { base: 10, stack: [], override: null }])

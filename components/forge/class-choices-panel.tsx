@@ -1,12 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp } from "lucide-react"
-import type { ClassChoiceMade, AttributeKey } from "@/lib/types/character"
-import type { PendingChoice } from "@/lib/character/derive-pending-choices"
-import type { FeatRow } from "@/lib/actions/5e-data"
+import type { ClassChoiceMade, AttributeKey, InventoryItem } from "@/lib/types/character"
+import { getClassPendingChoiceKey, getEquipmentPendingChoiceKey, type PendingChoice, type EquipmentPendingChoice, type StartingEquipAlternative } from "@/lib/character/derive-pending-choices"
+import { searchItems, type FeatRow, type ItemRow } from "@/lib/actions/5e-data"
+
+export type ResolvedEquipmentItem = {
+  inventoryItem: InventoryItem
+  srdItem?: ItemRow | null
+}
 
 const ATTR_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
 const ATTR_LABELS: Record<AttributeKey, string> = {
@@ -280,18 +285,232 @@ function SkillPicker({
   )
 }
 
+// ─── Equipment choice picker ──────────────────────────────────────────────────
+
+function equipCategoryToInventoryCategory(cat: string): InventoryItem["category"] {
+  if (cat === "Weapon") return "Weapon"
+  if (cat === "Armor") return "Armor"
+  const l = cat.toLowerCase()
+  if (l.includes("tool")) return "Tool"
+  if (l.includes("potion") || l.includes("ammunition")) return "Consumable"
+  return "Mundane"
+}
+
+function buildInventoryItem(
+  name: string,
+  quantity: number,
+  sourceId: string,
+  srdRow?: ItemRow | null,
+): InventoryItem {
+  return {
+    id: crypto.randomUUID(),
+    name,
+    quantity,
+    weight: srdRow?.weight ?? 0,
+    category: srdRow
+      ? equipCategoryToInventoryCategory(srdRow.equipmentCategory)
+      : "Mundane",
+    equipped: true,
+    modifiers: [],
+    sourceId,
+    ...(srdRow?.acMaxDex !== undefined && { acMaxDex: srdRow.acMaxDex }),
+    ...(srdRow?.stealthDisadvantage !== undefined && { stealthDisadvantage: srdRow.stealthDisadvantage }),
+    ...(srdRow?.strMinimum !== undefined && { strMinimum: srdRow.strMinimum }),
+  }
+}
+
+function EquipmentChoicePicker({
+  choice,
+  onConfirm,
+}: {
+  choice: EquipmentPendingChoice
+  onConfirm: (items: ResolvedEquipmentItem[]) => void
+}) {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
+  const [catSearch, setCatSearch] = useState("")
+  const [catResults, setCatResults] = useState<ItemRow[]>([])
+  const [catPicked, setCatPicked] = useState<ItemRow | null>(null)
+  const [catOpen, setCatOpen] = useState(false)
+
+  const selectedAlt: StartingEquipAlternative | null =
+    selectedIdx !== null ? choice.options[selectedIdx] : null
+  const selectedAltType = selectedAlt?.type ?? null
+  let catCategory: string | null = null
+  if (selectedAlt?.type === "category") {
+    catCategory = selectedAlt.category
+  } else if (selectedAlt?.type === "bundle") {
+    catCategory = selectedAlt.categoryPick.category
+  }
+
+  const needsCatPick =
+    selectedAltType === "category" ||
+    (selectedAltType === "bundle" && !catPicked)
+
+  useEffect(() => {
+    setCatSearch("")
+    setCatResults([])
+    setCatPicked(null)
+    setCatOpen(false)
+  }, [selectedIdx])
+
+  useEffect(() => {
+    if (!catCategory || !selectedAltType || catPicked) return
+    const trimmed = catSearch.trim()
+    searchItems({ equipmentCategory: catCategory, name: trimmed || undefined }).then(setCatResults)
+    setCatOpen(true)
+  }, [catCategory, catPicked, catSearch, selectedAltType])
+
+  async function confirm() {
+    if (selectedAlt === null) return
+    const sourceId = `class-start:${choice.classId}`
+
+    if (selectedAlt.type === "items") {
+      const items = await Promise.all(
+        selectedAlt.items.map(async (it) => {
+          const rows = await searchItems({ name: it.name })
+          const srd = rows.find((r) => r.id === it.itemId) ?? rows[0]
+          return {
+            inventoryItem: buildInventoryItem(it.name, it.quantity, sourceId, srd),
+            srdItem: srd,
+          }
+        }),
+      )
+      onConfirm(items)
+      return
+    }
+
+    if (selectedAlt.type === "category" && catPicked) {
+      onConfirm([{
+        inventoryItem: buildInventoryItem(catPicked.name, selectedAlt.count, sourceId, catPicked),
+        srdItem: catPicked,
+      }])
+      return
+    }
+
+    if (selectedAlt.type === "bundle" && catPicked) {
+      const fixedItems = await Promise.all(
+        selectedAlt.fixedItems.map(async (it) => {
+          const rows = await searchItems({ name: it.name })
+          const srd = rows.find((r) => r.id === it.itemId) ?? rows[0]
+          return {
+            inventoryItem: buildInventoryItem(it.name, it.quantity, sourceId, srd),
+            srdItem: srd,
+          }
+        }),
+      )
+      const catItem = {
+        inventoryItem: buildInventoryItem(
+          catPicked.name,
+          selectedAlt.categoryPick.count,
+          sourceId,
+          catPicked,
+        ),
+        srdItem: catPicked,
+      }
+      onConfirm([...fixedItems, catItem])
+    }
+  }
+
+  const canConfirm =
+    selectedAlt !== null &&
+    (selectedAlt.type === "items" ||
+      (selectedAlt.type === "category" && catPicked !== null) ||
+      (selectedAlt.type === "bundle" && catPicked !== null))
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        {choice.className} · Starting Equipment
+      </p>
+      <p className="text-sm text-foreground">{choice.description}</p>
+
+      <div className="flex flex-wrap gap-2">
+        {choice.options.map((opt, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setSelectedIdx(i === selectedIdx ? null : i)}
+            className={cn(
+              "rounded-md border px-2.5 py-1 text-sm transition-colors text-left",
+              selectedIdx === i
+                ? "border-ring bg-accent text-accent-foreground"
+                : "border-input bg-background text-foreground hover:bg-accent/50",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {needsCatPick && catCategory && (
+        <div className="relative">
+          <input
+            type="text"
+            value={catPicked ? catPicked.name : catSearch}
+            placeholder={`Search ${catCategory}…`}
+            className="h-8 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:border-ring"
+            onChange={(e) => {
+              setCatSearch(e.target.value)
+              setCatPicked(null)
+              setCatOpen(true)
+            }}
+            onFocus={() => setCatOpen(true)}
+          />
+          {catOpen && catResults.length > 0 && !catPicked && (
+            <div className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-popover shadow-md">
+              {catResults.slice(0, 20).map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    setCatPicked(r)
+                    setCatSearch("")
+                    setCatOpen(false)
+                  }}
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                >
+                  <span>{r.name}</span>
+                  {r.cost && <span className="text-xs text-muted-foreground">{r.cost}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <Button type="button" size="sm" disabled={!canConfirm} onClick={confirm}>
+        Take this equipment
+      </Button>
+    </div>
+  )
+}
+
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 type Props = {
   pendingChoices: PendingChoice[]
+  equipmentPendingChoices: EquipmentPendingChoice[]
   availableFeats: FeatRow[]
   onConfirmChoice: (choices: ClassChoiceMade | ClassChoiceMade[]) => void
+  onDismissChoice: (choiceKey: string) => void
+  onConfirmEquipmentChoice: (classId: string, choiceIndex: number, items: ResolvedEquipmentItem[]) => void
+  onDismissEquipmentChoice: (choiceKey: string) => void
 }
 
-export function ClassChoicesPanel({ pendingChoices, availableFeats, onConfirmChoice }: Props) {
+export function ClassChoicesPanel({
+  pendingChoices,
+  equipmentPendingChoices,
+  availableFeats,
+  onConfirmChoice,
+  onDismissChoice,
+  onConfirmEquipmentChoice,
+  onDismissEquipmentChoice,
+}: Props) {
   const [open, setOpen] = useState(false)
 
-  if (pendingChoices.length === 0) return null
+  const totalPending = pendingChoices.length + equipmentPendingChoices.length
+  if (totalPending === 0) return null
 
   return (
     <div className="space-y-0">
@@ -300,14 +519,30 @@ export function ClassChoicesPanel({ pendingChoices, availableFeats, onConfirmCho
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
       >
-        {pendingChoices.length} pending {pendingChoices.length === 1 ? "choice" : "choices"}
+        {totalPending} pending {totalPending === 1 ? "choice" : "choices"}
         {open ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
       </button>
 
       {open && (
         <div className="mt-3 space-y-6 rounded-lg border border-border bg-muted/30 p-4">
+          {equipmentPendingChoices.map((ec) => (
+            <div key={`${ec.classId}:equip:${ec.choiceIndex}`} className="space-y-3">
+              <EquipmentChoicePicker
+                choice={ec}
+                onConfirm={(items) => onConfirmEquipmentChoice(ec.classId, ec.choiceIndex, items)}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onDismissEquipmentChoice(getEquipmentPendingChoiceKey(ec))}
+              >
+                Dismiss
+              </Button>
+            </div>
+          ))}
           {pendingChoices.map((pc, i) => (
-            <div key={`${pc.classId}:${pc.type}:${pc.atLevel}:${i}`}>
+            <div key={`${pc.classId}:${pc.type}:${pc.atLevel}:${i}`} className="space-y-3">
               {pc.type === "asi" ? (
                 <AsiPicker
                   classId={pc.classId}
@@ -325,6 +560,14 @@ export function ClassChoicesPanel({ pendingChoices, availableFeats, onConfirmCho
                   onConfirm={(cs) => onConfirmChoice(cs)}
                 />
               )}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onDismissChoice(getClassPendingChoiceKey(pc))}
+              >
+                Dismiss
+              </Button>
             </div>
           ))}
         </div>

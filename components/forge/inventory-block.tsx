@@ -494,16 +494,22 @@ function SortableInventoryItem({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "rounded-lg border border-border bg-card",
+        "rounded-lg border transition-colors",
+        item.equipped
+          ? "border-border bg-card"
+          : "border-border/70 bg-muted/30",
         isDragging && "opacity-50",
       )}
     >
-      <div className="flex items-center gap-2 p-2">
+      <div className={cn("flex items-center gap-2 p-2", !item.equipped && "text-muted-foreground")}>
         <button
           type="button"
           {...listeners}
           {...attributes}
-          className="shrink-0 cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+          className={cn(
+            "shrink-0 cursor-grab active:cursor-grabbing touch-none transition-colors hover:text-foreground",
+            item.equipped ? "text-muted-foreground" : "text-muted-foreground/80",
+          )}
         >
           <GripVertical className="size-3.5" />
         </button>
@@ -511,7 +517,10 @@ function SortableInventoryItem({
           type="button"
           aria-label={item.equipped ? "Unequip" : "Equip"}
           onClick={() => onPatch({ equipped: !item.equipped })}
-          className="flex size-5 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+          className={cn(
+            "flex size-5 shrink-0 items-center justify-center transition-colors hover:text-foreground",
+            item.equipped ? "text-foreground" : "text-muted-foreground",
+          )}
         >
           {item.equipped ? (
             <CircleDot className="size-3.5" />
@@ -526,7 +535,7 @@ function SortableInventoryItem({
           onChange={(e) => onPatch({ name: e.target.value })}
           className={cn(
             "h-7 min-w-0 flex-[3] text-xs",
-            item.equipped && "font-medium",
+            item.equipped ? "font-medium" : "border-input/70 bg-muted/20 text-muted-foreground",
           )}
         />
         <input
@@ -556,14 +565,24 @@ function SortableInventoryItem({
             const n = parseFloat(e.target.value);
             onPatch({ weight: isNaN(n) ? 0 : n });
           }}
-          className="h-7 min-w-[4rem] flex-1 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
+          className={cn(
+            "h-7 min-w-[4rem] flex-1 rounded-md border text-center text-xs focus:outline-none focus:border-ring",
+            item.equipped
+              ? "border-input bg-background text-foreground"
+              : "border-input/70 bg-muted/20 text-muted-foreground",
+          )}
         />
         <select
           value={item.category}
           onChange={(e) =>
             onPatch({ category: e.target.value as InventoryItem["category"] })
           }
-          className="h-7 min-w-[7rem] flex-[2] rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+          className={cn(
+            "h-7 min-w-[7rem] flex-[2] rounded-md border px-1.5 text-xs focus:outline-none focus:border-ring",
+            item.equipped
+              ? "border-input bg-background text-foreground"
+              : "border-input/70 bg-muted/20 text-muted-foreground",
+          )}
         >
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
@@ -574,7 +593,10 @@ function SortableInventoryItem({
         <button
           type="button"
           onClick={onToggle}
-          className="flex size-5 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+          className={cn(
+            "flex size-5 shrink-0 items-center justify-center transition-colors hover:text-foreground",
+            item.equipped ? "text-muted-foreground" : "text-muted-foreground/80",
+          )}
         >
           {isExpanded ? (
             <ChevronDown className="size-3.5" />
@@ -592,7 +614,7 @@ function SortableInventoryItem({
       </div>
 
       {isExpanded && (
-        <div className="border-t border-border px-3 py-2 space-y-1.5">
+        <div className={cn("border-t px-3 py-2 space-y-1.5", item.equipped ? "border-border" : "border-border/70")}>
           <p className="text-xs text-muted-foreground">Modifiers</p>
           {item.modifiers.length === 0 && (
             <p className="text-xs text-muted-foreground/60">No modifiers.</p>

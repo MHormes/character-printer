@@ -38,7 +38,7 @@ export function ClassesField({
   }, [])
 
   function add() {
-    onChange([...classes, { classId: null, name: "", subclass: "", level: 1, hitDie: "d8" }])
+    onChange([...classes, { classId: null, name: "", subclass: "", level: 1, hitDie: "d8", ignoreAutomation: false }])
   }
 
   function remove(index: number) {
@@ -54,11 +54,20 @@ export function ClassesField({
     onChange(
       classes.map((c, i) =>
         i === index
-          ? { ...c, classId: dbClass.id, name: dbClass.name, hitDie: dbClass.hitDie }
+          ? { ...c, classId: dbClass.id, name: dbClass.name, hitDie: dbClass.hitDie, ignoreAutomation: false }
           : c,
       ),
     )
     onClassPicked?.(dbClass)
+    setOpenIdx(null)
+  }
+
+  function ignoreAutomation(index: number) {
+    onChange(
+      classes.map((c, i) =>
+        i === index ? { ...c, classId: null, ignoreAutomation: true } : c,
+      ),
+    )
     setOpenIdx(null)
   }
 
@@ -72,7 +81,7 @@ export function ClassesField({
         const filtered = availableClasses.filter((c) =>
           c.name.toLowerCase().includes(cls.name.toLowerCase()),
         )
-        const isOpen = openIdx === i && filtered.length > 0
+        const isOpen = openIdx === i && availableClasses.length > 0
 
         return (
           <div key={i} className="relative flex items-end gap-2">
@@ -112,6 +121,17 @@ export function ClassesField({
 
                 {isOpen && (
                   <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        ignoreAutomation(i)
+                      }}
+                      className="flex w-full items-center justify-between border-b border-border bg-muted px-3 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <span>Use manual class entry</span>
+                      <span className="text-xs text-muted-foreground">No automation</span>
+                    </button>
                     {filtered.slice(0, 10).map((dbClass) => (
                       <button
                         key={dbClass.id}

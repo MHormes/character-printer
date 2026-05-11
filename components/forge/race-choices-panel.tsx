@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import type { RaceChoiceMade, AttributeKey } from "@/lib/types/character"
-import type { RacePendingChoice } from "@/lib/character/derive-pending-choices"
+import { getRacePendingChoiceKey, type RacePendingChoice } from "@/lib/character/derive-pending-choices"
 
 const ATTR_LABELS: Record<AttributeKey, string> = {
   str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
@@ -181,9 +181,10 @@ function RaceSkillPicker({
 type Props = {
   pendingChoices: RacePendingChoice[]
   onConfirmChoice: (choices: RaceChoiceMade[]) => void
+  onDismissChoice: (choiceKey: string) => void
 }
 
-export function RaceChoicesPanel({ pendingChoices, onConfirmChoice }: Props) {
+export function RaceChoicesPanel({ pendingChoices, onConfirmChoice, onDismissChoice }: Props) {
   const [open, setOpen] = useState(false)
 
   if (pendingChoices.length === 0) return null
@@ -202,7 +203,7 @@ export function RaceChoicesPanel({ pendingChoices, onConfirmChoice }: Props) {
       {open && (
         <div className="mt-3 space-y-6 rounded-lg border border-border bg-muted/30 p-4">
           {pendingChoices.map((pc, i) => (
-            <div key={`${pc.raceId}:${pc.type}:${i}`}>
+            <div key={`${pc.raceId}:${pc.type}:${i}`} className="space-y-3">
               {pc.type === "asi" ? (
                 <RaceAsiPicker
                   raceId={pc.raceId}
@@ -220,6 +221,14 @@ export function RaceChoicesPanel({ pendingChoices, onConfirmChoice }: Props) {
                   onConfirm={onConfirmChoice}
                 />
               )}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onDismissChoice(getRacePendingChoiceKey(pc))}
+              >
+                Dismiss
+              </Button>
             </div>
           ))}
         </div>

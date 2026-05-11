@@ -17,11 +17,14 @@ import {
   getAllRaceAbilityBonusOptions,
   getAllRaceSkillChoices,
   searchFeats,
+  getAllClassStartingEquipment,
+  getAllClassStartingEquipmentOptions,
 } from "@/lib/actions/5e-data";
-import type { ClassRow, RaceRow, SubraceRow, BackgroundRow, SpellSlotRow, ItemRow, ClassFeatureRow, ClassProficiencyRow, RaceTraitRow, ClassSkillChoiceRow, FeatRow, RaceAbilityBonusRow, RaceAbilityBonusOptionRow, RaceSkillChoiceRow } from "@/lib/actions/5e-data";
+import type { ClassRow, RaceRow, SubraceRow, BackgroundRow, SpellSlotRow, ItemRow, ClassFeatureRow, ClassProficiencyRow, RaceTraitRow, ClassSkillChoiceRow, FeatRow, RaceAbilityBonusRow, RaceAbilityBonusOptionRow, RaceSkillChoiceRow, ClassStartingEquipmentRow, ClassStartingEquipmentOptionRow } from "@/lib/actions/5e-data";
 import { ClassChoicesPanel } from "@/components/forge/class-choices-panel";
+import type { ResolvedEquipmentItem } from "@/components/forge/class-choices-panel";
 import { RaceChoicesPanel } from "@/components/forge/race-choices-panel";
-import { derivePendingChoices, deriveRacePendingChoices, type PendingChoice, type RacePendingChoice } from "@/lib/character/derive-pending-choices";
+import { derivePendingChoices, deriveRacePendingChoices, deriveEquipmentPendingChoices, type PendingChoice, type RacePendingChoice, type EquipmentPendingChoice } from "@/lib/character/derive-pending-choices";
 import { StringField } from "@/components/forge/string-field";
 import { ClassesField } from "@/components/forge/classes-field";
 import { RaceField } from "@/components/forge/race-field";
@@ -57,6 +60,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
 import type {
   AttributeKey,
+  CharacterData,
   ModifierEntry,
   ActionEntry,
   DamageEntry,
@@ -76,7 +80,7 @@ import {
   type SpellSlotBaseMap,
   type SpellSlotClassLike,
 } from "@/lib/character/spell-slots";
-import { applyRace, applyClasses, applyBackground } from "@/lib/character/apply-srd";
+import { applyRace, applyClasses, applyBackground, applyClassStartingEquipment, clearRaceAutomation, clearBackgroundAutomation } from "@/lib/character/apply-srd";
 
 const ATTRIBUTE_KEYS: AttributeKey[] = [
   "str",
@@ -156,8 +160,11 @@ export default function ForgePage({
   const [allRaceAsiOptionRows, setAllRaceAsiOptionRows] = useState<RaceAbilityBonusOptionRow[]>([]);
   const [allRaceSkillChoiceRows, setAllRaceSkillChoiceRows] = useState<RaceSkillChoiceRow[]>([]);
   const [availableFeats, setAvailableFeats] = useState<FeatRow[]>([]);
+  const [allClassStartEquipRows, setAllClassStartEquipRows] = useState<ClassStartingEquipmentRow[]>([]);
+  const [allClassStartEquipOptionRows, setAllClassStartEquipOptionRows] = useState<ClassStartingEquipmentOptionRow[]>([]);
   const [pendingChoices, setPendingChoices] = useState<PendingChoice[]>([]);
   const [racePendingChoices, setRacePendingChoices] = useState<RacePendingChoice[]>([]);
+  const [equipmentPendingChoices, setEquipmentPendingChoices] = useState<EquipmentPendingChoice[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
@@ -170,6 +177,7 @@ export default function ForgePage({
   const setAutoSave = useCharacterStore((s) => s.setAutoSave);
   const isDirty = useCharacterStore((s) => s.isDirty);
   const updateIdentityField = useCharacterStore((s) => s.updateIdentityField);
+  const setSelectionIgnore = useCharacterStore((s) => s.setSelectionIgnore);
   const updateAttributeBase = useCharacterStore((s) => s.updateAttributeBase);
   const setAttributeStack = useCharacterStore((s) => s.setAttributeStack);
   const setAttributeOverride = useCharacterStore((s) => s.setAttributeOverride);
@@ -257,6 +265,8 @@ export default function ForgePage({
     getAllRaceAbilityBonusOptions().then(setAllRaceAsiOptionRows);
     getAllRaceSkillChoices().then(setAllRaceSkillChoiceRows);
     searchFeats().then(setAvailableFeats);
+    getAllClassStartingEquipment().then(setAllClassStartEquipRows);
+    getAllClassStartingEquipmentOptions().then(setAllClassStartEquipOptionRows);
   }, []);
 
   // Auto-save on change with 1.5s debounce
@@ -336,7 +346,8 @@ export default function ForgePage({
   const raceKey = `${character?.identity.race ?? ""}::${character?.identity.subrace ?? ""}`;
   const bgKey = character?.identity.background ?? "";
   const raceChoicesKey = (character?.raceChoices ?? []).map((c) => c.id).join(",");
-  const srdKey = `${classStateKey}|${raceKey}|${bgKey}|${raceChoicesKey}`;
+  const ignoreKey = `${character?.selectionIgnores?.race ? "race-off" : "race-on"}|${character?.selectionIgnores?.background ? "bg-off" : "bg-on"}`;
+  const srdKey = `${classStateKey}|${raceKey}|${bgKey}|${raceChoicesKey}|${ignoreKey}`;
 
   useEffect(() => {
     const char = characterRef.current;
@@ -355,8 +366,13 @@ export default function ForgePage({
     // 1. Class features + primary-class saving throw proficiencies
     updated = applyClasses(updated, char.identity.classes, allClassFeatureRows, allClassProfRows);
 
+    // 1b. Starting equipment (fixed grants, clears stale items on class change)
+    if (allClassStartEquipRows.length > 0) {
+      updated = applyClassStartingEquipment(updated, char.identity.classes, allClassStartEquipRows);
+    }
+
     // 2. Race traits + speed
-    if (char.identity.race) {
+    if (char.identity.race && !char.selectionIgnores?.race) {
       const matchedRace = availableRaces.find(
         (r) => r.name.toLowerCase() === char.identity.race.toLowerCase(),
       );
@@ -374,14 +390,18 @@ export default function ForgePage({
           : undefined;
         updated = applyRace(updated, matchedRace, raceTraits, allRaceAsiBonusRows, char.raceChoices ?? [], matchedSubrace, subraceTraits);
       }
+    } else {
+      updated = clearRaceAutomation(updated);
     }
 
     // 3. Background skill proficiencies
-    if (char.identity.background) {
+    if (char.identity.background && !char.selectionIgnores?.background) {
       const bgRow = availableBackgrounds.find(
         (b) => b.name.toLowerCase() === char.identity.background.toLowerCase(),
       );
       if (bgRow) updated = applyBackground(updated, bgRow);
+    } else {
+      updated = clearBackgroundAutomation(updated);
     }
 
     replaceCharacter(updated);
@@ -397,6 +417,7 @@ export default function ForgePage({
     availableSubraces,
     availableBackgrounds,
     allRaceAsiBonusRows,
+    allClassStartEquipRows,
   ]);
 
   // Derive pending choices whenever character or static data changes.
@@ -414,6 +435,21 @@ export default function ForgePage({
       ),
     );
   }, [character, allClassFeatureRows, allClassSkillChoiceRows]);
+
+  // Derive equipment pending choices.
+  useEffect(() => {
+    if (!character || allClassStartEquipOptionRows.length === 0) {
+      setEquipmentPendingChoices([]);
+      return;
+    }
+    setEquipmentPendingChoices(
+      deriveEquipmentPendingChoices(
+        character,
+        character.identity.classes,
+        allClassStartEquipOptionRows,
+      ),
+    );
+  }, [character, allClassStartEquipOptionRows]);
 
   // Derive race pending choices.
   useEffect(() => {
@@ -463,6 +499,169 @@ export default function ForgePage({
     }
   }
 
+  function handleDismissClassChoice(choiceKey: string) {
+    if (!character) return;
+    replaceCharacter({
+      ...character,
+      dismissedClassChoiceKeys: [...(character.dismissedClassChoiceKeys ?? []), choiceKey],
+    });
+  }
+
+  function handleDismissRaceChoice(choiceKey: string) {
+    if (!character) return;
+    replaceCharacter({
+      ...character,
+      dismissedRaceChoiceKeys: [...(character.dismissedRaceChoiceKeys ?? []), choiceKey],
+    });
+  }
+
+  function handleDismissEquipmentChoice(choiceKey: string) {
+    if (!character) return;
+    replaceCharacter({
+      ...character,
+      dismissedEquipmentChoiceKeys: [...(character.dismissedEquipmentChoiceKeys ?? []), choiceKey],
+    });
+  }
+
+  function setRaceAutomationIgnored(ignored: boolean) {
+    setSelectionIgnore("race", ignored);
+  }
+
+  function setBackgroundAutomationIgnored(ignored: boolean) {
+    setSelectionIgnore("background", ignored);
+  }
+
+  function applyItemFromSrdToCharacter(
+    baseCharacter: typeof character,
+    srdItem: ItemRow,
+  ) {
+    if (!baseCharacter) return baseCharacter;
+
+    const next = structuredClone(baseCharacter);
+    const isWeapon = srdItem.equipmentCategory === "Weapon";
+    const isArmor = srdItem.armorCategory !== null && srdItem.armorCategory !== "Shield";
+
+    if (isWeapon && srdItem.damageDiceCount && srdItem.damageDieType) {
+      const rawProperties = srdItem.properties;
+      const props: string[] = rawProperties ? JSON.parse(rawProperties) : [];
+      const isFinesse = props.includes("Finesse");
+      const isRanged = srdItem.weaponRange === "Ranged";
+      const atkStat: ActionEntry["attackStat"] = isRanged ? "dex" : "str";
+
+      const primaryDmg: DamageEntry = {
+        diceCount: srdItem.damageDiceCount!,
+        dieType: srdItem.damageDieType as DieType,
+        stat: isFinesse || isRanged ? "dex" : "str",
+        flatBonus: 0,
+        type: srdItem.damageType ?? "Bludgeoning",
+        active: true,
+      };
+
+      const damageStack: DamageEntry[] = [primaryDmg];
+
+      if (srdItem.twoHandedDiceCount && srdItem.twoHandedDieType) {
+        damageStack.push({
+          diceCount: srdItem.twoHandedDiceCount!,
+          dieType: srdItem.twoHandedDieType as DieType,
+          stat: "str",
+          flatBonus: 0,
+          type: srdItem.twoHandedDamageType ?? primaryDmg.type,
+          active: false,
+        });
+      }
+
+      const rangePart = srdItem.rangeNormal
+        ? `Range ${srdItem.rangeNormal}${srdItem.rangeLong ? `/${srdItem.rangeLong}` : ""} ft`
+        : "";
+      const propPart = props.filter((p) => p !== "Versatile").join(", ");
+      const notes = [rangePart, propPart].filter(Boolean).join(" · ");
+
+      next.actions.unshift({
+        id: crypto.randomUUID(),
+        name: srdItem.name,
+        mode: "Attack",
+        attackStat: atkStat,
+        attackProficient: true,
+        attackBonus: 0,
+        fixedDC: null,
+        damageStack,
+        notes,
+      });
+    }
+
+    if (isArmor && srdItem.acBase !== null) {
+      const acCategory = srdItem.armorCategory!;
+      const addsDex = acCategory !== "Heavy";
+      next.combat.ac = {
+        ...next.combat.ac,
+        mode: "Formula",
+        base: srdItem.acBase!,
+        statA: addsDex ? "dex" : null,
+        statB: null,
+      };
+    }
+
+    if (srdItem.description) {
+      next.features.push({
+        id: crypto.randomUUID(),
+        name: srdItem.name,
+        source: srdItem.equipmentCategory,
+        description: srdItem.description,
+      });
+
+      const chargeMatch = srdItem.description.match(/(\d+)\s+charges?/i);
+      if (chargeMatch) {
+        const maxCharges = parseInt(chargeMatch[1], 10);
+        const desc = srdItem.description.toLowerCase();
+        const reset: TrackerEntry["reset"] = desc.includes("dawn")
+          ? "Dawn"
+          : desc.includes("long rest")
+            ? "Long Rest"
+            : desc.includes("short rest")
+              ? "Short Rest"
+              : "Special";
+
+        next.trackers.push({
+          id: crypto.randomUUID(),
+          name: srdItem.name,
+          base: maxCharges,
+          baseSource: { kind: "fixed" },
+          stack: [],
+          reset,
+          override: null,
+          valueLabel: "charges",
+        });
+      }
+    }
+
+    return next;
+  }
+
+  function handleConfirmEquipmentChoice(
+    classId: string,
+    choiceIndex: number,
+    items: ResolvedEquipmentItem[],
+  ) {
+    if (!character) return;
+    const existing = character.equipmentChoicesMade ?? [];
+    let updated: CharacterData = {
+      ...character,
+      inventory: [...character.inventory, ...items.map((item) => item.inventoryItem)],
+      equipmentChoicesMade: [
+        ...existing,
+        { id: crypto.randomUUID(), classId, choiceIndex },
+      ],
+    };
+
+    for (const item of items) {
+      if (item.srdItem) {
+        updated = applyItemFromSrdToCharacter(updated, item.srdItem)!;
+      }
+    }
+
+    replaceCharacter(updated);
+  }
+
   function handleConfirmChoice(choices: import("@/lib/types/character").ClassChoiceMade | import("@/lib/types/character").ClassChoiceMade[]) {
     if (!character) return;
     const incoming = Array.isArray(choices) ? choices : [choices];
@@ -473,18 +672,24 @@ export default function ForgePage({
   }
 
   function applyItemFromSrd(srdItem: ItemRow, invItem: InventoryItem) {
+    void invItem;
+    if (!character) return;
+    replaceCharacter(applyItemFromSrdToCharacter(character, srdItem)!);
+    return;
+    const currentCharacter = character;
+
     const isWeapon = srdItem.equipmentCategory === "Weapon"
     const isArmor = srdItem.armorCategory !== null && srdItem.armorCategory !== "Shield"
 
     // Weapon → create ActionEntry
     if (isWeapon && srdItem.damageDiceCount && srdItem.damageDieType) {
-      const props: string[] = srdItem.properties ? JSON.parse(srdItem.properties) : []
+      const props: string[] = srdItem.properties ? JSON.parse(srdItem.properties!) : []
       const isFinesse = props.includes("Finesse")
       const isRanged = srdItem.weaponRange === "Ranged"
       const atkStat: ActionEntry["attackStat"] = isRanged ? "dex" : "str"
 
       const primaryDmg: DamageEntry = {
-        diceCount: srdItem.damageDiceCount,
+        diceCount: srdItem.damageDiceCount!,
         dieType: srdItem.damageDieType as DieType,
         stat: isFinesse || isRanged ? "dex" : "str",
         flatBonus: 0,
@@ -497,7 +702,7 @@ export default function ForgePage({
       // Versatile second entry (inactive by default)
       if (srdItem.twoHandedDiceCount && srdItem.twoHandedDieType) {
         damageStack.push({
-          diceCount: srdItem.twoHandedDiceCount,
+          diceCount: srdItem.twoHandedDiceCount!,
           dieType: srdItem.twoHandedDieType as DieType,
           stat: "str",
           flatBonus: 0,
@@ -524,39 +729,39 @@ export default function ForgePage({
         notes,
       }
 
-      if (character) setActions([action, ...character.actions])
+      if (currentCharacter) setActions([action, ...currentCharacter!.actions])
     }
 
     // Armor (non-shield) → configure AC formula
-    if (isArmor && srdItem.acBase !== null && character) {
+    if (isArmor && srdItem.acBase !== null && currentCharacter) {
       const acCategory = srdItem.armorCategory! // "Light" | "Medium" | "Heavy"
       const addsDex = acCategory !== "Heavy"
       setAc({
-        ...character.combat.ac,
+        ...currentCharacter!.combat.ac,
         mode: "Formula",
-        base: srdItem.acBase,
+        base: srdItem.acBase!,
         statA: addsDex ? "dex" : null,
         statB: null,
       })
     }
 
     // Description → FeatureEntry
-    if (srdItem.description && character) {
+    if (srdItem.description && currentCharacter) {
       const feature: FeatureEntry = {
         id: crypto.randomUUID(),
         name: srdItem.name,
         source: srdItem.equipmentCategory,
-        description: srdItem.description,
+        description: srdItem.description!,
       }
-      setFeatures([...character.features, feature])
+      setFeatures([...currentCharacter!.features, feature])
     }
 
     // Charges in description → TrackerEntry
-    if (srdItem.description && character) {
-      const chargeMatch = srdItem.description.match(/(\d+)\s+charges?/i)
+    if (srdItem.description && currentCharacter) {
+      const chargeMatch = srdItem.description!.match(/(\d+)\s+charges?/i)
       if (chargeMatch) {
-        const maxCharges = parseInt(chargeMatch[1], 10)
-        const desc = srdItem.description.toLowerCase()
+        const maxCharges = parseInt(chargeMatch![1], 10)
+        const desc = srdItem.description!.toLowerCase()
         const reset: TrackerEntry["reset"] = desc.includes("dawn")
           ? "Dawn"
           : desc.includes("long rest")
@@ -575,7 +780,7 @@ export default function ForgePage({
           override: null,
           valueLabel: "charges",
         }
-        setTrackers([...character.trackers, tracker])
+        setTrackers([...currentCharacter!.trackers, tracker])
       }
     }
   }
@@ -720,14 +925,18 @@ export default function ForgePage({
           <RaceField
             race={identity.race}
             subrace={identity.subrace}
+            ignoreAutomation={character.selectionIgnores?.race ?? false}
             onRaceChange={(v) => updateIdentityField("race", v)}
             onSubraceChange={(v) => updateIdentityField("subrace", v)}
+            onIgnoreAutomationChange={setRaceAutomationIgnored}
             availableRaces={availableRaces}
             availableSubraces={availableSubraces}
           />
           <BackgroundField
             value={identity.background}
+            ignoreAutomation={character.selectionIgnores?.background ?? false}
             onChange={(v) => updateIdentityField("background", v)}
+            onIgnoreAutomationChange={setBackgroundAutomationIgnored}
             availableBackgrounds={availableBackgrounds}
           />
           <StringField
@@ -771,14 +980,19 @@ export default function ForgePage({
             />
             <ClassChoicesPanel
               pendingChoices={pendingChoices}
+              equipmentPendingChoices={equipmentPendingChoices}
               availableFeats={availableFeats}
               onConfirmChoice={handleConfirmChoice}
+              onDismissChoice={handleDismissClassChoice}
+              onConfirmEquipmentChoice={handleConfirmEquipmentChoice}
+              onDismissEquipmentChoice={handleDismissEquipmentChoice}
             />
           </div>
         </div>
         <RaceChoicesPanel
           pendingChoices={racePendingChoices}
           onConfirmChoice={handleConfirmRaceChoice}
+          onDismissChoice={handleDismissRaceChoice}
         />
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
           <StringField

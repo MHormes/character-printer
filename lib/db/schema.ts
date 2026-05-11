@@ -535,3 +535,49 @@ export const pgFeats = pgTable("feats", {
   source: varchar("source", { length: 50 }).notNull().default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
+
+// ─── Game content: class starting equipment (fixed grants) ───────────────────
+
+export const sqliteClassStartingEquipment = sqliteTable("class_starting_equipment", {
+  id: text("id").primaryKey(),          // "dnd5e:fighter:longsword:0"
+  system: text("system").notNull(),
+  classId: text("class_id").notNull().references(() => sqliteClasses.id, { onDelete: "cascade" }),
+  itemId: text("item_id").notNull(),    // "dnd5e:longsword"
+  itemName: text("item_name").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  equipmentCategory: text("equipment_category").notNull().default("Adventuring Gear"),
+  weight: real("weight"),
+});
+
+export const pgClassStartingEquipment = pgTable("class_starting_equipment", {
+  id: varchar("id", { length: 150 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  classId: varchar("class_id", { length: 100 }).notNull().references(() => pgClasses.id, { onDelete: "cascade" }),
+  itemId: varchar("item_id", { length: 100 }).notNull(),
+  itemName: varchar("item_name", { length: 255 }).notNull(),
+  quantity: pgInteger("quantity").notNull().default(1),
+  equipmentCategory: varchar("equipment_category", { length: 100 }).notNull().default("Adventuring Gear"),
+  weight: pgInteger("weight"),
+});
+
+// ─── Game content: class starting equipment options (choice groups) ───────────
+
+export const sqliteClassStartingEquipmentOptions = sqliteTable("class_starting_equipment_options", {
+  id: text("id").primaryKey(),          // "dnd5e:fighter:opt:0"
+  system: text("system").notNull(),
+  classId: text("class_id").notNull().references(() => sqliteClasses.id, { onDelete: "cascade" }),
+  choiceIndex: integer("choice_index").notNull(),
+  description: text("description").notNull(),
+  chooseCount: integer("choose_count").notNull().default(1),
+  optionsJson: text("options_json").notNull(), // JSON: StartingEquipAlternative[]
+});
+
+export const pgClassStartingEquipmentOptions = pgTable("class_starting_equipment_options", {
+  id: varchar("id", { length: 150 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  classId: varchar("class_id", { length: 100 }).notNull().references(() => pgClasses.id, { onDelete: "cascade" }),
+  choiceIndex: pgInteger("choice_index").notNull(),
+  description: varchar("description", { length: 1000 }).notNull(),
+  chooseCount: pgInteger("choose_count").notNull().default(1),
+  optionsJson: varchar("options_json", { length: 10000 }).notNull(),
+});

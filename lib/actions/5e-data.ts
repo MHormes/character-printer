@@ -20,6 +20,8 @@ import {
   sqliteRaceAbilityBonuses,
   sqliteRaceAbilityBonusOptions,
   sqliteRaceSkillChoices,
+  sqliteClassStartingEquipment,
+  sqliteClassStartingEquipmentOptions,
 } from "@/lib/db/schema";
 import { eq, and, like, asc } from "drizzle-orm";
 
@@ -29,6 +31,8 @@ const anyDb = db as any;
 export type RaceAbilityBonusRow = typeof sqliteRaceAbilityBonuses.$inferSelect;
 export type RaceAbilityBonusOptionRow = typeof sqliteRaceAbilityBonusOptions.$inferSelect;
 export type RaceSkillChoiceRow = typeof sqliteRaceSkillChoices.$inferSelect;
+export type ClassStartingEquipmentRow = typeof sqliteClassStartingEquipment.$inferSelect;
+export type ClassStartingEquipmentOptionRow = typeof sqliteClassStartingEquipmentOptions.$inferSelect;
 export type ClassRow = typeof sqliteClasses.$inferSelect;
 export type ClassSkillChoiceRow = typeof sqliteClassSkillChoices.$inferSelect;
 export type ClassFeatureRow = typeof sqliteClassFeatures.$inferSelect;
@@ -154,22 +158,72 @@ export type ItemSearchParams = {
   equipmentCategory?: string;
 };
 
+function normalizeGroupCategory(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function matchesStartingEquipmentGroup(item: ItemRow, group?: string): boolean {
+  if (!group) return true;
+
+  const normalized = normalizeGroupCategory(group);
+  const itemName = item.name.trim().toLowerCase();
+
+  if (normalized === "martial weapons") {
+    return item.equipmentCategory === "Weapon" && item.weaponCategory === "Martial";
+  }
+  if (normalized === "martial melee weapons") {
+    return item.equipmentCategory === "Weapon" && item.weaponCategory === "Martial" && item.weaponRange === "Melee";
+  }
+  if (normalized === "simple weapons") {
+    return item.equipmentCategory === "Weapon" && item.weaponCategory === "Simple";
+  }
+  if (normalized === "simple melee weapons") {
+    return item.equipmentCategory === "Weapon" && item.weaponCategory === "Simple" && item.weaponRange === "Melee";
+  }
+  if (normalized === "musical instruments") {
+    return item.equipmentCategory === "Tools" && [
+      "bagpipes",
+      "drum",
+      "dulcimer",
+      "flute",
+      "horn",
+      "lute",
+      "lyre",
+      "pan flute",
+      "shawm",
+      "viol",
+    ].includes(itemName);
+  }
+  if (normalized === "arcane foci") {
+    return item.equipmentCategory === "Adventuring Gear" && [
+      "crystal",
+      "orb",
+      "rod",
+      "staff",
+      "wand",
+    ].includes(itemName);
+  }
+
+  return item.equipmentCategory === group;
+}
+
 export async function searchItems(params: ItemSearchParams): Promise<ItemRow[]> {
   const system = params.system ?? "dnd5e";
-  return anyDb
+  const rows = await anyDb
     .select()
     .from(sqliteItems)
     .where(
       and(
         eq(sqliteItems.system, system),
-        params.equipmentCategory
-          ? eq(sqliteItems.equipmentCategory, params.equipmentCategory)
-          : undefined,
         params.name ? like(sqliteItems.name, `%${params.name}%`) : undefined,
       ),
     )
     .orderBy(asc(sqliteItems.name))
-    .limit(60);
+    .limit(params.equipmentCategory ? 300 : 60);
+
+  return rows
+    .filter((row: ItemRow) => matchesStartingEquipmentGroup(row, params.equipmentCategory))
+    .slice(0, 60);
 }
 
 export async function getItem(id: string): Promise<ItemRow | null> {
@@ -344,6 +398,24 @@ export async function getAllRaceSkillChoices(system = "dnd5e"): Promise<RaceSkil
     .from(sqliteRaceSkillChoices)
     .where(eq(sqliteRaceSkillChoices.system, system))
     .orderBy(asc(sqliteRaceSkillChoices.raceId), asc(sqliteRaceSkillChoices.skillKey));
+}
+
+// ─── Class starting equipment ─────────────────────────────────────────────────
+
+export async function getAllClassStartingEquipment(system = "dnd5e"): Promise<ClassStartingEquipmentRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteClassStartingEquipment)
+    .where(eq(sqliteClassStartingEquipment.system, system))
+    .orderBy(asc(sqliteClassStartingEquipment.classId));
+}
+
+export async function getAllClassStartingEquipmentOptions(system = "dnd5e"): Promise<ClassStartingEquipmentOptionRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteClassStartingEquipmentOptions)
+    .where(eq(sqliteClassStartingEquipmentOptions.system, system))
+    .orderBy(asc(sqliteClassStartingEquipmentOptions.classId), asc(sqliteClassStartingEquipmentOptions.choiceIndex));
 }
 
 // ─── Spell search ─────────────────────────────────────────────────────────────

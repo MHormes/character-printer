@@ -5,8 +5,25 @@ import type {
   RaceAbilityBonusOptionRow,
   RaceSkillChoiceRow,
   RaceRow,
+  ClassStartingEquipmentOptionRow,
 } from "@/lib/actions/5e-data"
 import type { CharacterClassEntry } from "@/lib/types/character"
+
+// ─── Starting equipment option types (stored as JSON in DB) ──────────────────
+
+export type StartingEquipAlternative =
+  | { type: "items"; label: string; items: { itemId: string; name: string; quantity: number }[] }
+  | { type: "category"; label: string; category: string; count: number }
+  | { type: "bundle"; label: string; fixedItems: { itemId: string; name: string; quantity: number }[]; categoryPick: { category: string; count: number } }
+
+export type EquipmentPendingChoice = {
+  classId: string
+  className: string
+  choiceIndex: number
+  description: string
+  chooseCount: number
+  options: StartingEquipAlternative[]
+}
 
 export type PendingChoice = {
   classId: string
@@ -30,6 +47,18 @@ export type RacePendingChoice = {
   skillsNeeded?: number
 }
 
+export function getClassPendingChoiceKey(choice: Pick<PendingChoice, "classId" | "type" | "atLevel">): string {
+  return `${choice.classId}:${choice.type}:${choice.atLevel}`
+}
+
+export function getRacePendingChoiceKey(choice: Pick<RacePendingChoice, "raceId" | "type">): string {
+  return `${choice.raceId}:${choice.type}`
+}
+
+export function getEquipmentPendingChoiceKey(choice: Pick<EquipmentPendingChoice, "classId" | "choiceIndex">): string {
+  return `${choice.classId}:equip:${choice.choiceIndex}`
+}
+
 export function derivePendingChoices(
   char: CharacterData,
   classes: CharacterClassEntry[],
@@ -38,6 +67,7 @@ export function derivePendingChoices(
 ): PendingChoice[] {
   const pending: PendingChoice[] = []
   const activeClasses = classes.filter((c) => c.classId)
+  const dismissed = new Set(char.dismissedClassChoiceKeys ?? [])
 
   for (const cls of activeClasses) {
     // ── ASI slots ─────────────────────────────────────────────────────────
@@ -56,12 +86,13 @@ export function derivePendingChoices(
           (c.type === "asi" || c.type === "feat"),
       )
       if (!isFilled) {
-        pending.push({
+        const choice = {
           classId: cls.classId!,
           className: cls.name,
           atLevel: feat.level,
           type: "asi",
-        })
+        } satisfies PendingChoice
+        if (!dismissed.has(getClassPendingChoiceKey(choice))) pending.push(choice)
       }
     }
 
@@ -77,14 +108,15 @@ export function derivePendingChoices(
       ).length
       const needed = chooseCount - madeCount
       if (needed > 0) {
-        pending.push({
+        const choice = {
           classId: cls.classId!,
           className: cls.name,
           atLevel: 1,
           type: "skill",
           skillOptions,
           skillsNeeded: needed,
-        })
+        } satisfies PendingChoice
+        if (!dismissed.has(getClassPendingChoiceKey(choice))) pending.push(choice)
       }
     }
   }
@@ -96,6 +128,42 @@ export function derivePendingChoices(
   })
 }
 
+export function deriveEquipmentPendingChoices(
+  char: CharacterData,
+  classes: CharacterClassEntry[],
+  allOptionRows: ClassStartingEquipmentOptionRow[],
+): EquipmentPendingChoice[] {
+  const pending: EquipmentPendingChoice[] = []
+  const activeClasses = classes.filter((c) => c.classId && !c.ignoreAutomation)
+  const dismissed = new Set(char.dismissedEquipmentChoiceKeys ?? [])
+
+  for (const cls of activeClasses) {
+    const optRows = allOptionRows
+      .filter((r) => r.classId === cls.classId)
+      .sort((a, b) => a.choiceIndex - b.choiceIndex)
+
+    for (const row of optRows) {
+      const alreadyMade = (char.equipmentChoicesMade ?? []).some(
+        (m) => m.classId === cls.classId && m.choiceIndex === row.choiceIndex,
+      )
+      if (!alreadyMade) {
+        const options: StartingEquipAlternative[] = JSON.parse(row.optionsJson)
+        const choice = {
+          classId: cls.classId!,
+          className: cls.name,
+          choiceIndex: row.choiceIndex,
+          description: row.description,
+          chooseCount: row.chooseCount,
+          options,
+        } satisfies EquipmentPendingChoice
+        if (!dismissed.has(getEquipmentPendingChoiceKey(choice))) pending.push(choice)
+      }
+    }
+  }
+
+  return pending
+}
+
 export function deriveRacePendingChoices(
   char: CharacterData,
   raceRow: RaceRow | undefined,
@@ -103,7 +171,9 @@ export function deriveRacePendingChoices(
   allSkillChoiceRows: RaceSkillChoiceRow[],
 ): RacePendingChoice[] {
   if (!raceRow) return []
+  if (char.selectionIgnores?.race) return []
   const pending: RacePendingChoice[] = []
+  const dismissed = new Set(char.dismissedRaceChoiceKeys ?? [])
 
   // ── Choosable ASI bonuses (e.g. Half-Elf +1 to 2 stats) ──────────────────
   const asiOptions = allAsiOptionRows.filter((r) => r.raceId === raceRow.id)
@@ -152,5 +222,5 @@ export function deriveRacePendingChoices(
     }
   }
 
-  return pending
+  return pending.filter((choice) => !dismissed.has(getRacePendingChoiceKey(choice)))
 }

@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, InventoryItem } from "@/lib/types/character"
 import type {
   RaceRow,
   SubraceRow,
@@ -7,6 +7,7 @@ import type {
   ClassProficiencyRow,
   BackgroundRow,
   RaceAbilityBonusRow,
+  ClassStartingEquipmentRow,
 } from "@/lib/actions/5e-data"
 import type { CharacterClassEntry } from "@/lib/types/character"
 
@@ -31,6 +32,20 @@ function clearRaceModifiers(next: CharacterData): void {
       (m) => !m.sourceId?.startsWith("race:"),
     )
   }
+}
+
+export function clearRaceAutomation(char: CharacterData): CharacterData {
+  const next = structuredClone(char)
+  next.features = next.features.filter(
+    (f) => !f.sourceId?.startsWith("race:") && !f.sourceId?.startsWith("subrace:"),
+  )
+  clearRaceModifiers(next)
+  next.srdGrants = {
+    saveProficiencies: next.srdGrants?.saveProficiencies ?? [],
+    skillProficiencies: next.srdGrants?.skillProficiencies ?? [],
+    raceAsiBonuses: [],
+  }
+  return next
 }
 
 export function applyRace(
@@ -282,6 +297,79 @@ export function applyBackground(
   next.srdGrants = {
     saveProficiencies: next.srdGrants?.saveProficiencies ?? [],
     skillProficiencies: skillGrants,
+  }
+
+  return next
+}
+
+function equipCategoryToInventoryCategory(cat: string): InventoryItem["category"] {
+  if (cat === "Weapon") return "Weapon"
+  if (cat === "Armor") return "Armor"
+  const l = cat.toLowerCase()
+  if (l.includes("tool")) return "Tool"
+  if (l.includes("potion") || l.includes("ammunition")) return "Consumable"
+  return "Mundane"
+}
+
+export function applyClassStartingEquipment(
+  char: CharacterData,
+  classes: CharacterClassEntry[],
+  allFixedRows: ClassStartingEquipmentRow[],
+): CharacterData {
+  const next = structuredClone(char)
+  const activeClassIds = new Set(
+    classes.filter((c) => c.classId && !c.ignoreAutomation).map((c) => c.classId!),
+  )
+
+  // Remove starting equipment items for classes no longer active
+  next.inventory = next.inventory.filter((item) => {
+    if (!item.sourceId?.startsWith("class-start:")) return true
+    const classId = item.sourceId.slice("class-start:".length)
+    return activeClassIds.has(classId)
+  })
+
+  // Remove equipment choices for classes no longer active
+  next.equipmentChoicesMade = (next.equipmentChoicesMade ?? []).filter(
+    (m) => activeClassIds.has(m.classId),
+  )
+
+  // Add fixed items for each active class not already in inventory
+  for (const classId of activeClassIds) {
+    const fixedRows = allFixedRows.filter((r) => r.classId === classId)
+    const sourceId = `class-start:${classId}`
+    for (const row of fixedRows) {
+      const alreadyPresent = next.inventory.some(
+        (item) => item.sourceId === sourceId && item.name === row.itemName,
+      )
+      if (!alreadyPresent) {
+        next.inventory.push({
+          id: crypto.randomUUID(),
+          name: row.itemName,
+          quantity: row.quantity,
+          weight: row.weight ?? 0,
+          category: equipCategoryToInventoryCategory(row.equipmentCategory),
+          equipped: false,
+          modifiers: [],
+          sourceId,
+        })
+      }
+    }
+  }
+
+  return next
+}
+
+export function clearBackgroundAutomation(char: CharacterData): CharacterData {
+  const next = structuredClone(char)
+  const oldSkillGrants = next.srdGrants?.skillProficiencies ?? []
+  for (const key of oldSkillGrants) {
+    if (next.skills[key]) next.skills[key].state = "None"
+  }
+
+  next.srdGrants = {
+    saveProficiencies: next.srdGrants?.saveProficiencies ?? [],
+    skillProficiencies: [],
+    raceAsiBonuses: next.srdGrants?.raceAsiBonuses ?? [],
   }
 
   return next

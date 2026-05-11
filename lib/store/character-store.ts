@@ -13,6 +13,7 @@ type CharacterStore = {
   setAutoSave: (value: boolean) => void;
   clearCharacter: () => void;
   updateIdentityField: (field: keyof CharacterData["identity"], value: string | number) => void;
+  setSelectionIgnore: (field: "race" | "background", value: boolean) => void;
   updateAttributeBase: (attr: AttributeKey, value: number) => void;
   setAttributeStack: (attr: AttributeKey, stack: CharacterData["attributes"][AttributeKey]["stack"]) => void;
   setAttributeOverride: (attr: AttributeKey, override: number | null) => void;
@@ -74,6 +75,17 @@ export const useCharacterStore = create<CharacterStore>()(
         if (!state.character) return;
         // @ts-expect-error dynamic field assignment
         state.character.identity[field] = value;
+        state.isDirty = true;
+      }),
+
+    setSelectionIgnore: (field, value) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.selectionIgnores = {
+          race: state.character.selectionIgnores?.race ?? false,
+          background: state.character.selectionIgnores?.background ?? false,
+          [field]: value,
+        };
         state.isDirty = true;
       }),
 

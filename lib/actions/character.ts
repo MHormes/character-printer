@@ -31,6 +31,7 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
     subclass: cls.subclass,
     level: cls.level,
     hitDie: cls.hitDie,
+    ignoreAutomation: cls.ignoreAutomation ?? false,
   }))
 
   const normalizedPages = normalizeCanvasPages(
@@ -43,6 +44,13 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
   return {
     ...defaults,
     ...data,
+    selectionIgnores: {
+      race: data.selectionIgnores?.race ?? defaults.selectionIgnores!.race,
+      background: data.selectionIgnores?.background ?? defaults.selectionIgnores!.background,
+    },
+    dismissedClassChoiceKeys: data.dismissedClassChoiceKeys ?? defaults.dismissedClassChoiceKeys,
+    dismissedRaceChoiceKeys: data.dismissedRaceChoiceKeys ?? defaults.dismissedRaceChoiceKeys,
+    dismissedEquipmentChoiceKeys: data.dismissedEquipmentChoiceKeys ?? defaults.dismissedEquipmentChoiceKeys,
     identity: {
       ...defaults.identity,
       ...data.identity,

@@ -7,13 +7,17 @@ import type { BackgroundRow } from "@/lib/actions/5e-data"
 
 type BackgroundFieldProps = {
   value: string
+  ignoreAutomation: boolean
   onChange: (value: string) => void
+  onIgnoreAutomationChange: (value: boolean) => void
   availableBackgrounds?: BackgroundRow[]
 }
 
 export function BackgroundField({
   value,
+  ignoreAutomation,
   onChange,
+  onIgnoreAutomationChange,
   availableBackgrounds = [],
 }: BackgroundFieldProps) {
   const [open, setOpen] = useState(false)
@@ -64,8 +68,20 @@ export function BackgroundField({
           )}
         </div>
 
-        {open && filtered.length > 0 && (
+        {open && availableBackgrounds.length > 0 && (
           <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                onIgnoreAutomationChange(true)
+                setOpen(false)
+              }}
+              className="flex w-full items-center justify-between border-b border-border bg-muted px-3 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
+            >
+              <span>{ignoreAutomation ? "Manual background entry active" : "Use manual background entry"}</span>
+              <span className="text-xs text-muted-foreground">No automation</span>
+            </button>
             {filtered.slice(0, 12).map((row) => (
               <button
                 key={row.id}
@@ -73,6 +89,7 @@ export function BackgroundField({
                 onMouseDown={(e) => {
                   e.preventDefault()
                   onChange(row.name)
+                  onIgnoreAutomationChange(false)
                   setOpen(false)
                 }}
                 className={cn(

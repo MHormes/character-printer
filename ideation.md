@@ -735,7 +735,3 @@ The following structure represents the single JSON object stored in the database
 ```
 
 `itemId` is set only for entries injected by the inventory broadcast system. These entries are read-only in the UI and are removed/recreated automatically when inventory changes.
-
-# Still to do:
-
-- Make race/background choices automatically populate stat modifier stacks, skills, proficiencies (especially tricky for choose options - and SPI on lvl 4 etc)

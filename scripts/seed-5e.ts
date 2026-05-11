@@ -26,6 +26,8 @@ import {
   sqliteRaceAbilityBonuses,
   sqliteRaceAbilityBonusOptions,
   sqliteRaceSkillChoices,
+  sqliteClassStartingEquipment,
+  sqliteClassStartingEquipmentOptions,
 } from "../lib/db/schema";
 
 const SYSTEM = "dnd5e";
@@ -69,6 +71,21 @@ type Raw5eSpell = {
   heal_at_slot_level?: Record<string, string>;
 };
 
+type Raw5eEquipOption = {
+  option_type: "counted_reference" | "multiple" | "choice";
+  count?: number;
+  of?: { index: string; name: string };
+  items?: Raw5eEquipOption[];
+  choice?: {
+    choose?: number;
+    from?: {
+      option_set_type: "equipment_category" | "options_array";
+      equipment_category?: { name: string };
+      options?: Raw5eEquipOption[];
+    };
+  };
+};
+
 type Raw5eClass = {
   index: string;
   name: string;
@@ -82,6 +99,15 @@ type Raw5eClass = {
     from: {
       option_set_type: string;
       options: { option_type: string; item: { index: string } }[];
+    };
+  }[];
+  starting_equipment?: { equipment: { index: string; name: string }; quantity: number }[];
+  starting_equipment_options?: {
+    desc: string;
+    choose: number;
+    from: {
+      option_set_type: string;
+      options: Raw5eEquipOption[];
     };
   }[];
 };
@@ -322,6 +348,81 @@ function extractDamage(s: Raw5eSpell): DamageInfo {
   return { damageDiceCount: null, damageDieType: null, damageTypeName: null, attackType, dcSaveStat };
 }
 
+// ─── Starting equipment option processing ────────────────────────────────────
+
+type StartingEquipAlt =
+  | { type: "items"; label: string; items: { itemId: string; name: string; quantity: number }[] }
+  | { type: "category"; label: string; category: string; count: number }
+  | { type: "bundle"; label: string; fixedItems: { itemId: string; name: string; quantity: number }[]; categoryPick: { category: string; count: number } };
+
+function flattenMultiple(items: Raw5eEquipOption[]): {
+  fixedItems: { itemId: string; name: string; quantity: number }[];
+  categoryPick: { category: string; count: number } | null;
+} {
+  const fixedItems: { itemId: string; name: string; quantity: number }[] = [];
+  let categoryPick: { category: string; count: number } | null = null;
+  for (const item of items) {
+    if (item.option_type === "counted_reference" && item.of) {
+      fixedItems.push({ itemId: `${SYSTEM}:${item.of.index}`, name: item.of.name, quantity: item.count ?? 1 });
+    } else if (
+      item.option_type === "choice" &&
+      item.choice?.from?.option_set_type === "equipment_category" &&
+      item.choice.from.equipment_category
+    ) {
+      categoryPick = { category: item.choice.from.equipment_category.name, count: item.choice.choose ?? 1 };
+    }
+  }
+  return { fixedItems, categoryPick };
+}
+
+function processEquipOption(opt: Raw5eEquipOption): StartingEquipAlt | null {
+  if (opt.option_type === "counted_reference" && opt.of) {
+    const name = opt.of.name;
+    const qty = opt.count ?? 1;
+    return {
+      type: "items",
+      label: `${qty > 1 ? `${qty}× ` : ""}${name}`,
+      items: [{ itemId: `${SYSTEM}:${opt.of.index}`, name, quantity: qty }],
+    };
+  }
+
+  if (opt.option_type === "multiple" && opt.items) {
+    const { fixedItems, categoryPick } = flattenMultiple(opt.items);
+    if (fixedItems.length === 0 && !categoryPick) return null;
+    const parts = [
+      ...fixedItems.map((i) => `${i.quantity > 1 ? `${i.quantity}× ` : ""}${i.name}`),
+      ...(categoryPick ? [`${categoryPick.count > 1 ? `${categoryPick.count}× ` : ""}Any ${categoryPick.category}`] : []),
+    ];
+    const label = parts.join(" + ");
+    if (categoryPick) return { type: "bundle", label, fixedItems, categoryPick };
+    return { type: "items", label, items: fixedItems };
+  }
+
+  if (opt.option_type === "choice" && opt.choice?.from) {
+    const from = opt.choice.from;
+    if (from.option_set_type === "equipment_category" && from.equipment_category) {
+      const count = opt.choice.choose ?? 1;
+      return {
+        type: "category",
+        label: `${count > 1 ? `${count}× ` : ""}Any ${from.equipment_category.name}`,
+        category: from.equipment_category.name,
+        count,
+      };
+    }
+    if (from.option_set_type === "options_array" && from.options) {
+      // Process inner options — take first valid non-null to represent this nested choice
+      // We can't perfectly represent nested choices, but we try to capture the most common patterns
+      const inner = from.options.map(processEquipOption).filter(Boolean) as StartingEquipAlt[];
+      if (inner.length === 0) return null;
+      // Return the first alternative as a representative label (will be shown in UI as a sub-choice)
+      // This is a simplification — complex nested choices are left as a note in the label
+      return inner[0];
+    }
+  }
+
+  return null;
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -364,6 +465,8 @@ async function main() {
   );
 
   console.log("Clearing existing SRD data...");
+  db.delete(sqliteClassStartingEquipmentOptions).where(eq(sqliteClassStartingEquipmentOptions.system, SYSTEM)).run();
+  db.delete(sqliteClassStartingEquipment).where(eq(sqliteClassStartingEquipment.system, SYSTEM)).run();
   db.delete(sqliteFeats).where(eq(sqliteFeats.system, SYSTEM)).run();
   db.delete(sqliteSubclasses).where(eq(sqliteSubclasses.system, SYSTEM)).run();
   db.delete(sqliteLanguages).where(eq(sqliteLanguages.system, SYSTEM)).run();
@@ -875,12 +978,73 @@ async function main() {
   }
   console.log(`  ${featRows.length} feats`);
 
+  // ── Starting equipment ────────────────────────────────────────────────────
+  console.log("Inserting class starting equipment...");
+
+  // Build item lookup by index for weight/category data
+  const itemByIndex = new Map(rawEquipment.map((e) => [e.index, e]));
+
+  const fixedEquipRows: (typeof sqliteClassStartingEquipment.$inferInsert)[] = [];
+  const equipOptionRows: (typeof sqliteClassStartingEquipmentOptions.$inferInsert)[] = [];
+
+  for (const cls of rawClasses) {
+    const cid = classId(cls.index);
+
+    // Fixed items
+    for (let idx = 0; idx < (cls.starting_equipment ?? []).length; idx++) {
+      const se = cls.starting_equipment![idx];
+      const eIndex = se.equipment.index;
+      const eData = itemByIndex.get(eIndex);
+      fixedEquipRows.push({
+        id: `${SYSTEM}:${cls.index}:fixed:${idx}`,
+        system: SYSTEM,
+        classId: cid,
+        itemId: `${SYSTEM}:${eIndex}`,
+        itemName: se.equipment.name,
+        quantity: se.quantity,
+        equipmentCategory: eData?.equipment_category?.name ?? "Adventuring Gear",
+        weight: eData?.weight ?? null,
+      });
+    }
+
+    // Choice groups
+    for (let gIdx = 0; gIdx < (cls.starting_equipment_options ?? []).length; gIdx++) {
+      const group = cls.starting_equipment_options![gIdx];
+      if (group.from?.option_set_type !== "options_array") continue;
+
+      const alternatives = (group.from.options ?? [])
+        .map((opt: Raw5eEquipOption) => processEquipOption(opt))
+        .filter(Boolean) as StartingEquipAlt[];
+
+      if (alternatives.length === 0) continue;
+
+      equipOptionRows.push({
+        id: `${SYSTEM}:${cls.index}:opt:${gIdx}`,
+        system: SYSTEM,
+        classId: cid,
+        choiceIndex: gIdx,
+        description: group.desc,
+        chooseCount: group.choose ?? 1,
+        optionsJson: JSON.stringify(alternatives),
+      });
+    }
+  }
+
+  for (let i = 0; i < fixedEquipRows.length; i += 100) {
+    db.insert(sqliteClassStartingEquipment).values(fixedEquipRows.slice(i, i + 100)).run();
+  }
+  for (let i = 0; i < equipOptionRows.length; i += 100) {
+    db.insert(sqliteClassStartingEquipmentOptions).values(equipOptionRows.slice(i, i + 100)).run();
+  }
+  console.log(`  ${fixedEquipRows.length} fixed starting equipment | ${equipOptionRows.length} choice groups`);
+
   console.log(
     `Done. ${spellRows.length} spells | ${classRows.length} classes | ${slotRows.length} slot rows | ` +
     `${classMappingRows.length} class→spell links | ${raceRows.length} races | ${subraceRows.length} subraces | ` +
     `${PHB_BACKGROUNDS.length} backgrounds | ${featureRows.length} class features | ${traitRows.length} race traits | ` +
     `${classProfRows.length} class profs | ${languageRows.length} languages | ${subclassRows.length} subclasses | ` +
-    `${featRows.length} feats | ${itemRows.length} equipment | ${magicItemRows.length} magic items`,
+    `${featRows.length} feats | ${itemRows.length} equipment | ${magicItemRows.length} magic items | ` +
+    `${fixedEquipRows.length} fixed start equip | ${equipOptionRows.length} equip choice groups`,
   );
   sqlite.close();
 }
