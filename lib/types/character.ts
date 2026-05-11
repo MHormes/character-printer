@@ -198,9 +198,19 @@ export type ClassChoiceMade = {
   featDescription?: string;
 };
 
+export type RaceChoiceMade = {
+  id: string;
+  raceId: string;
+  type: "asi" | "skill";
+  abilityScore?: AttributeKey;
+  bonus?: number;
+  skillKey?: string;
+};
+
 export type SrdGrants = {
   saveProficiencies: string[];
   skillProficiencies: string[];
+  raceAsiBonuses?: { abilityScore: AttributeKey; bonus: number; sourceId: string }[];
 };
 
 export type CharacterData = {
@@ -251,4 +261,5 @@ export type CharacterData = {
   };
   srdGrants?: SrdGrants;
   classChoices?: ClassChoiceMade[];
+  raceChoices?: RaceChoiceMade[];
 };

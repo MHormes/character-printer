@@ -23,6 +23,9 @@ import {
   sqliteLanguages,
   sqliteSubclasses,
   sqliteFeats,
+  sqliteRaceAbilityBonuses,
+  sqliteRaceAbilityBonusOptions,
+  sqliteRaceSkillChoices,
 } from "../lib/db/schema";
 
 const SYSTEM = "dnd5e";
@@ -112,6 +115,13 @@ type Raw5eRace = {
   name: string;
   speed: number;
   subraces: { index: string; name: string }[];
+  ability_bonuses: { ability_score: { index: string }; bonus: number }[];
+  ability_bonus_options?: {
+    choose: number;
+    from: {
+      options: { option_type: string; ability_score: { index: string }; bonus: number }[];
+    };
+  };
 };
 
 
@@ -130,6 +140,12 @@ type Raw5eTrait = {
   races: { index: string }[];
   subraces: { index: string }[];
   desc: string[];
+  proficiency_choices?: {
+    choose: number;
+    from: {
+      options: { item?: { index: string } }[];
+    };
+  };
 };
 
 type Raw5eProficiency = {
@@ -163,6 +179,7 @@ type Raw5eSubrace = {
   index: string;
   name: string;
   race: { index: string };
+  ability_bonuses: { ability_score: { index: string }; bonus: number }[];
 };
 
 type Raw5eMagicItem = {
@@ -352,6 +369,9 @@ async function main() {
   db.delete(sqliteLanguages).where(eq(sqliteLanguages.system, SYSTEM)).run();
   db.delete(sqliteClassSkillChoices).where(eq(sqliteClassSkillChoices.system, SYSTEM)).run();
   db.delete(sqliteClassProficiencies).where(eq(sqliteClassProficiencies.system, SYSTEM)).run();
+  db.delete(sqliteRaceSkillChoices).where(eq(sqliteRaceSkillChoices.system, SYSTEM)).run();
+  db.delete(sqliteRaceAbilityBonusOptions).where(eq(sqliteRaceAbilityBonusOptions.system, SYSTEM)).run();
+  db.delete(sqliteRaceAbilityBonuses).where(eq(sqliteRaceAbilityBonuses.system, SYSTEM)).run();
   db.delete(sqliteRaceTraits).where(eq(sqliteRaceTraits.system, SYSTEM)).run();
   db.delete(sqliteClassFeatures).where(eq(sqliteClassFeatures.system, SYSTEM)).run();
   db.delete(sqliteBackgrounds).where(eq(sqliteBackgrounds.system, SYSTEM)).run();
@@ -658,6 +678,105 @@ async function main() {
     db.insert(sqliteRaceTraits).values(traitRows.slice(i, i + 100)).run();
   }
   console.log(`  ${traitRows.length} race trait entries`);
+
+  console.log("Inserting race ability bonuses...");
+  const raceAsiRows: {
+    id: string; system: string; raceId: string | null; subraceId: string | null;
+    abilityScore: string; bonus: number;
+  }[] = [];
+
+  for (const r of rawRaces) {
+    const rid = raceIdByIndex.get(r.index);
+    if (!rid) continue;
+    for (const bonus of (r.ability_bonuses ?? [])) {
+      raceAsiRows.push({
+        id: `${SYSTEM}:race-asi:${r.index}:${bonus.ability_score.index}`,
+        system: SYSTEM,
+        raceId: rid,
+        subraceId: null,
+        abilityScore: bonus.ability_score.index,
+        bonus: bonus.bonus,
+      });
+    }
+  }
+  for (const s of rawSubraces) {
+    const sid = subraceIdByIndex.get(s.index);
+    const rid = raceIdByIndex.get(s.race.index);
+    if (!sid || !rid) continue;
+    for (const bonus of (s.ability_bonuses ?? [])) {
+      raceAsiRows.push({
+        id: `${SYSTEM}:subrace-asi:${s.index}:${bonus.ability_score.index}`,
+        system: SYSTEM,
+        raceId: null,
+        subraceId: sid,
+        abilityScore: bonus.ability_score.index,
+        bonus: bonus.bonus,
+      });
+    }
+  }
+  if (raceAsiRows.length > 0) {
+    for (let i = 0; i < raceAsiRows.length; i += 100) {
+      db.insert(sqliteRaceAbilityBonuses).values(raceAsiRows.slice(i, i + 100)).run();
+    }
+  }
+  console.log(`  ${raceAsiRows.length} race/subrace ASI bonus entries`);
+
+  console.log("Inserting race ability bonus options...");
+  const raceAsiOptionRows: {
+    id: string; system: string; raceId: string; abilityScore: string; bonus: number; chooseCount: number;
+  }[] = [];
+  for (const r of rawRaces) {
+    const rid = raceIdByIndex.get(r.index);
+    if (!rid || !r.ability_bonus_options) continue;
+    const count = r.ability_bonus_options.choose;
+    for (const opt of (r.ability_bonus_options.from?.options ?? [])) {
+      if (opt.ability_score?.index) {
+        raceAsiOptionRows.push({
+          id: `${SYSTEM}:race-asi-opt:${r.index}:${opt.ability_score.index}`,
+          system: SYSTEM,
+          raceId: rid,
+          abilityScore: opt.ability_score.index,
+          bonus: opt.bonus ?? 1,
+          chooseCount: count,
+        });
+      }
+    }
+  }
+  if (raceAsiOptionRows.length > 0) {
+    db.insert(sqliteRaceAbilityBonusOptions).values(raceAsiOptionRows).run();
+  }
+  console.log(`  ${raceAsiOptionRows.length} race ASI option entries`);
+
+  console.log("Inserting race skill choices...");
+  const raceSkillRows: {
+    id: string; system: string; raceId: string; skillKey: string; chooseCount: number;
+  }[] = [];
+  // Skill proficiency choices live in trait data (e.g. Half-Elf Skill Versatility)
+  for (const t of rawTraits) {
+    if (!t.proficiency_choices) continue;
+    const count = t.proficiency_choices.choose;
+    for (const r of t.races) {
+      const rid = raceIdByIndex.get(r.index);
+      if (!rid) continue;
+      for (const opt of (t.proficiency_choices.from?.options ?? [])) {
+        if (!opt.item?.index?.startsWith("skill-")) continue;
+        const raw = opt.item.index.replace(/^skill-/, "");
+        if (!raw) continue;
+        const skillKey = kebabToCamel(raw);
+        raceSkillRows.push({
+          id: `${SYSTEM}:race-skill:${r.index}:${raw}`,
+          system: SYSTEM,
+          raceId: rid,
+          skillKey,
+          chooseCount: count,
+        });
+      }
+    }
+  }
+  if (raceSkillRows.length > 0) {
+    db.insert(sqliteRaceSkillChoices).values(raceSkillRows).run();
+  }
+  console.log(`  ${raceSkillRows.length} race skill choice entries`);
 
   console.log("Inserting class proficiencies...");
   const classProfRows: {

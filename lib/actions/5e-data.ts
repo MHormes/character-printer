@@ -17,12 +17,18 @@ import {
   sqliteLanguages,
   sqliteSubclasses,
   sqliteFeats,
+  sqliteRaceAbilityBonuses,
+  sqliteRaceAbilityBonusOptions,
+  sqliteRaceSkillChoices,
 } from "@/lib/db/schema";
 import { eq, and, like, asc } from "drizzle-orm";
 
 // Cast once — db is a union of SQLite/PG clients, TS can't call both signatures
 const anyDb = db as any;
 
+export type RaceAbilityBonusRow = typeof sqliteRaceAbilityBonuses.$inferSelect;
+export type RaceAbilityBonusOptionRow = typeof sqliteRaceAbilityBonusOptions.$inferSelect;
+export type RaceSkillChoiceRow = typeof sqliteRaceSkillChoices.$inferSelect;
 export type ClassRow = typeof sqliteClasses.$inferSelect;
 export type ClassSkillChoiceRow = typeof sqliteClassSkillChoices.$inferSelect;
 export type ClassFeatureRow = typeof sqliteClassFeatures.$inferSelect;
@@ -314,6 +320,30 @@ export async function getAllClassSkillChoices(system = "dnd5e"): Promise<ClassSk
     .from(sqliteClassSkillChoices)
     .where(eq(sqliteClassSkillChoices.system, system))
     .orderBy(asc(sqliteClassSkillChoices.classId), asc(sqliteClassSkillChoices.skillKey));
+}
+
+export async function getAllRaceAbilityBonuses(system = "dnd5e"): Promise<RaceAbilityBonusRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteRaceAbilityBonuses)
+    .where(eq(sqliteRaceAbilityBonuses.system, system))
+    .orderBy(asc(sqliteRaceAbilityBonuses.raceId), asc(sqliteRaceAbilityBonuses.abilityScore));
+}
+
+export async function getAllRaceAbilityBonusOptions(system = "dnd5e"): Promise<RaceAbilityBonusOptionRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteRaceAbilityBonusOptions)
+    .where(eq(sqliteRaceAbilityBonusOptions.system, system))
+    .orderBy(asc(sqliteRaceAbilityBonusOptions.raceId), asc(sqliteRaceAbilityBonusOptions.abilityScore));
+}
+
+export async function getAllRaceSkillChoices(system = "dnd5e"): Promise<RaceSkillChoiceRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteRaceSkillChoices)
+    .where(eq(sqliteRaceSkillChoices.system, system))
+    .orderBy(asc(sqliteRaceSkillChoices.raceId), asc(sqliteRaceSkillChoices.skillKey));
 }
 
 // ─── Spell search ─────────────────────────────────────────────────────────────

@@ -13,11 +13,15 @@ import {
   getAllClassProficiencies,
   getAllRaceTraits,
   getAllClassSkillChoices,
+  getAllRaceAbilityBonuses,
+  getAllRaceAbilityBonusOptions,
+  getAllRaceSkillChoices,
   searchFeats,
 } from "@/lib/actions/5e-data";
-import type { ClassRow, RaceRow, SubraceRow, BackgroundRow, SpellSlotRow, ItemRow, ClassFeatureRow, ClassProficiencyRow, RaceTraitRow, ClassSkillChoiceRow, FeatRow } from "@/lib/actions/5e-data";
+import type { ClassRow, RaceRow, SubraceRow, BackgroundRow, SpellSlotRow, ItemRow, ClassFeatureRow, ClassProficiencyRow, RaceTraitRow, ClassSkillChoiceRow, FeatRow, RaceAbilityBonusRow, RaceAbilityBonusOptionRow, RaceSkillChoiceRow } from "@/lib/actions/5e-data";
 import { ClassChoicesPanel } from "@/components/forge/class-choices-panel";
-import { derivePendingChoices, type PendingChoice } from "@/lib/character/derive-pending-choices";
+import { RaceChoicesPanel } from "@/components/forge/race-choices-panel";
+import { derivePendingChoices, deriveRacePendingChoices, type PendingChoice, type RacePendingChoice } from "@/lib/character/derive-pending-choices";
 import { StringField } from "@/components/forge/string-field";
 import { ClassesField } from "@/components/forge/classes-field";
 import { RaceField } from "@/components/forge/race-field";
@@ -148,8 +152,12 @@ export default function ForgePage({
   const [allClassProfRows, setAllClassProfRows] = useState<ClassProficiencyRow[]>([]);
   const [allRaceTraitRows, setAllRaceTraitRows] = useState<RaceTraitRow[]>([]);
   const [allClassSkillChoiceRows, setAllClassSkillChoiceRows] = useState<ClassSkillChoiceRow[]>([]);
+  const [allRaceAsiBonusRows, setAllRaceAsiBonusRows] = useState<RaceAbilityBonusRow[]>([]);
+  const [allRaceAsiOptionRows, setAllRaceAsiOptionRows] = useState<RaceAbilityBonusOptionRow[]>([]);
+  const [allRaceSkillChoiceRows, setAllRaceSkillChoiceRows] = useState<RaceSkillChoiceRow[]>([]);
   const [availableFeats, setAvailableFeats] = useState<FeatRow[]>([]);
   const [pendingChoices, setPendingChoices] = useState<PendingChoice[]>([]);
+  const [racePendingChoices, setRacePendingChoices] = useState<RacePendingChoice[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
@@ -245,7 +253,10 @@ export default function ForgePage({
     getAllClassProficiencies().then(setAllClassProfRows);
     getAllRaceTraits().then(setAllRaceTraitRows);
     getAllClassSkillChoices().then(setAllClassSkillChoiceRows);
-    searchFeats({}).then(setAvailableFeats);
+    getAllRaceAbilityBonuses().then(setAllRaceAsiBonusRows);
+    getAllRaceAbilityBonusOptions().then(setAllRaceAsiOptionRows);
+    getAllRaceSkillChoices().then(setAllRaceSkillChoiceRows);
+    searchFeats().then(setAvailableFeats);
   }, []);
 
   // Auto-save on change with 1.5s debounce
@@ -324,7 +335,8 @@ export default function ForgePage({
     .join(",");
   const raceKey = `${character?.identity.race ?? ""}::${character?.identity.subrace ?? ""}`;
   const bgKey = character?.identity.background ?? "";
-  const srdKey = `${classStateKey}|${raceKey}|${bgKey}`;
+  const raceChoicesKey = (character?.raceChoices ?? []).map((c) => c.id).join(",");
+  const srdKey = `${classStateKey}|${raceKey}|${bgKey}|${raceChoicesKey}`;
 
   useEffect(() => {
     const char = characterRef.current;
@@ -334,7 +346,8 @@ export default function ForgePage({
       allClassFeatureRows.length === 0 ||
       allRaceTraitRows.length === 0 ||
       availableRaces.length === 0 ||
-      availableBackgrounds.length === 0
+      availableBackgrounds.length === 0 ||
+      allRaceAsiBonusRows.length === 0
     ) return;
 
     let updated = char;
@@ -359,7 +372,7 @@ export default function ForgePage({
         const subraceTraits = matchedSubrace
           ? allRaceTraitRows.filter((t) => t.subraceId === matchedSubrace.id)
           : undefined;
-        updated = applyRace(updated, matchedRace, raceTraits, matchedSubrace, subraceTraits);
+        updated = applyRace(updated, matchedRace, raceTraits, allRaceAsiBonusRows, char.raceChoices ?? [], matchedSubrace, subraceTraits);
       }
     }
 
@@ -383,6 +396,7 @@ export default function ForgePage({
     availableRaces,
     availableSubraces,
     availableBackgrounds,
+    allRaceAsiBonusRows,
   ]);
 
   // Derive pending choices whenever character or static data changes.
@@ -400,6 +414,54 @@ export default function ForgePage({
       ),
     );
   }, [character, allClassFeatureRows, allClassSkillChoiceRows]);
+
+  // Derive race pending choices.
+  useEffect(() => {
+    if (!character || availableRaces.length === 0) {
+      setRacePendingChoices([]);
+      return;
+    }
+    const matchedRace = character.identity.race
+      ? availableRaces.find((r) => r.name.toLowerCase() === character.identity.race.toLowerCase())
+      : undefined;
+    setRacePendingChoices(
+      deriveRacePendingChoices(character, matchedRace, allRaceAsiOptionRows, allRaceSkillChoiceRows),
+    );
+  }, [character, availableRaces, allRaceAsiOptionRows, allRaceSkillChoiceRows]);
+
+  function handleConfirmRaceChoice(choices: import("@/lib/types/character").RaceChoiceMade[]) {
+    if (!character) return;
+    const existing = character.raceChoices ?? [];
+    const matchedRace = availableRaces.find(
+      (r) => r.name.toLowerCase() === character.identity.race.toLowerCase(),
+    );
+    const withChoices = { ...character, raceChoices: [...existing, ...choices] };
+    if (matchedRace) {
+      const raceTraits = allRaceTraitRows.filter((t) => t.raceId === matchedRace.id);
+      const matchedSubrace = character.identity.subrace
+        ? availableSubraces.find(
+            (s) =>
+              s.raceId === matchedRace.id &&
+              s.name.toLowerCase() === character.identity.subrace.toLowerCase(),
+          )
+        : undefined;
+      const subraceTraits = matchedSubrace
+        ? allRaceTraitRows.filter((t) => t.subraceId === matchedSubrace.id)
+        : undefined;
+      const applied = applyRace(
+        withChoices,
+        matchedRace,
+        raceTraits,
+        allRaceAsiBonusRows,
+        withChoices.raceChoices ?? [],
+        matchedSubrace,
+        subraceTraits,
+      );
+      replaceCharacter(applied);
+    } else {
+      replaceCharacter(withChoices);
+    }
+  }
 
   function handleConfirmChoice(choices: import("@/lib/types/character").ClassChoiceMade | import("@/lib/types/character").ClassChoiceMade[]) {
     if (!character) return;
@@ -714,6 +776,10 @@ export default function ForgePage({
             />
           </div>
         </div>
+        <RaceChoicesPanel
+          pendingChoices={racePendingChoices}
+          onConfirmChoice={handleConfirmRaceChoice}
+        />
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
           <StringField
             label="Age"

@@ -460,6 +460,62 @@ export const pgSubclasses = pgTable("subclasses", {
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
 
+// ─── Game content: race ability bonuses ──────────────────────────────────────
+
+export const sqliteRaceAbilityBonuses = sqliteTable("race_ability_bonuses", {
+  id: text("id").primaryKey(),
+  system: text("system").notNull(),
+  raceId: text("race_id").references(() => sqliteRaces.id, { onDelete: "cascade" }),
+  subraceId: text("subrace_id").references(() => sqliteSubraces.id, { onDelete: "cascade" }),
+  abilityScore: text("ability_score").notNull(), // "str"|"dex"|"con"|"int"|"wis"|"cha"
+  bonus: integer("bonus").notNull(),
+});
+
+export const pgRaceAbilityBonuses = pgTable("race_ability_bonuses", {
+  id: varchar("id", { length: 150 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  raceId: varchar("race_id", { length: 100 }).references(() => pgRaces.id, { onDelete: "cascade" }),
+  subraceId: varchar("subrace_id", { length: 100 }).references(() => pgSubraces.id, { onDelete: "cascade" }),
+  abilityScore: varchar("ability_score", { length: 10 }).notNull(),
+  bonus: pgInteger("bonus").notNull(),
+});
+
+// choosable ASI pool — e.g. Half-Elf picks +1 to 2 from these
+export const sqliteRaceAbilityBonusOptions = sqliteTable("race_ability_bonus_options", {
+  id: text("id").primaryKey(),
+  system: text("system").notNull(),
+  raceId: text("race_id").notNull().references(() => sqliteRaces.id, { onDelete: "cascade" }),
+  abilityScore: text("ability_score").notNull(),
+  bonus: integer("bonus").notNull(),
+  chooseCount: integer("choose_count").notNull(),
+});
+
+export const pgRaceAbilityBonusOptions = pgTable("race_ability_bonus_options", {
+  id: varchar("id", { length: 150 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  raceId: varchar("race_id", { length: 100 }).notNull().references(() => pgRaces.id, { onDelete: "cascade" }),
+  abilityScore: varchar("ability_score", { length: 10 }).notNull(),
+  bonus: pgInteger("bonus").notNull(),
+  chooseCount: pgInteger("choose_count").notNull(),
+});
+
+// choosable skill proficiencies — e.g. Half-Elf picks 2 from any skill
+export const sqliteRaceSkillChoices = sqliteTable("race_skill_choices", {
+  id: text("id").primaryKey(),
+  system: text("system").notNull(),
+  raceId: text("race_id").notNull().references(() => sqliteRaces.id, { onDelete: "cascade" }),
+  skillKey: text("skill_key").notNull(),
+  chooseCount: integer("choose_count").notNull(),
+});
+
+export const pgRaceSkillChoices = pgTable("race_skill_choices", {
+  id: varchar("id", { length: 150 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  raceId: varchar("race_id", { length: 100 }).notNull().references(() => pgRaces.id, { onDelete: "cascade" }),
+  skillKey: varchar("skill_key", { length: 60 }).notNull(),
+  chooseCount: pgInteger("choose_count").notNull(),
+});
+
 // ─── Game content: feats ──────────────────────────────────────────────────────
 
 export const sqliteFeats = sqliteTable("feats", {

@@ -1,7 +1,10 @@
-import type { CharacterData } from "@/lib/types/character"
+import type { CharacterData, AttributeKey } from "@/lib/types/character"
 import type {
   ClassFeatureRow,
   ClassSkillChoiceRow,
+  RaceAbilityBonusOptionRow,
+  RaceSkillChoiceRow,
+  RaceRow,
 } from "@/lib/actions/5e-data"
 import type { CharacterClassEntry } from "@/lib/types/character"
 
@@ -11,6 +14,18 @@ export type PendingChoice = {
   atLevel: number
   type: "asi" | "skill"
   // skill only
+  skillOptions?: string[]
+  skillsNeeded?: number
+}
+
+export type RacePendingChoice = {
+  raceId: string
+  raceName: string
+  type: "asi" | "skill"
+  // asi: pick from pool
+  asiOptions?: { abilityScore: AttributeKey; bonus: number }[]
+  asiChooseCount?: number
+  // skill
   skillOptions?: string[]
   skillsNeeded?: number
 }
@@ -79,4 +94,63 @@ export function derivePendingChoices(
     if (a.type !== b.type) return a.type === "asi" ? -1 : 1
     return a.atLevel - b.atLevel
   })
+}
+
+export function deriveRacePendingChoices(
+  char: CharacterData,
+  raceRow: RaceRow | undefined,
+  allAsiOptionRows: RaceAbilityBonusOptionRow[],
+  allSkillChoiceRows: RaceSkillChoiceRow[],
+): RacePendingChoice[] {
+  if (!raceRow) return []
+  const pending: RacePendingChoice[] = []
+
+  // ── Choosable ASI bonuses (e.g. Half-Elf +1 to 2 stats) ──────────────────
+  const asiOptions = allAsiOptionRows.filter((r) => r.raceId === raceRow.id)
+  if (asiOptions.length > 0) {
+    const chooseCount = asiOptions[0].chooseCount
+    const madeCount = (char.raceChoices ?? []).filter(
+      (c) => c.raceId === raceRow.id && c.type === "asi",
+    ).length
+    const remaining = chooseCount - madeCount
+    if (remaining > 0) {
+      const alreadyPicked = new Set(
+        (char.raceChoices ?? [])
+          .filter((c) => c.raceId === raceRow.id && c.type === "asi")
+          .map((c) => c.abilityScore),
+      )
+      pending.push({
+        raceId: raceRow.id,
+        raceName: raceRow.name,
+        type: "asi",
+        asiOptions: asiOptions
+          .filter((r) => !alreadyPicked.has(r.abilityScore as AttributeKey))
+          .map((r) => ({ abilityScore: r.abilityScore as AttributeKey, bonus: r.bonus })),
+        asiChooseCount: remaining,
+      })
+    }
+  }
+
+  // ── Skill proficiency choices (e.g. Half-Elf 2 from any) ─────────────────
+  const skillOptions = allSkillChoiceRows.filter((r) => r.raceId === raceRow.id)
+  if (skillOptions.length > 0) {
+    const chooseCount = skillOptions[0].chooseCount
+    const alreadyPicked = new Set(
+      (char.raceChoices ?? [])
+        .filter((c) => c.raceId === raceRow.id && c.type === "skill")
+        .map((c) => c.skillKey),
+    )
+    const needed = chooseCount - alreadyPicked.size
+    if (needed > 0) {
+      pending.push({
+        raceId: raceRow.id,
+        raceName: raceRow.name,
+        type: "skill",
+        skillOptions: skillOptions.filter((r) => !alreadyPicked.has(r.skillKey)).map((r) => r.skillKey),
+        skillsNeeded: needed,
+      })
+    }
+  }
+
+  return pending
 }

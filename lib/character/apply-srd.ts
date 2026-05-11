@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade } from "@/lib/types/character"
 import type {
   RaceRow,
   SubraceRow,
@@ -6,6 +6,7 @@ import type {
   ClassFeatureRow,
   ClassProficiencyRow,
   BackgroundRow,
+  RaceAbilityBonusRow,
 } from "@/lib/actions/5e-data"
 import type { CharacterClassEntry } from "@/lib/types/character"
 
@@ -18,19 +19,38 @@ const SAVE_PROF_NAME_TO_KEY: Record<string, AttributeKey> = {
   "Saving Throw: CHA": "cha",
 }
 
+function clearRaceModifiers(next: CharacterData): void {
+  const ATTR_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
+  for (const key of ATTR_KEYS) {
+    next.attributes[key].stack = next.attributes[key].stack.filter(
+      (m) => !m.sourceId?.startsWith("race:") && !m.sourceId?.startsWith("subrace:"),
+    )
+  }
+  for (const key of Object.keys(next.skills)) {
+    next.skills[key].stack = next.skills[key].stack.filter(
+      (m) => !m.sourceId?.startsWith("race:"),
+    )
+  }
+}
+
 export function applyRace(
   char: CharacterData,
   raceRow: RaceRow,
   raceTraits: RaceTraitRow[],
+  allAsiBonuses: RaceAbilityBonusRow[],
+  raceChoices: RaceChoiceMade[],
   subraceRow?: SubraceRow,
   subraceTraits?: RaceTraitRow[],
 ): CharacterData {
   const next = structuredClone(char)
 
+  // ── Clear old race features + modifiers ──────────────────────────────────
   next.features = next.features.filter(
     (f) => !f.sourceId?.startsWith("race:") && !f.sourceId?.startsWith("subrace:"),
   )
+  clearRaceModifiers(next)
 
+  // ── Race traits ───────────────────────────────────────────────────────────
   for (const trait of raceTraits) {
     next.features.push({
       id: crypto.randomUUID(),
@@ -55,6 +75,72 @@ export function applyRace(
 
   if (raceRow.speed) {
     next.combat.speed.base = raceRow.speed
+  }
+
+  // ── Fixed ASI bonuses (race) ──────────────────────────────────────────────
+  const newRaceAsiBonuses: NonNullable<CharacterData["srdGrants"]>["raceAsiBonuses"] = []
+  const fixedRaceBonuses = allAsiBonuses.filter((b) => b.raceId === raceRow.id && !b.subraceId)
+  for (const bonus of fixedRaceBonuses) {
+    const attrKey = bonus.abilityScore as AttributeKey
+    if (!next.attributes[attrKey]) continue
+    const sourceId = `race:${raceRow.id}:asi`
+    next.attributes[attrKey].stack.push({
+      id: crypto.randomUUID(),
+      source: raceRow.name,
+      sourceId,
+      value: bonus.bonus,
+      isActive: true,
+    })
+    newRaceAsiBonuses.push({ abilityScore: attrKey, bonus: bonus.bonus, sourceId })
+  }
+
+  // ── Fixed ASI bonuses (subrace) ───────────────────────────────────────────
+  if (subraceRow) {
+    const fixedSubraceBonuses = allAsiBonuses.filter((b) => b.subraceId === subraceRow.id)
+    for (const bonus of fixedSubraceBonuses) {
+      const attrKey = bonus.abilityScore as AttributeKey
+      if (!next.attributes[attrKey]) continue
+      const sourceId = `subrace:${subraceRow.id}:asi`
+      next.attributes[attrKey].stack.push({
+        id: crypto.randomUUID(),
+        source: subraceRow.name,
+        sourceId,
+        value: bonus.bonus,
+        isActive: true,
+      })
+      newRaceAsiBonuses.push({ abilityScore: attrKey, bonus: bonus.bonus, sourceId })
+    }
+  }
+
+  next.srdGrants = {
+    saveProficiencies: next.srdGrants?.saveProficiencies ?? [],
+    skillProficiencies: next.srdGrants?.skillProficiencies ?? [],
+    raceAsiBonuses: newRaceAsiBonuses,
+  }
+
+  // ── Prune stale race choices (race changed) ───────────────────────────────
+  const validRaceChoices = raceChoices.filter((c) => c.raceId === raceRow.id)
+  next.raceChoices = validRaceChoices
+
+  // ── Apply choosable ASI choices ───────────────────────────────────────────
+  for (const choice of validRaceChoices) {
+    if (choice.type === "asi" && choice.abilityScore && choice.bonus !== undefined) {
+      const attrKey = choice.abilityScore
+      if (!next.attributes[attrKey]) continue
+      next.attributes[attrKey].stack.push({
+        id: crypto.randomUUID(),
+        source: raceRow.name,
+        sourceId: `race:${raceRow.id}:asi:choice`,
+        value: choice.bonus,
+        isActive: true,
+      })
+    }
+
+    if (choice.type === "skill" && choice.skillKey) {
+      if (next.skills[choice.skillKey]) {
+        next.skills[choice.skillKey].state = "Proficient"
+      }
+    }
   }
 
   return next
