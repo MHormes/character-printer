@@ -43,18 +43,18 @@ export function StatBoxWidget({ statId }: { statId?: string }) {
   const titleLines = wrapTitle(stat.title)
 
   const longest = valueLines.reduce((a, b) => (a.length > b.length ? a : b), "")
-  const fontSize = longest.length > 7 ? 14 : longest.length > 5 ? 18 : longest.length > 3 ? 22 : 28
-  const valueYs = valueLines.length === 1 ? [44] : [35, 53]
-  const labelYs = titleLines.length === 1 ? [86] : [81, 88]
+  const fontSize = longest.length > 7 ? 18 : longest.length > 5 ? 22 : longest.length > 3 ? 28 : 36
+  const valueYs = valueLines.length === 1 ? [76] : [60, 92]
+  const labelYs = titleLines.length === 1 ? [149] : [140, 152]
 
   return (
     <svg
-      viewBox="0 0 130 101"
+      viewBox="0 0 130 172"
       xmlns="http://www.w3.org/2000/svg"
       style={{ display: "block", width: "100%", height: "100%" }}
       preserveAspectRatio="xMidYMid meet"
     >
-      <DndFrame x={3} y={3} w={124} h={95} cornerOff={9} />
+      <DndFrame x={2} y={2} w={126} h={168} cornerOff={10} />
       {valueLines.map((line, i) => (
         <text
           key={i}
@@ -63,13 +63,13 @@ export function StatBoxWidget({ statId }: { statId?: string }) {
           fontSize={fontSize} fontWeight="700" fontFamily={ff} fill="#1a1208"
         >{line}</text>
       ))}
-      <line x1="8" y1="74" x2="122" y2="74" stroke="#1a1208" strokeWidth="0.5" />
+      <line x1="8" y1="128" x2="122" y2="128" stroke="#1a1208" strokeWidth="0.5" />
       {titleLines.map((line, i) => (
         <text
           key={i}
           x="65" y={labelYs[i]}
           textAnchor="middle" dominantBaseline="middle"
-          fontSize="5.5" fontWeight="700" fontFamily={ff} letterSpacing="0.3" fill="#1a1208"
+          fontSize="7" fontWeight="700" fontFamily={ff} letterSpacing="0.5" fill="#1a1208"
         >{line}</text>
       ))}
     </svg>
