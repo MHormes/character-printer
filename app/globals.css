@@ -146,6 +146,8 @@
     position: relative;
     overflow: hidden;
     background: white !important;
+    padding: 5.65mm 4mm; /* Keep 210/297 aspect ratio for inner content */
+    box-sizing: border-box;
     break-after: page;
     page-break-after: always;
   }
@@ -157,7 +159,10 @@
 
   .full-page-print {
     width: 210mm;
+    height: 297mm;
     background: white !important;
+    padding: 5.65mm 4mm;
+    box-sizing: border-box;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
     break-after: page;
@@ -167,6 +172,15 @@
   .full-page-print:last-child {
     break-after: auto;
     page-break-after: auto;
+  }
+
+  .print-page-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: 1px solid #333;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 }
 
@@ -189,5 +203,11 @@
     display: block !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+
+  .print-page-inner {
+    border: 1px solid black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

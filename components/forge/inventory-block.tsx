@@ -343,8 +343,11 @@ export function InventoryBlock({
 
   function handlePickSrdItem(srdItem: ItemRow) {
     const invItem = buildInventoryItem(srdItem);
-    onChange([...inventory, invItem]);
-    onSrdItemSelected?.(srdItem, invItem);
+    if (onSrdItemSelected) {
+      onSrdItemSelected(srdItem, invItem);
+    } else {
+      onChange([...inventory, invItem]);
+    }
     setShowPicker(false);
   }
 

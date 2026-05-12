@@ -277,6 +277,11 @@ export type CharacterData = {
   canvas: {
     pages: CanvasPage[];
   };
+  automationKeys?: {
+    srdClassKey?: string;
+    srdRaceKey?: string;
+    srdBackgroundKey?: string;
+  };
   srdGrants?: SrdGrants;
   classChoices?: ClassChoiceMade[];
   raceChoices?: RaceChoiceMade[];

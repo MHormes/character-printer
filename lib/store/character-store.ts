@@ -286,6 +286,7 @@ export const useCharacterStore = create<CharacterStore>()(
     replaceCharacter: (data) =>
       set((state) => {
         state.character = data;
+        if (data) syncInventoryToStacks(state.character as unknown as CharacterData, data.inventory);
         state.isDirty = true;
       }),
   }))

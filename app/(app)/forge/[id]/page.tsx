@@ -343,15 +343,24 @@ export default function ForgePage({
     .filter((c) => c.classId)
     .map((c) => `${c.classId}:${c.level}`)
     .join(",");
+  const classChoicesKey = (character?.classChoices ?? [])
+    .map((c) => `${c.id}:${c.type}:${c.featId || c.skillKey || "asi"}`)
+    .join(",");
+  const fullClassKey = `${classStateKey}|${classChoicesKey}`;
+
   const raceKey = `${character?.identity.race ?? ""}::${character?.identity.subrace ?? ""}`;
+  const raceChoicesKey = (character?.raceChoices ?? [])
+    .map((c) => `${c.id}:${c.type}:${c.skillKey || "asi"}`)
+    .join(",");
+  const fullRaceKey = `${raceKey}|${raceChoicesKey}`;
+
   const bgKey = character?.identity.background ?? "";
-  const raceChoicesKey = (character?.raceChoices ?? []).map((c) => c.id).join(",");
   const ignoreKey = `${character?.selectionIgnores?.race ? "race-off" : "race-on"}|${character?.selectionIgnores?.background ? "bg-off" : "bg-on"}`;
-  const srdKey = `${classStateKey}|${raceKey}|${bgKey}|${raceChoicesKey}|${ignoreKey}`;
+  
+  const srdKey = `${fullClassKey}|${fullRaceKey}|${bgKey}|${ignoreKey}`;
 
   useEffect(() => {
     const char = characterRef.current;
-    // Wait until all static data has loaded and character is available.
     if (
       !char ||
       allClassFeatureRows.length === 0 ||
@@ -361,50 +370,88 @@ export default function ForgePage({
       allRaceAsiBonusRows.length === 0
     ) return;
 
-    let updated = char;
+    let updated = structuredClone(char);
+    let changed = false;
 
     // 1. Class features + primary-class saving throw proficiencies
-    updated = applyClasses(updated, char.identity.classes, allClassFeatureRows, allClassProfRows);
+    if (char.automationKeys?.srdClassKey !== fullClassKey) {
+      updated = applyClasses(
+        updated, 
+        char.identity.classes, 
+        allClassFeatureRows, 
+        allClassProfRows, 
+        char.automationKeys?.srdClassKey
+      );
+      updated.automationKeys = { ...updated.automationKeys, srdClassKey: fullClassKey };
+      changed = true;
+    }
 
-    // 1b. Starting equipment (fixed grants, clears stale items on class change)
-    if (allClassStartEquipRows.length > 0) {
-      updated = applyClassStartingEquipment(updated, char.identity.classes, allClassStartEquipRows);
+    // 1b. Starting equipment
+    if (allClassStartEquipRows.length > 0 && char.automationKeys?.srdClassKey !== fullClassKey) {
+      updated = applyClassStartingEquipment(
+        updated, 
+        char.identity.classes, 
+        allClassStartEquipRows, 
+        char.automationKeys?.srdClassKey
+      );
+      changed = true;
     }
 
     // 2. Race traits + speed
-    if (char.identity.race && !char.selectionIgnores?.race) {
-      const matchedRace = availableRaces.find(
-        (r) => r.name.toLowerCase() === char.identity.race.toLowerCase(),
-      );
-      if (matchedRace) {
-        const raceTraits = allRaceTraitRows.filter((t) => t.raceId === matchedRace.id);
-        const matchedSubrace = char.identity.subrace
-          ? availableSubraces.find(
-              (s) =>
-                s.raceId === matchedRace.id &&
-                s.name.toLowerCase() === char.identity.subrace.toLowerCase(),
-            )
-          : undefined;
-        const subraceTraits = matchedSubrace
-          ? allRaceTraitRows.filter((t) => t.subraceId === matchedSubrace.id)
-          : undefined;
-        updated = applyRace(updated, matchedRace, raceTraits, allRaceAsiBonusRows, char.raceChoices ?? [], matchedSubrace, subraceTraits);
+    const currentRaceKey = char.selectionIgnores?.race ? "ignored" : fullRaceKey;
+    if (char.automationKeys?.srdRaceKey !== currentRaceKey) {
+      if (char.identity.race && !char.selectionIgnores?.race) {
+        const matchedRace = availableRaces.find(
+          (r) => r.name.toLowerCase() === char.identity.race.toLowerCase(),
+        );
+        if (matchedRace) {
+          const raceTraits = allRaceTraitRows.filter((t) => t.raceId === matchedRace.id);
+          const matchedSubrace = char.identity.subrace
+            ? availableSubraces.find(
+                (s) =>
+                  s.raceId === matchedRace.id &&
+                  s.name.toLowerCase() === char.identity.subrace.toLowerCase(),
+              )
+            : undefined;
+          const subraceTraits = matchedSubrace
+            ? allRaceTraitRows.filter((t) => t.subraceId === matchedSubrace.id)
+            : undefined;
+          updated = applyRace(
+            updated, 
+            matchedRace, 
+            raceTraits, 
+            allRaceAsiBonusRows, 
+            char.raceChoices ?? [], 
+            char.automationKeys?.srdRaceKey,
+            matchedSubrace, 
+            subraceTraits
+          );
+        }
+      } else {
+        updated = clearRaceAutomation(updated);
       }
-    } else {
-      updated = clearRaceAutomation(updated);
+      updated.automationKeys = { ...updated.automationKeys, srdRaceKey: currentRaceKey };
+      changed = true;
     }
 
     // 3. Background skill proficiencies
-    if (char.identity.background && !char.selectionIgnores?.background) {
-      const bgRow = availableBackgrounds.find(
-        (b) => b.name.toLowerCase() === char.identity.background.toLowerCase(),
-      );
-      if (bgRow) updated = applyBackground(updated, bgRow);
-    } else {
-      updated = clearBackgroundAutomation(updated);
+    const currentBgKey = char.selectionIgnores?.background ? "ignored" : bgKey;
+    if (updated.automationKeys?.srdBackgroundKey !== currentBgKey) {
+      if (char.identity.background && !char.selectionIgnores?.background) {
+        const bgRow = availableBackgrounds.find(
+          (b) => b.name.toLowerCase() === char.identity.background.toLowerCase(),
+        );
+        if (bgRow) updated = applyBackground(updated, bgRow);
+      } else {
+        updated = clearBackgroundAutomation(updated);
+      }
+      updated.automationKeys = { ...updated.automationKeys, srdBackgroundKey: currentBgKey };
+      changed = true;
     }
 
-    replaceCharacter(updated);
+    if (changed) {
+      replaceCharacter(updated);
+    }
   // srdKey captures all identity-level changes; static arrays change once at load.
   // Intentionally omitting `character` to avoid infinite loops.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -468,35 +515,7 @@ export default function ForgePage({
   function handleConfirmRaceChoice(choices: import("@/lib/types/character").RaceChoiceMade[]) {
     if (!character) return;
     const existing = character.raceChoices ?? [];
-    const matchedRace = availableRaces.find(
-      (r) => r.name.toLowerCase() === character.identity.race.toLowerCase(),
-    );
-    const withChoices = { ...character, raceChoices: [...existing, ...choices] };
-    if (matchedRace) {
-      const raceTraits = allRaceTraitRows.filter((t) => t.raceId === matchedRace.id);
-      const matchedSubrace = character.identity.subrace
-        ? availableSubraces.find(
-            (s) =>
-              s.raceId === matchedRace.id &&
-              s.name.toLowerCase() === character.identity.subrace.toLowerCase(),
-          )
-        : undefined;
-      const subraceTraits = matchedSubrace
-        ? allRaceTraitRows.filter((t) => t.subraceId === matchedSubrace.id)
-        : undefined;
-      const applied = applyRace(
-        withChoices,
-        matchedRace,
-        raceTraits,
-        allRaceAsiBonusRows,
-        withChoices.raceChoices ?? [],
-        matchedSubrace,
-        subraceTraits,
-      );
-      replaceCharacter(applied);
-    } else {
-      replaceCharacter(withChoices);
-    }
+    replaceCharacter({ ...character, raceChoices: [...existing, ...choices] });
   }
 
   function handleDismissClassChoice(choiceKey: string) {
@@ -576,7 +595,7 @@ export default function ForgePage({
       const propPart = props.filter((p) => p !== "Versatile").join(", ");
       const notes = [rangePart, propPart].filter(Boolean).join(" · ");
 
-      next.actions.unshift({
+      next.actions.push({
         id: crypto.randomUUID(),
         name: srdItem.name,
         mode: "Attack",
@@ -666,128 +685,27 @@ export default function ForgePage({
     if (!character) return;
     const incoming = Array.isArray(choices) ? choices : [choices];
     const existing = character.classChoices ?? [];
-    const withChoices = { ...character, classChoices: [...existing, ...incoming] };
-    const applied = applyClasses(withChoices, withChoices.identity.classes, allClassFeatureRows, allClassProfRows);
-    replaceCharacter(applied);
+    replaceCharacter({ ...character, classChoices: [...existing, ...incoming] });
   }
 
   function applyItemFromSrd(srdItem: ItemRow, invItem: InventoryItem) {
-    void invItem;
     if (!character) return;
-    replaceCharacter(applyItemFromSrdToCharacter(character, srdItem)!);
-    return;
-    const currentCharacter = character;
 
-    const isWeapon = srdItem.equipmentCategory === "Weapon"
-    const isArmor = srdItem.armorCategory !== null && srdItem.armorCategory !== "Shield"
+    // Start with a character that already has the item in inventory
+    const withItem: CharacterData = {
+      ...character,
+      inventory: [...character.inventory, invItem],
+    };
 
-    // Weapon → create ActionEntry
-    if (isWeapon && srdItem.damageDiceCount && srdItem.damageDieType) {
-      const props: string[] = srdItem.properties ? JSON.parse(srdItem.properties!) : []
-      const isFinesse = props.includes("Finesse")
-      const isRanged = srdItem.weaponRange === "Ranged"
-      const atkStat: ActionEntry["attackStat"] = isRanged ? "dex" : "str"
-
-      const primaryDmg: DamageEntry = {
-        diceCount: srdItem.damageDiceCount!,
-        dieType: srdItem.damageDieType as DieType,
-        stat: isFinesse || isRanged ? "dex" : "str",
-        flatBonus: 0,
-        type: srdItem.damageType ?? "Bludgeoning",
-        active: true,
-      }
-
-      const damageStack: DamageEntry[] = [primaryDmg]
-
-      // Versatile second entry (inactive by default)
-      if (srdItem.twoHandedDiceCount && srdItem.twoHandedDieType) {
-        damageStack.push({
-          diceCount: srdItem.twoHandedDiceCount!,
-          dieType: srdItem.twoHandedDieType as DieType,
-          stat: "str",
-          flatBonus: 0,
-          type: srdItem.twoHandedDamageType ?? primaryDmg.type,
-          active: false,
-        })
-      }
-
-      const rangePart = srdItem.rangeNormal
-        ? `Range ${srdItem.rangeNormal}${srdItem.rangeLong ? `/${srdItem.rangeLong}` : ""} ft`
-        : ""
-      const propPart = props.filter((p) => p !== "Versatile").join(", ")
-      const notes = [rangePart, propPart].filter(Boolean).join(" · ")
-
-      const action: ActionEntry = {
-        id: crypto.randomUUID(),
-        name: srdItem.name,
-        mode: "Attack",
-        attackStat: atkStat,
-        attackProficient: true,
-        attackBonus: 0,
-        fixedDC: null,
-        damageStack,
-        notes,
-      }
-
-      if (currentCharacter) setActions([action, ...currentCharacter!.actions])
-    }
-
-    // Armor (non-shield) → configure AC formula
-    if (isArmor && srdItem.acBase !== null && currentCharacter) {
-      const acCategory = srdItem.armorCategory! // "Light" | "Medium" | "Heavy"
-      const addsDex = acCategory !== "Heavy"
-      setAc({
-        ...currentCharacter!.combat.ac,
-        mode: "Formula",
-        base: srdItem.acBase!,
-        statA: addsDex ? "dex" : null,
-        statB: null,
-      })
-    }
-
-    // Description → FeatureEntry
-    if (srdItem.description && currentCharacter) {
-      const feature: FeatureEntry = {
-        id: crypto.randomUUID(),
-        name: srdItem.name,
-        source: srdItem.equipmentCategory,
-        description: srdItem.description!,
-      }
-      setFeatures([...currentCharacter!.features, feature])
-    }
-
-    // Charges in description → TrackerEntry
-    if (srdItem.description && currentCharacter) {
-      const chargeMatch = srdItem.description!.match(/(\d+)\s+charges?/i)
-      if (chargeMatch) {
-        const maxCharges = parseInt(chargeMatch![1], 10)
-        const desc = srdItem.description!.toLowerCase()
-        const reset: TrackerEntry["reset"] = desc.includes("dawn")
-          ? "Dawn"
-          : desc.includes("long rest")
-          ? "Long Rest"
-          : desc.includes("short rest")
-          ? "Short Rest"
-          : "Special"
-
-        const tracker: TrackerEntry = {
-          id: crypto.randomUUID(),
-          name: srdItem.name,
-          base: maxCharges,
-          baseSource: { kind: "fixed" },
-          stack: [],
-          reset,
-          override: null,
-          valueLabel: "charges",
-        }
-        setTrackers([...currentCharacter!.trackers, tracker])
-      }
+    // Apply SRD-specific effects (attacks, AC modes, features, etc)
+    const updated = applyItemFromSrdToCharacter(withItem, srdItem);
+    if (updated) {
+      replaceCharacter(updated);
     }
   }
 
   if (!character)
-    return (
-      <main className="flex min-h-screen items-center justify-center">
+    return (      <main className="flex min-h-screen items-center justify-center">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </main>
     );

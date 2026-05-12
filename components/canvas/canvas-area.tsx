@@ -874,34 +874,38 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
             onClick={() => setSelected(null)}
           >
             <div
-              id="canvas-editor"
-              ref={setGridRef}
-              className="relative aspect-[210/297] w-full max-w-5xl overflow-visible bg-card shadow-lg"
-              style={{
-                backgroundImage: [
-                  "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
-                  "linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)",
-                ].join(", "),
-                backgroundSize: `${100 / cols}% ${100 / rows}%`,
-              }}
+              className="relative aspect-[210/297] w-full max-w-5xl bg-card shadow-lg py-[5.65mm] px-[4mm] box-border"
               onClick={(e) => e.stopPropagation()}
             >
-              {widgets.map((widget) => (
-                <PlacedWidget
-                  key={widget.id}
-                  widget={widget}
-                  cols={cols}
-                  rows={rows}
-                  selected={selectedId === widget.id}
-                  onSelect={(e) => {
-                    e.stopPropagation();
-                    setSelected(widget.id);
-                  }}
-                  onRotate={() => rotateWidget(widget.id)}
-                  onToggleLock={() => toggleLock(widget.id)}
-                  onDelete={() => removeWidget(widget.id)}
-                />
-              ))}
+              <div
+                id="canvas-editor"
+                ref={setGridRef}
+                className="relative h-full w-full border border-border overflow-visible"
+                style={{
+                  backgroundImage: [
+                    "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
+                    "linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)",
+                  ].join(", "),
+                  backgroundSize: `${100 / cols}% ${100 / rows}%`,
+                }}
+              >
+                {widgets.map((widget) => (
+                  <PlacedWidget
+                    key={widget.id}
+                    widget={widget}
+                    cols={cols}
+                    rows={rows}
+                    selected={selectedId === widget.id}
+                    onSelect={(e) => {
+                      e.stopPropagation();
+                      setSelected(widget.id);
+                    }}
+                    onRotate={() => rotateWidget(widget.id)}
+                    onToggleLock={() => toggleLock(widget.id)}
+                    onDelete={() => removeWidget(widget.id)}
+                  />
+                ))}
+              </div>
             </div>
 
             {/* Floating prev arrow */}
@@ -944,28 +948,9 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                   const pageRows = rowsForCols(page.cols);
                   return (
                     <div key={page.id} className="full-page-print">
-                      <PlacedWidget
-                        widget={fullPageWidget}
-                        cols={page.cols}
-                        rows={pageRows}
-                        selected={false}
-                        printMode
-                        onSelect={() => {}}
-                        onRotate={() => {}}
-                        onToggleLock={() => {}}
-                        onDelete={() => {}}
-                      />
-                    </div>
-                  );
-                }
-                return (
-                  <div key={page.id} className="print-page">
-                    {(() => {
-                      const pageRows = rowsForCols(page.cols);
-                      return page.widgets.map((widget) => (
+                      <div className="print-page-inner">
                         <PlacedWidget
-                          key={widget.id}
-                          widget={widget}
+                          widget={fullPageWidget}
                           cols={page.cols}
                           rows={pageRows}
                           selected={false}
@@ -975,8 +960,31 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                           onToggleLock={() => {}}
                           onDelete={() => {}}
                         />
-                      ));
-                    })()}
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={page.id} className="print-page">
+                    <div className="print-page-inner">
+                      {(() => {
+                        const pageRows = rowsForCols(page.cols);
+                        return page.widgets.map((widget) => (
+                          <PlacedWidget
+                            key={widget.id}
+                            widget={widget}
+                            cols={page.cols}
+                            rows={pageRows}
+                            selected={false}
+                            printMode
+                            onSelect={() => {}}
+                            onRotate={() => {}}
+                            onToggleLock={() => {}}
+                            onDelete={() => {}}
+                          />
+                        ));
+                      })()}
+                    </div>
                   </div>
                 );
               })}

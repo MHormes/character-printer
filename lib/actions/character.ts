@@ -51,6 +51,7 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
     dismissedClassChoiceKeys: data.dismissedClassChoiceKeys ?? defaults.dismissedClassChoiceKeys,
     dismissedRaceChoiceKeys: data.dismissedRaceChoiceKeys ?? defaults.dismissedRaceChoiceKeys,
     dismissedEquipmentChoiceKeys: data.dismissedEquipmentChoiceKeys ?? defaults.dismissedEquipmentChoiceKeys,
+    automationKeys: data.automationKeys,
     identity: {
       ...defaults.identity,
       ...data.identity,
