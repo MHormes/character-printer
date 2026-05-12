@@ -326,6 +326,49 @@ export async function searchFeats(
     .limit(60);
 }
 
+// ─── Cross-table feature search ───────────────────────────────────────────────
+
+export type SrdFeatureResult = {
+  id: string
+  name: string
+  description: string
+  category: "Feat" | "Class Feature" | "Race Trait"
+}
+
+export async function searchSrdFeatures(
+  name?: string,
+  system = "dnd5e",
+): Promise<SrdFeatureResult[]> {
+  const nameFilter = name ? `%${name}%` : undefined
+
+  const [feats, classFeatures, raceTraits] = await Promise.all([
+    anyDb
+      .select()
+      .from(sqliteFeats)
+      .where(and(eq(sqliteFeats.system, system), nameFilter ? like(sqliteFeats.name, nameFilter) : undefined))
+      .orderBy(asc(sqliteFeats.name))
+      .limit(20),
+    anyDb
+      .select()
+      .from(sqliteClassFeatures)
+      .where(and(eq(sqliteClassFeatures.system, system), nameFilter ? like(sqliteClassFeatures.name, nameFilter) : undefined))
+      .orderBy(asc(sqliteClassFeatures.name))
+      .limit(20),
+    anyDb
+      .select()
+      .from(sqliteRaceTraits)
+      .where(and(eq(sqliteRaceTraits.system, system), nameFilter ? like(sqliteRaceTraits.name, nameFilter) : undefined))
+      .orderBy(asc(sqliteRaceTraits.name))
+      .limit(20),
+  ])
+
+  return [
+    ...feats.map((f: typeof sqliteFeats.$inferSelect) => ({ id: f.id, name: f.name, description: f.description, category: "Feat" as const })),
+    ...classFeatures.map((f: typeof sqliteClassFeatures.$inferSelect) => ({ id: f.id, name: f.name, description: f.description, category: "Class Feature" as const })),
+    ...raceTraits.map((f: typeof sqliteRaceTraits.$inferSelect) => ({ id: f.id, name: f.name, description: f.description, category: "Race Trait" as const })),
+  ].sort((a, b) => a.name.localeCompare(b.name))
+}
+
 // ─── Class features ───────────────────────────────────────────────────────────
 
 export async function getClassFeatures(
