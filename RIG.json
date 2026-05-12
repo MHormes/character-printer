@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "usage_rule": "Consult this map to locate modules before performing surgical file reads."
+  },
+  "nodes": {
+    "UI": {
+      "path": "components/",
+      "description": "Shadcn UI base components, domain-specific widgets for canvas and forge.",
+      "sub_modules": ["canvas/", "forge/", "ui/"]
+    },
+    "APIs": {
+      "path": "lib/actions/",
+      "description": "Next.js Server Actions for character, user, and canvas template management.",
+      "files": ["character.ts", "user.ts", "canvas-template.ts", "5e-data.ts"]
+    },
+    "DataModels": {
+      "path": "lib/db/",
+      "description": "Drizzle schema definitions and database client configuration.",
+      "files": ["schema.ts", "client.ts"]
+    },
+    "BusinessLogic": {
+      "path": "lib/character/",
+      "description": "Core D&D 5e mechanics, calculations, and SRD application logic.",
+      "files": ["calculations.ts", "apply-srd.ts", "modifier-sync.ts"]
+    },
+    "StateManagement": {
+      "path": "lib/store/",
+      "description": "Zustand stores for client-side state (canvas and character).",
+      "files": ["character-store.ts", "canvas-store.ts"]
+    }
+  },
+  "entry_points": [
+    "app/page.tsx",
+    "app/(app)/canvas/page.tsx",
+    "app/(app)/forge/[id]/page.tsx",
+    "app/(app)/characters/page.tsx"
+  ],
+  "edges": [
+    { "from": "app/", "to": "components/", "relation": "renders" },
+    { "from": "app/", "to": "lib/actions/", "relation": "calls" },
+    { "from": "lib/actions/", "to": "lib/db/", "relation": "persists" },
+    { "from": "lib/actions/", "to": "lib/character/", "relation": "computes" },
+    { "from": "components/", "to": "lib/store/", "relation": "consumes" }
+  ]
+}

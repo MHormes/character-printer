@@ -1,3 +1,34 @@
+# Character Printer AI Instructions
+
+Foundational mandates for AI agents working on the Character Printer project.
+
+## Navigation & Architecture
+- **Navigation Rule:** Consult `RIG.json` first for architectural dependencies. Do not guess paths.
+- **Hierarchy Rule:** Local `AGENTS.md` files in sub-folders take precedence for localized logic.
+- **Map Maintenance:** If you change the project structure (adding/moving/deleting files), your final step must be to run:
+  `npx repomix --style json --no-files --output RIG.json`
+
+## Core Context
+- **Project Goal:** A D&D character sheet engine that is easy to update and easy to print.
+- **Direct References:** See `ideation.md` for detailed technical specifications, math formulas, and the JSON schema. **Always refer to `ideation.md` before implementing character logic.** Refer to `README.md` for setup and environment details.
+
+## Efficiency Protocol: Plan First
+- **Mandate:** For any complex task (multi-file changes, new features, or bug fixes), you MUST create a `.plan` file (e.g., `tasks/your-task.plan`) before writing code.
+- **Goal:** Minimize token usage by avoiding reading unrelated modules and strictly defining the scope of changes. Read only the minimum files necessary.
+
+## Directory Map
+- `/app`: Next.js App Router pages and layouts.
+  - `(app)`: The main application (Canvas, Forge, Character List).
+  - `(auth)`: Login and Registration.
+- `/components/canvas`: The layout engine and the printable "widgets".
+- `/components/forge`: The data-entry sections and fields.
+- `/components/ui`: Base shadcn/ui components.
+- `/lib/actions`: Server Actions for database and user operations.
+- `/lib/character`: Core business logic (math, modifier stacks, calculations).
+- `/lib/store`: Zustand stores (Single source of truth for the frontend).
+- `/lib/db`: Drizzle schema, client, and migrations.
+- `/lib/types`: TypeScript definitions.
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
