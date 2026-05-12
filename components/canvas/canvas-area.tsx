@@ -874,13 +874,13 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
             onClick={() => setSelected(null)}
           >
             <div
-              className="relative aspect-[210/297] w-full max-w-5xl bg-card shadow-lg py-[5.65mm] px-[4mm] box-border"
+              className="relative aspect-[210/297] w-full max-w-5xl bg-card shadow-lg py-[2.825mm] px-[2mm] box-border"
               onClick={(e) => e.stopPropagation()}
             >
               <div
                 id="canvas-editor"
                 ref={setGridRef}
-                className="relative h-full w-full border border-border overflow-visible"
+                className="relative h-full w-full overflow-visible"
                 style={{
                   backgroundImage: [
                     "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
