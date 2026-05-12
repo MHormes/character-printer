@@ -21,20 +21,11 @@ import { DeathSavesWidget } from "./death-saves-widget";
 import { SlimAttacksWidget } from "./slim-attacks-widget";
 import { FeaturesWidget } from "./features-widget";
 import { EquipmentWidget, equipmentSvgH } from "./equipment-widget";
+import { StatBoxWidget } from "./stat-box-widget";
 
 // Mirrors TEMPLATE_PAGE1_WIDGETS exactly (28 cols × 40 rows, A4 ratio)
 const C = 28;
 const R = 40;
-
-function slot(col: number, row: number, w: number, h: number): CSSProperties {
-  return {
-    position: "absolute",
-    left: `${(col / C) * 100}%`,
-    top: `${(row / R) * 100}%`,
-    width: `${(w / C) * 100}%`,
-    height: `${(h / R) * 100}%`,
-  };
-}
 
 export function FullPageMainWidget() {
   const character = useCharacterStore((s) => s.character);
@@ -52,7 +43,7 @@ export function FullPageMainWidget() {
       <div style={slot(3, 2, 7, 2)}><ProficiencyWidget /></div>
       <div style={slot(3, 4, 5, 4)}><SavingThrowsWidget /></div>
       <div style={slot(3, 8, 7, 13)}><SkillsWidget /></div>
-      <div style={slot(0, 21, 8, 2)}><PassivePerceptionWidget /></div>
+      <div style={slot(0, 21, 8, 2, 180)}><PassivePerceptionWidget /></div>
       <div style={slot(0, 23, 10, 3)}><SlimToolProfWidget /></div>
       <div style={slot(0, 26, 10, 4)}><SlimOtherProfWidget /></div>
       <div style={slot(10, 0, 3, 4)}><ArmorClassWidget /></div>
@@ -66,6 +57,20 @@ export function FullPageMainWidget() {
       <div style={slot(10, 12, 9, 3)}><SlimAttacksWidget /></div>
       <div style={slot(19, 7, 6, 19)}><FeaturesWidget /></div>
       <div style={slot(10, 15, 9, equipH)}><EquipmentWidget /></div>
+      <div style={slot(25, 0, 3, 4)}><StatBoxWidget statId={character.statBoxes[0]?.id} /></div>
+      <div style={slot(25, 4, 3, 4)}><StatBoxWidget statId={character.statBoxes[1]?.id} /></div>
+      <div style={slot(25, 8, 3, 4)}><StatBoxWidget statId={character.statBoxes[2]?.id} /></div>
     </div>
   );
+}
+
+function slot(col: number, row: number, w: number, h: number, rotation: number = 0): CSSProperties {
+  return {
+    position: "absolute",
+    left: `${(col / C) * 100}%`,
+    top: `${(row / R) * 100}%`,
+    width: `${(w / C) * 100}%`,
+    height: `${(h / R) * 100}%`,
+    transform: rotation ? `rotate(${rotation}deg)` : undefined,
+  };
 }

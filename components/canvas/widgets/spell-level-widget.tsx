@@ -53,7 +53,7 @@ export function SpellLevelBlock({ level }: { level: number }) {
       viewBox={`0 0 ${SVG_W} ${svgH}`}
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="xMidYMin meet"
-      style={{ display: "block", width: "100%", height: "100%" }}
+      style={{ display: "block", width: "100%" }}
     >
       <defs>
         <clipPath id={clipId}>

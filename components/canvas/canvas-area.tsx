@@ -255,9 +255,39 @@ const TEMPLATE_PAGE1_WIDGETS = [
     col: 10,
     row: 15,
     w: 9,
-    h: 25,
+    h: 23,
     rotation: 0,
-    locked: true,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "StatBox",
+    col: 25,
+    row: 0,
+    w: 3,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "StatBox",
+    col: 25,
+    row: 4,
+    w: 3,
+    h: 4,
+    rotation: 0,
+    locked: false,
+    printState: "Calculated",
+  },
+  {
+    type: "StatBox",
+    col: 25,
+    row: 8,
+    w: 3,
+    h: 4,
+    rotation: 0,
+    locked: false,
     printState: "Calculated",
   },
 ] as const;
@@ -382,8 +412,8 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     const count =
       character?.spells.list.filter((s) => s.level === level).length ?? 0;
     return Math.max(
-      1,
-      Math.round((spellLevelSvgH(count) * 8 * rows * 210) / (cols * 297 * 120)),
+      count > 0 ? 3 : 2,
+      Math.round((spellLevelSvgH(count) * 9 * rows * 210) / (cols * 297 * 120)),
     );
   };
 
@@ -505,14 +535,14 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     {
       type: "SpellLevel0" as const,
       label: "Cantrips",
-      w: 8,
+      w: 9,
       h: spellLevelH(0),
     },
-    { type: "SpellLevel1" as const, label: "Level 1", w: 8, h: spellLevelH(1) },
-    { type: "SpellLevel2" as const, label: "Level 2", w: 8, h: spellLevelH(2) },
-    { type: "SpellLevel3" as const, label: "Level 3", w: 8, h: spellLevelH(3) },
-    { type: "SpellLevel4" as const, label: "Level 4", w: 8, h: spellLevelH(4) },
-    { type: "SpellLevel5" as const, label: "Level 5", w: 8, h: spellLevelH(5) },
+    { type: "SpellLevel1" as const, label: "Level 1", w: 9, h: spellLevelH(1) },
+    { type: "SpellLevel2" as const, label: "Level 2", w: 9, h: spellLevelH(2) },
+    { type: "SpellLevel3" as const, label: "Level 3", w: 9, h: spellLevelH(3) },
+    { type: "SpellLevel4" as const, label: "Level 4", w: 9, h: spellLevelH(4) },
+    { type: "SpellLevel5" as const, label: "Level 5", w: 9, h: spellLevelH(5) },
     { type: "SpellLevel6" as const, label: "Level 6", w: 8, h: spellLevelH(6) },
     { type: "SpellLevel7" as const, label: "Level 7", w: 8, h: spellLevelH(7) },
     { type: "SpellLevel8" as const, label: "Level 8", w: 8, h: spellLevelH(8) },
@@ -521,7 +551,12 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
   const gridDomRef = useRef<HTMLDivElement>(null);
   const [activeData, setActiveData] = useState<ActiveData | null>(null);
-  const [dropPreview, setDropPreview] = useState<{ col: number; row: number; w: number; h: number } | null>(null);
+  const [dropPreview, setDropPreview] = useState<{
+    col: number;
+    row: number;
+    w: number;
+    h: number;
+  } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -805,27 +840,50 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
     if (data.source === "palette") {
       const translated = active.rect.current?.translated;
-      if (!translated) { setDropPreview(null); return; }
+      if (!translated) {
+        setDropPreview(null);
+        return;
+      }
       const midX = translated.left + translated.width / 2;
       const midY = translated.top + translated.height / 2;
-      if (midX < gridRect.left || midX > gridRect.right || midY < gridRect.top || midY > gridRect.bottom) {
+      if (
+        midX < gridRect.left ||
+        midX > gridRect.right ||
+        midY < gridRect.top ||
+        midY > gridRect.bottom
+      ) {
         setDropPreview(null);
         return;
       }
       const w = data.w ?? 1;
       const h = data.h ?? 1;
       setDropPreview({
-        col: Math.max(0, Math.min(Math.floor((midX - gridRect.left) / cellW), cols - w)),
-        row: Math.max(0, Math.min(Math.floor((midY - gridRect.top) / cellH), rows - h)),
+        col: Math.max(
+          0,
+          Math.min(Math.floor((midX - gridRect.left) / cellW), cols - w),
+        ),
+        row: Math.max(
+          0,
+          Math.min(Math.floor((midY - gridRect.top) / cellH), rows - h),
+        ),
         w,
         h,
       });
     } else if (data.source === "canvas" && data.widgetId) {
       const widget = widgets.find((w) => w.id === data.widgetId);
-      if (!widget || widget.locked) { setDropPreview(null); return; }
+      if (!widget || widget.locked) {
+        setDropPreview(null);
+        return;
+      }
       setDropPreview({
-        col: Math.max(0, Math.min(widget.col + Math.round(delta.x / cellW), cols - widget.w)),
-        row: Math.max(0, Math.min(widget.row + Math.round(delta.y / cellH), rows - widget.h)),
+        col: Math.max(
+          0,
+          Math.min(widget.col + Math.round(delta.x / cellW), cols - widget.w),
+        ),
+        row: Math.max(
+          0,
+          Math.min(widget.row + Math.round(delta.y / cellH), rows - widget.h),
+        ),
         w: widget.w,
         h: widget.h,
       });
