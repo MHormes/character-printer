@@ -11,6 +11,7 @@ import {
   useSensors,
   useDroppable,
   type DragEndEvent,
+  type DragMoveEvent,
   type DragStartEvent,
   type Modifier,
 } from "@dnd-kit/core";
@@ -40,31 +41,17 @@ import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
 import { featureCardGridH } from "@/components/canvas/widgets/feature-card-widget";
 import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
 
-const centerOnCursor: Modifier = ({
+const topLeftOnCursor: Modifier = ({
   activatorEvent,
   activeNodeRect,
-  draggingNodeRect,
   transform,
 }) => {
-  if (
-    draggingNodeRect &&
-    activeNodeRect &&
-    activatorEvent &&
-    "clientX" in activatorEvent
-  ) {
+  if (activeNodeRect && activatorEvent && "clientX" in activatorEvent) {
     const e = activatorEvent as PointerEvent;
     return {
       ...transform,
-      x:
-        transform.x +
-        e.clientX -
-        activeNodeRect.left -
-        draggingNodeRect.width / 2,
-      y:
-        transform.y +
-        e.clientY -
-        activeNodeRect.top -
-        draggingNodeRect.height / 2,
+      x: transform.x + e.clientX - activeNodeRect.left,
+      y: transform.y + e.clientY - activeNodeRect.top,
     };
   }
   return transform;
@@ -534,6 +521,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
   const gridDomRef = useRef<HTMLDivElement>(null);
   const [activeData, setActiveData] = useState<ActiveData | null>(null);
+  const [dropPreview, setDropPreview] = useState<{ col: number; row: number; w: number; h: number } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -551,10 +539,12 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
   function handleDragStart(e: DragStartEvent) {
     setActiveData(e.active.data.current as ActiveData);
+    setDropPreview(null);
   }
 
   function handleDragEnd(e: DragEndEvent) {
     setActiveData(null);
+    setDropPreview(null);
     const { active, delta } = e;
     const data = active.data.current as ActiveData;
     if (!gridDomRef.current) return;
@@ -804,10 +794,45 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     }
   }
 
-  const activeWidget =
-    activeData?.source === "canvas" && activeData.widgetId
-      ? widgets.find((w) => w.id === activeData.widgetId)
-      : null;
+  function handleDragMove(e: DragMoveEvent) {
+    const { active, delta } = e;
+    const data = active.data.current as ActiveData;
+    if (!gridDomRef.current) return;
+
+    const gridRect = gridDomRef.current.getBoundingClientRect();
+    const cellW = gridRect.width / cols;
+    const cellH = gridRect.height / rows;
+
+    if (data.source === "palette") {
+      const translated = active.rect.current?.translated;
+      if (!translated) { setDropPreview(null); return; }
+      const midX = translated.left + translated.width / 2;
+      const midY = translated.top + translated.height / 2;
+      if (midX < gridRect.left || midX > gridRect.right || midY < gridRect.top || midY > gridRect.bottom) {
+        setDropPreview(null);
+        return;
+      }
+      const w = data.w ?? 1;
+      const h = data.h ?? 1;
+      setDropPreview({
+        col: Math.max(0, Math.min(Math.floor((midX - gridRect.left) / cellW), cols - w)),
+        row: Math.max(0, Math.min(Math.floor((midY - gridRect.top) / cellH), rows - h)),
+        w,
+        h,
+      });
+    } else if (data.source === "canvas" && data.widgetId) {
+      const widget = widgets.find((w) => w.id === data.widgetId);
+      if (!widget || widget.locked) { setDropPreview(null); return; }
+      setDropPreview({
+        col: Math.max(0, Math.min(widget.col + Math.round(delta.x / cellW), cols - widget.w)),
+        row: Math.max(0, Math.min(widget.row + Math.round(delta.y / cellH), rows - widget.h)),
+        w: widget.w,
+        h: widget.h,
+      });
+    } else {
+      setDropPreview(null);
+    }
+  }
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -816,6 +841,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     <DndContext
       sensors={sensors}
       onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
       <div className="flex min-h-0 items-start overflow-visible">
@@ -926,6 +952,17 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                     onDelete={() => removeWidget(widget.id)}
                   />
                 ))}
+                {dropPreview && (
+                  <div
+                    className="pointer-events-none absolute z-20 rounded border-2 border-primary bg-primary/10"
+                    style={{
+                      left: `${(dropPreview.col / cols) * 100}%`,
+                      top: `${(dropPreview.row / rows) * 100}%`,
+                      width: `${(dropPreview.w / cols) * 100}%`,
+                      height: `${(dropPreview.h / rows) * 100}%`,
+                    }}
+                  />
+                )}
               </div>
             </div>
 
@@ -1014,8 +1051,8 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
           )}
       </div>
 
-      <DragOverlay dropAnimation={null} modifiers={[centerOnCursor]}>
-        {activeData?.source === "palette" && (
+      <DragOverlay dropAnimation={null} modifiers={[topLeftOnCursor]}>
+        {activeData?.source === "palette" && !dropPreview && (
           <div
             className="rounded border-2 border-primary bg-card/80 opacity-80"
             style={
@@ -1032,15 +1069,6 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
           <div
             className="rounded border-2 border-primary bg-card/80 opacity-80"
             style={{ width: "80px", height: "113px" }}
-          />
-        )}
-        {activeWidget && (
-          <div
-            className="rounded border-2 border-primary bg-card/80 opacity-80"
-            style={{
-              width: `${activeWidget.w * 32}px`,
-              height: `${activeWidget.h * 32}px`,
-            }}
           />
         )}
       </DragOverlay>
