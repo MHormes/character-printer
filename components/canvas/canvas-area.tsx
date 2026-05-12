@@ -337,9 +337,15 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
   const inventoryCount = character?.inventory.length ?? 0;
   const trackersCount = character?.trackers.length ?? 0;
   const featuresCount = character?.features.length ?? 0;
-  const validSpellIds = new Set(character?.spells.list.map((spell) => spell.id) ?? []);
-  const validFeatureIds = new Set(character?.features.map((feature) => feature.id) ?? []);
-  const validStatIds = new Set(character?.statBoxes?.map((stat) => stat.id) ?? []);
+  const validSpellIds = new Set(
+    character?.spells.list.map((spell) => spell.id) ?? [],
+  );
+  const validFeatureIds = new Set(
+    character?.features.map((feature) => feature.id) ?? [],
+  );
+  const validStatIds = new Set(
+    character?.statBoxes?.map((stat) => stat.id) ?? [],
+  );
 
   // h = rows × (w/cols) × (210/297) × (svgH/viewBoxW)
   const slimToolH = Math.max(
@@ -575,6 +581,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
           DEFAULT_CANVAS_COLS,
           TEMPLATE_PAGE1_WIDGETS.map((w) => ({
             ...w,
+            ...(w.type === "Equipment" ? { h: equipmentH } : {}),
             printState: w.printState as "Calculated" | "Blank",
           })),
         );
@@ -636,7 +643,10 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         const rowsPerPage = Math.floor(rows / CARD_H);
         const perPage = perRow * rowsPerPage;
 
-        const pageWidgets: { cols?: number; widgets: Omit<CanvasWidget, "id">[] }[] = [];
+        const pageWidgets: {
+          cols?: number;
+          widgets: Omit<CanvasWidget, "id">[];
+        }[] = [];
         for (let i = 0; i < spells.length; i += perPage) {
           const chunk = spells.slice(i, i + perPage);
           pageWidgets.push({
@@ -668,7 +678,10 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         const COL_STARTS = [0, 10, 20];
         const CARD_W = 9;
 
-        const pageWidgets: { cols?: number; widgets: Omit<CanvasWidget, "id">[] }[] = [];
+        const pageWidgets: {
+          cols?: number;
+          widgets: Omit<CanvasWidget, "id">[];
+        }[] = [];
         let currentPage: Omit<CanvasWidget, "id">[] = [];
         let currentCol = 0;
         let currentRow = 0;
@@ -676,7 +689,12 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         for (const feature of features) {
           const cardW = Math.min(CARD_W, templateCols - COL_STARTS[currentCol]);
           const h = Math.min(
-            featureCardGridH(feature.description, cardW, templateCols, templateRows),
+            featureCardGridH(
+              feature.description,
+              cardW,
+              templateCols,
+              templateRows,
+            ),
             templateRows,
           );
 
@@ -705,7 +723,8 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
           });
           currentRow += h;
         }
-        if (currentPage.length > 0) pageWidgets.push({ cols: templateCols, widgets: currentPage });
+        if (currentPage.length > 0)
+          pageWidgets.push({ cols: templateCols, widgets: currentPage });
         addWidgetsMultiPage(pageWidgets);
         return;
       }
@@ -816,7 +835,9 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">Save a page to reuse it here.</p>
+            <p className="text-xs text-muted-foreground">
+              Save a page to reuse it here.
+            </p>
           )}
           <p className="pt-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Full Page
@@ -874,7 +895,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
             onClick={() => setSelected(null)}
           >
             <div
-              className="relative aspect-[210/297] w-full max-w-5xl bg-card shadow-lg py-[2.825mm] px-[2mm] box-border"
+              className="relative aspect-[210/297] w-full max-w-5xl bg-card shadow-lg py-[4mm] px-[2.828mm] box-border"
               onClick={(e) => e.stopPropagation()}
             >
               <div

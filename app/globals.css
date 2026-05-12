@@ -146,7 +146,7 @@
     position: relative;
     overflow: hidden;
     background: white !important;
-    padding: 2.825mm 2mm; /* Keep 210/297 aspect ratio for inner content */
+    padding: 4mm 2.828mm; /* Keep 210/297 aspect ratio for inner content */
     box-sizing: border-box;
     break-after: page;
     page-break-after: always;
@@ -161,7 +161,7 @@
     width: 210mm;
     height: 297mm;
     background: white !important;
-    padding: 2.825mm 2mm;
+    padding: 4mm 2.828mm;
     box-sizing: border-box;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
@@ -205,8 +205,13 @@
     -webkit-print-color-adjust: exact;
   }
 
-  .print-page-inner {
+  /* Force remove all shadows and borders on print elements */
+  .print-page,
+  .full-page-print,
+  .print-page-inner,
+  #print-all-pages * {
     border: none !important;
+    box-shadow: none !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

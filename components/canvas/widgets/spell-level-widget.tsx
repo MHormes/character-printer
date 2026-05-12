@@ -209,7 +209,7 @@ export function SpellLevelBlock({ level }: { level: number }) {
                 y={rowCY}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fontSize="5"
+                fontSize="7"
                 fontFamily={ff}
                 fill="#1a1208"
                 opacity="0.35"

@@ -52,8 +52,8 @@ export function SavingThrowsWidget() {
         return (
           <g key={key}>
             {save.proficient
-              ? <circle cx="10" cy={cy} r="2.5" fill="#1a1208" />
-              : <circle cx="10" cy={cy} r="2.5" fill="none" stroke="#1a1208" strokeWidth="0.8" />
+              ? <circle cx="10" cy={cy} r="3.0" fill="#1a1208" />
+              : <circle cx="10" cy={cy} r="3.0" fill="none" stroke="#1a1208" strokeWidth="0.8" />
             }
             <text x="27" y={cy} textAnchor="end" dominantBaseline="middle"
               fontSize="7" fontWeight="600"

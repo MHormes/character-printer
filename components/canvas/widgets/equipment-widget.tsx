@@ -28,9 +28,9 @@ const TBL_DIV_Y = 55;
 const DATA_START = 55;
 const ROW_H = 11;
 const BTN_DIV_Y_OFFSET = 2; // margin after data
-const WGT_H = 30; // divider + labels + value + final div + padding
+const WGT_H = 22; // divider + label + value + padding
 
-// SVG height: 3 top + 37 currency/header + n×11 rows + 30 bottom
+// SVG height: 3 top + 37 currency/header + n×11 rows + 22 bottom
 export function equipmentSvgH(n: number) {
   const rows = n + 3; // Always add 3 empty slots
   return DATA_START + rows * ROW_H + WGT_H + 3;
@@ -61,10 +61,8 @@ export function EquipmentWidget() {
   const frameH = svgH - 6;
   const dataBot = DATA_START + n * ROW_H;
   const wgtDivY = dataBot + BTN_DIV_Y_OFFSET;
-  const wgtLblY = wgtDivY + 8;
+  const wgtLblY = wgtDivY + 5;
   const wgtValY = wgtLblY + 8;
-  const finalDivY = wgtValY + 4;
-  const labelY = finalDivY + 4;
 
   const ff = "Georgia, 'Times New Roman', serif";
   const tf = {
@@ -283,7 +281,7 @@ export function EquipmentWidget() {
         stroke="#1a1208"
         strokeWidth="0.5"
       />
-      <text x="66" y={wgtLblY} {...tf} fontSize="5" letterSpacing="0.5">
+      <text x="66" y={wgtLblY} {...tf} fontSize="4" letterSpacing="0.5">
         TOTAL WEIGHT
       </text>
       <text
@@ -291,7 +289,7 @@ export function EquipmentWidget() {
         y={wgtValY}
         textAnchor="middle"
         dominantBaseline="middle"
-        fontSize="8"
+        fontSize="6"
         fontWeight="700"
         fontFamily={ff}
         fill={overCapacity ? "#b42318" : "#1a1208"}

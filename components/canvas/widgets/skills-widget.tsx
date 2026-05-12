@@ -57,8 +57,8 @@ export function SkillsWidget() {
           <g key={config.key}>
             {isProficient
               ? (
-                skill.state === "Expertise" 
-                ? <circle cx="10" cy={cy} r="2.5" fill="#1a1208" stroke="#1a1208" strokeWidth="1" />
+                skill.state === "Expertise"
+                ? <circle cx="10" cy={cy} r="2.0" fill="#1a1208" stroke="#1a1208" strokeWidth="1" />
                 : <circle cx="10" cy={cy} r="2.5" fill="#1a1208" />
               )
               : <circle cx="10" cy={cy} r="2.5" fill="none" stroke="#1a1208" strokeWidth="0.8" />

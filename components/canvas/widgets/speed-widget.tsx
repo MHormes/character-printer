@@ -4,7 +4,7 @@ import { useCharacterStore } from "@/lib/store/character-store"
 import { resolveSpeed } from "@/lib/character/calculations"
 import { DndFrame } from "./dnd-frame"
 
-// viewBox 130×101 — matches w=5, h=4 palette cell (aspect ~1.28)
+// viewBox 130×101 — matches w=3, h=4 palette cell (aspect ~1.28)
 export function SpeedWidget() {
   const character = useCharacterStore((s) => s.character)
   if (!character) return null
@@ -15,18 +15,18 @@ export function SpeedWidget() {
 
   return (
     <svg
-      viewBox="0 0 130 101"
+      viewBox="0 0 130 172"
       xmlns="http://www.w3.org/2000/svg"
       style={{ display: "block", width: "100%", height: "100%" }}
       preserveAspectRatio="xMidYMid meet"
     >
-      <DndFrame x={3} y={3} w={124} h={95} cornerOff={9} />
-      <text x="65" y="44" textAnchor="middle" dominantBaseline="middle"
-        fontSize="28" fontWeight="700" fontFamily={ff} fill="#1a1208"
+      <DndFrame x={2} y={2} w={126} h={168} cornerOff={10} />
+      <text x="65" y="76" textAnchor="middle" dominantBaseline="middle"
+        fontSize="36" fontWeight="700" fontFamily={ff} fill="#1a1208"
       >{speed}</text>
-      <line x1="8" y1="74" x2="122" y2="74" stroke="#1a1208" strokeWidth="0.5" />
-      <text x="65" y="86" textAnchor="middle" dominantBaseline="middle"
-        fontSize="5.5" fontWeight="700" fontFamily={ff} letterSpacing="0.3" fill="#1a1208"
+      <line x1="8" y1="128" x2="122" y2="128" stroke="#1a1208" strokeWidth="0.5" />
+      <text x="65" y="149" textAnchor="middle" dominantBaseline="middle"
+        fontSize="7" fontWeight="700" fontFamily={ff} letterSpacing="0.5" fill="#1a1208"
       >SPEED</text>
     </svg>
   )

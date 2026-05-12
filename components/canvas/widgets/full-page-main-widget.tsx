@@ -20,7 +20,7 @@ import { HitDiceWidget } from "./hit-dice-widget";
 import { DeathSavesWidget } from "./death-saves-widget";
 import { SlimAttacksWidget } from "./slim-attacks-widget";
 import { FeaturesWidget } from "./features-widget";
-import { EquipmentWidget } from "./equipment-widget";
+import { EquipmentWidget, equipmentSvgH } from "./equipment-widget";
 
 // Mirrors TEMPLATE_PAGE1_WIDGETS exactly (28 cols × 40 rows, A4 ratio)
 const C = 28;
@@ -39,6 +39,11 @@ function slot(col: number, row: number, w: number, h: number): CSSProperties {
 export function FullPageMainWidget() {
   const character = useCharacterStore((s) => s.character);
   if (!character) return null;
+
+  const equipH = Math.max(
+    4,
+    Math.round((equipmentSvgH(character.inventory.length) * 12 * R * 210) / (C * 297 * 176)),
+  );
 
   return (
     <div className="h-full w-full relative overflow-hidden">
@@ -60,7 +65,7 @@ export function FullPageMainWidget() {
       <div style={slot(15, 8, 4, 4)}><DeathSavesWidget /></div>
       <div style={slot(10, 12, 9, 3)}><SlimAttacksWidget /></div>
       <div style={slot(19, 7, 6, 19)}><FeaturesWidget /></div>
-      <div style={slot(10, 15, 9, 25)}><EquipmentWidget /></div>
+      <div style={slot(10, 15, 9, equipH)}><EquipmentWidget /></div>
     </div>
   );
 }
