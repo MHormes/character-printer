@@ -614,47 +614,75 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       }
 
       if (data.type === "TemplatePage2") {
-        const INFO_H = 2;
-        const START_ROW = INFO_H;
+        const INFO_W = 18;
+        const INFO_H = 3;
+        const START_ROW = 3;
 
-        function buildSpellColumn(
-          levels: number[],
-          colStart: number,
-          colW: number,
-        ) {
-          let currentRow = START_ROW;
-          return levels.map((level) => {
-            const h = spellLevelH(level);
-            const widget = {
-              type: `SpellLevel${level}` as WidgetType,
-              col: colStart,
-              row: currentRow,
-              w: colW,
-              h,
-              rotation: 0 as const,
-              locked: false,
-              printState: "Calculated" as const,
-            };
-            currentRow += h;
-            return widget;
-          });
-        }
-
-        replaceCurrentPage(DEFAULT_CANVAS_COLS, [
+        const widgets: Omit<CanvasWidget, "id">[] = [
           {
             type: "SpellcastingInfo",
-            col: 0,
+            col: 5,
             row: 0,
-            w: 28,
+            w: INFO_W,
             h: INFO_H,
             rotation: 0,
             locked: false,
             printState: "Calculated",
           },
-          ...buildSpellColumn([0, 1, 2], 0, 9),
-          ...buildSpellColumn([3, 4, 5], 10, 9),
-          ...buildSpellColumn([6, 7, 8, 9], 20, 8),
-        ]);
+        ];
+
+        // Column 1 (0-2)
+        let r0 = START_ROW;
+        [0, 1, 2].forEach((lvl) => {
+          const h = spellLevelH(lvl);
+          widgets.push({
+            type: `SpellLevel${lvl}` as WidgetType,
+            col: 0,
+            row: r0,
+            w: 9,
+            h,
+            rotation: 0,
+            locked: false,
+            printState: "Calculated",
+          });
+          r0 += h;
+        });
+
+        // Column 2 (3-5)
+        let r1 = START_ROW;
+        [3, 4, 5].forEach((lvl) => {
+          const h = spellLevelH(lvl);
+          widgets.push({
+            type: `SpellLevel${lvl}` as WidgetType,
+            col: 10,
+            row: r1,
+            w: 9,
+            h,
+            rotation: 0,
+            locked: false,
+            printState: "Calculated",
+          });
+          r1 += h;
+        });
+
+        // Column 3 (6-9)
+        let r2 = START_ROW;
+        [6, 7, 8, 9].forEach((lvl) => {
+          const h = spellLevelH(lvl);
+          widgets.push({
+            type: `SpellLevel${lvl}` as WidgetType,
+            col: 20,
+            row: r2,
+            w: 8,
+            h,
+            rotation: 0,
+            locked: false,
+            printState: "Calculated",
+          });
+          r2 += h;
+        });
+
+        replaceCurrentPage(DEFAULT_CANVAS_COLS, widgets);
         return;
       }
 
