@@ -240,6 +240,10 @@ export function CombatBlock({
   const dexMod = resolveAttributeMod(attributes.dex);
   const dexScore = resolveAttributeScore(attributes.dex);
 
+  const acStackSum = data.ac.stack
+    .filter((m) => m.isActive)
+    .reduce((s, m) => s + m.value, 0);
+
   const acCalc = resolveAc(mockChar);
   const acOverridden = data.ac.override !== null;
 
@@ -330,6 +334,15 @@ export function CombatBlock({
         {data.ac.mode === "Standard" && (
           <p className="text-xs text-muted-foreground">
             10 + DEX ({sign(dexMod)})
+            {acStackSum > 0 && ` + ${acStackSum}`}
+            {acStackSum < 0 && ` - ${Math.abs(acStackSum)}`}
+          </p>
+        )}
+
+        {/* Stack total hint — shown when manual controls hidden and stack is non-zero */}
+        {!showManualControls && acStackSum !== 0 && data.ac.mode === "Formula" && (
+          <p className="text-xs text-muted-foreground">
+            {acStackSum > 0 ? `+ ${acStackSum}` : `- ${Math.abs(acStackSum)}`} from modifiers
           </p>
         )}
 
