@@ -3,6 +3,7 @@
 import { useDraggable } from "@dnd-kit/core"
 import { cn } from "@/lib/utils"
 import type { WidgetType } from "@/lib/types/canvas"
+import { WidgetPreview } from "@/components/canvas/widget-preview"
 
 type Props = {
   type: WidgetType
@@ -18,10 +19,6 @@ export function PaletteTile({ type, label, w, h, fullPage }: Props) {
     data: { source: "palette", type, w, h, fullPage },
   })
 
-  const scale = 6;
-  const previewW = (w ?? 1) * scale;
-  const previewH = (h ?? 1) * scale;
-
   return (
     <div
       ref={setNodeRef}
@@ -33,18 +30,10 @@ export function PaletteTile({ type, label, w, h, fullPage }: Props) {
       )}
     >
       <div className="flex flex-1 items-center justify-center w-full min-h-0">
-        {fullPage ? (
+        {fullPage || !w || !h ? (
           <div className="rounded border border-border bg-muted/50 w-full h-full" />
         ) : (
-          <div
-            className="rounded border border-border bg-muted/50"
-            style={{
-              width: `${previewW}px`,
-              height: `${previewH}px`,
-              maxWidth: "100%",
-              maxHeight: "100%",
-            }}
-          />
+          <WidgetPreview type={type} w={w} h={h} />
         )}
       </div>
       <div className="text-center shrink-0">
