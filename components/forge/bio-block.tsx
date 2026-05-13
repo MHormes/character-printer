@@ -13,7 +13,7 @@ type BioBlockProps = {
 export function BioBlock({ bio, identity, onBioChange, onIdentityChange }: BioBlockProps) {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
         <TextField
           label="Age"
           value={identity.age}
@@ -56,6 +56,24 @@ export function BioBlock({ bio, identity, onBioChange, onIdentityChange }: BioBl
           onChange={(v) => onIdentityChange("skin", v)}
           placeholder="e.g. Tanned"
         />
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Size
+          </label>
+          <select
+            value={identity.size ?? ""}
+            onChange={(e) => onIdentityChange("size", e.target.value)}
+            className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <option value="">—</option>
+            <option value="Tiny">Tiny</option>
+            <option value="Small">Small</option>
+            <option value="Medium">Medium</option>
+            <option value="Large">Large</option>
+            <option value="Huge">Huge</option>
+            <option value="Gargantuan">Gargantuan</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

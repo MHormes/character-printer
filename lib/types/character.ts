@@ -269,6 +269,7 @@ export type CharacterData = {
     eyes: string;
     hair: string;
     skin: string;
+    size: string;
     level: number;
     classes: CharacterClassEntry[];
   };

@@ -57,6 +57,7 @@ export function createDefaultCharacter(id: string): CharacterData {
       eyes: "",
       hair: "",
       skin: "",
+      size: "",
       level: 1,
       classes: [{ classId: null, name: "", subclass: "", level: 1, hitDie: "d8", ignoreAutomation: false }],
     },

@@ -66,8 +66,7 @@ export function CharacterInfoCompactWidget() {
       <text x="250" y="52" fontSize="12" fontWeight="700" fontFamily={ff} fill={ink} textAnchor="middle">{alignment || "—"}</text>
       <text x="250" y="62" fontSize="5" fontWeight="700" fontFamily={ff} letterSpacing="0.8" fill={ink} textAnchor="middle">ALIGNMENT</text>
 
-      {/* EXPERIENCE POINTS — right */}
-      <text x="460" y="52" fontSize="12" fontWeight="700" fontFamily={ff} fill={ink} textAnchor="end">—</text>
+      {/* EXPERIENCE POINTS — right, pencil-fillable */}
       <text x="460" y="62" fontSize="5" fontWeight="700" fontFamily={ff} letterSpacing="0.8" fill={ink} textAnchor="end">EXPERIENCE POINTS</text>
     </svg>
   )

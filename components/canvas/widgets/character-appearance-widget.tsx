@@ -7,7 +7,7 @@ export function CharacterAppearanceWidget() {
   const character = useCharacterStore((s) => s.character)
   if (!character) return null
 
-  const { age, height, weight, eyes, skin, hair } = character.identity
+  const { age, height, weight, eyes, skin, hair, size } = character.identity
 
   const ff = "Georgia, 'Times New Roman', serif"
   const ink = "#1a1208"
@@ -43,8 +43,8 @@ export function CharacterAppearanceWidget() {
       <text x="20" y="24" fontSize="12" fontWeight="700" fontFamily={ff} fill={ink}>{age || "—"}</text>
       <text x="20" y="34" fontSize="5" fontWeight="700" fontFamily={ff} letterSpacing="0.8" fill={ink}>AGE</text>
 
-      {/* SIZE (not in character type — blank) */}
-      <text x="145" y="24" fontSize="12" fontWeight="700" fontFamily={ff} fill={ink}>—</text>
+      {/* SIZE */}
+      <text x="145" y="24" fontSize="12" fontWeight="700" fontFamily={ff} fill={ink}>{size || "—"}</text>
       <text x="145" y="34" fontSize="5" fontWeight="700" fontFamily={ff} letterSpacing="0.8" fill={ink}>SIZE</text>
 
       {/* HEIGHT */}
