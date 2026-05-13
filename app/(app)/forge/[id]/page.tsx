@@ -704,9 +704,25 @@ export default function ForgePage({
   }
 
   if (!character)
-    return (      <main className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </main>
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="flex items-center gap-4 bg-primary px-8 py-4 shrink-0">
+          <Link
+            href="/characters"
+            className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/70 hover:text-primary-foreground transition-colors flex items-center gap-2"
+          >
+            <ArrowLeft className="size-3.5" />
+            Characters
+          </Link>
+          <div className="h-4 w-px bg-primary-foreground/20" />
+          <span className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground">
+            Forge
+          </span>
+        </header>
+        <main className="flex flex-1 items-center justify-center">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        </main>
+      </div>
     );
 
   const {
@@ -768,44 +784,47 @@ export default function ForgePage({
   }
 
   return (
-    <main className="space-y-10 p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="flex items-center justify-between bg-primary px-8 py-4 shrink-0">
+        <div className="flex items-center gap-4">
           <Link
             href="/characters"
-            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/70 hover:text-primary-foreground transition-colors flex items-center gap-2"
           >
-            <ArrowLeft className="size-4" />
+            <ArrowLeft className="size-3.5" />
             Characters
           </Link>
-          <h1 className="text-lg font-semibold">Forge</h1>
-          <Link
-            href={`/canvas/${id}`}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            <Layout className="size-4" />
-            Open Canvas
-          </Link>
+          <div className="h-4 w-px bg-primary-foreground/20" />
+          <span className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground">
+            {identity.name || "Forge"}
+          </span>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            href={`/canvas/${id}`}
+            className={buttonVariants({ variant: "secondary", size: "sm" })}
+          >
+            <Layout className="size-4" />
+            Canvas
+          </Link>
           <Button
             type="button"
             size="sm"
             variant={manualControlsEnabled ? "secondary" : "outline"}
             onClick={toggleManualControls}
           >
-            {manualControlsEnabled ? "Manual controls on" : "Manual controls off"}
+            {manualControlsEnabled ? "Manual on" : "Manual off"}
           </Button>
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-primary-foreground/70 select-none">
             <input
               type="checkbox"
               checked={autoSave}
               onChange={(e) => handleToggleAutoSave(e.target.checked)}
-              className="h-3.5 w-3.5 accent-foreground"
+              className="h-3.5 w-3.5 accent-primary-foreground"
             />
             Auto-save
           </label>
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5 text-xs text-primary-foreground/60">
             {saveStatus === "saving" && (
               <>
                 <Loader2 className="size-3 animate-spin" />
@@ -814,14 +833,14 @@ export default function ForgePage({
             )}
             {saveStatus === "saved" && (
               <>
-                <Check className="size-3 text-green-600" />
+                <Check className="size-3" />
                 Saved
               </>
             )}
           </span>
           <Button
             size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={handleSave}
             disabled={saveStatus === "saving"}
           >
@@ -829,7 +848,8 @@ export default function ForgePage({
             Save
           </Button>
         </div>
-      </div>
+      </header>
+    <main className="space-y-10 p-6 flex-1">
 
       <ForgeSection 
         title="Identity" 
@@ -1309,5 +1329,6 @@ export default function ForgePage({
         </ForgeSection>
       </div>
     </main>
+    </div>
   );
 }

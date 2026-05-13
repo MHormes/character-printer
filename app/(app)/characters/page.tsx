@@ -1,24 +1,10 @@
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import Link from "next/link"
-import { Cinzel, EB_Garamond } from "next/font/google"
 import { listAllCharacters, createCharacter, deleteCharacter } from "@/lib/actions/character"
 import { getOrCreateStubUser } from "@/lib/actions/user"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Plus, Pencil, Trash2, Scroll } from "lucide-react"
-import type { CharacterSummary } from "@/lib/actions/character"
-
-const cinzel = Cinzel({
-  subsets: ["latin"],
-  variable: "--font-cinzel",
-  weight: ["400", "600", "700", "900"],
-})
-
-const garamond = EB_Garamond({
-  subsets: ["latin"],
-  variable: "--font-garamond",
-  style: ["normal", "italic"],
-})
 
 const SYSTEM_LABELS: Record<string, string> = {
   dnd5e: "D&D 5e",
@@ -52,22 +38,18 @@ export default async function CharactersPage() {
   const characters = await listAllCharacters()
 
   return (
-    <div className={`${cinzel.variable} ${garamond.variable} min-h-screen bg-background`}>
+    <div className="min-h-screen bg-background">
 
       {/* Top bar */}
-      <header className="flex items-center justify-between border-b border-border bg-primary px-8 py-4">
+      <header className="flex items-center justify-between bg-primary px-8 py-4">
         <Link
           href="/"
-          className="font-[family-name:var(--font-cinzel)] text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+          className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/80 hover:text-primary-foreground transition-colors"
         >
           Character Printer
         </Link>
         <form action={createAction}>
-          <Button
-            type="submit"
-            size="sm"
-            variant="secondary"
-          >
+          <Button type="submit" size="sm" variant="secondary">
             <Plus className="w-3.5 h-3.5" />
             New Character
           </Button>
@@ -78,12 +60,12 @@ export default async function CharactersPage() {
 
         {/* Page heading */}
         <div className="mb-10">
-          <h1 className="font-[family-name:var(--font-cinzel)] text-5xl md:text-6xl font-black tracking-tight text-foreground mb-4">
+          <h1 className="font-cinzel text-5xl md:text-6xl font-black tracking-tight text-foreground mb-4">
             Characters
           </h1>
           <div className="flex items-center gap-3">
             <div className="h-px w-10 bg-border" />
-            <span className="font-[family-name:var(--font-cinzel)] text-[10px] tracking-[0.3em] uppercase text-muted-foreground">
+            <span className="font-cinzel text-[10px] tracking-[0.3em] uppercase text-muted-foreground">
               {characters.length} {characters.length === 1 ? "character" : "characters"}
             </span>
             <div className="h-px flex-1 bg-border" />
@@ -97,10 +79,10 @@ export default async function CharactersPage() {
               <Scroll className="w-6 h-6 text-muted-foreground" />
             </div>
             <div className="space-y-2">
-              <p className="font-[family-name:var(--font-cinzel)] text-sm font-semibold tracking-widest uppercase text-foreground">
+              <p className="font-cinzel text-sm font-semibold tracking-widest uppercase text-foreground">
                 No characters yet
               </p>
-              <p className="font-[family-name:var(--font-garamond)] italic text-muted-foreground text-base">
+              <p className="font-garamond italic text-muted-foreground text-base">
                 Create your first character to begin.
               </p>
             </div>
@@ -120,7 +102,7 @@ export default async function CharactersPage() {
               >
                 {/* Card accent + system badge + actions */}
                 <div className="bg-primary px-4 py-2.5 flex items-center justify-between">
-                  <span className="font-[family-name:var(--font-cinzel)] text-[10px] tracking-[0.25em] uppercase text-primary-foreground/70">
+                  <span className="font-cinzel text-[10px] tracking-[0.25em] uppercase text-primary-foreground/70">
                     {systemLabel(char.system)}
                   </span>
                   <div className="flex items-center gap-1.5">
@@ -142,13 +124,13 @@ export default async function CharactersPage() {
                 {/* Card body */}
                 <div className="flex flex-col flex-1 gap-3 p-4">
                   <div className="space-y-1 min-w-0">
-                    <p className="font-[family-name:var(--font-cinzel)] font-bold text-base leading-tight truncate text-foreground">
+                    <p className="font-cinzel font-bold text-base leading-tight truncate text-foreground">
                       {char.name || (
-                        <span className="font-[400] italic text-muted-foreground">Unnamed</span>
+                        <span className="font-normal italic text-muted-foreground">Unnamed</span>
                       )}
                     </p>
                     {(char.race || char.classLabels) && (
-                      <p className="font-[family-name:var(--font-garamond)] italic text-sm text-muted-foreground truncate">
+                      <p className="font-garamond italic text-sm text-muted-foreground truncate">
                         {[char.race, char.classLabels, `Lv ${char.level}`].filter(Boolean).join(" · ")}
                       </p>
                     )}
@@ -156,7 +138,7 @@ export default async function CharactersPage() {
 
                   <div className="mt-auto space-y-2">
                     <div className="h-px bg-border" />
-                    <p className="font-[family-name:var(--font-garamond)] text-xs text-muted-foreground">
+                    <p className="font-garamond text-xs text-muted-foreground">
                       {formatDate(char.updatedAt)}
                     </p>
                   </div>

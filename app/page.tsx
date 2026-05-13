@@ -1,19 +1,6 @@
-import { Cinzel, EB_Garamond } from "next/font/google"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { Scroll, Printer, ArrowRight, LayoutGrid } from "lucide-react"
-
-const cinzel = Cinzel({
-  subsets: ["latin"],
-  variable: "--font-cinzel",
-  weight: ["400", "600", "700", "900"],
-})
-
-const garamond = EB_Garamond({
-  subsets: ["latin"],
-  variable: "--font-garamond",
-  style: ["normal", "italic"],
-})
 
 const OrnamentDivider = ({ flip = false }: { flip?: boolean }) => (
   <div className="flex items-center gap-4">
@@ -63,11 +50,11 @@ const D20 = () => (
 
 export default function LandingPage() {
   return (
-    <div className={`${cinzel.variable} ${garamond.variable} min-h-screen bg-background flex flex-col`}>
+    <div className="min-h-screen bg-background flex flex-col">
 
       {/* Header */}
       <header className="flex items-center justify-between bg-primary px-8 py-4">
-        <span className="font-[family-name:var(--font-cinzel)] text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/80">
+        <span className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/80">
           Character Printer
         </span>
         <Link href="/login" className={buttonVariants({ variant: "secondary", size: "sm" })}>
@@ -88,14 +75,14 @@ export default function LandingPage() {
         <OrnamentDivider />
 
         <div className="mt-10 mb-6 space-y-4 relative">
-          <p className="font-[family-name:var(--font-cinzel)] text-xs tracking-[0.4em] uppercase text-primary-foreground/50">
+          <p className="font-cinzel text-xs tracking-[0.4em] uppercase text-primary-foreground/50">
             D&amp;D 5e
           </p>
-          <h1 className="font-[family-name:var(--font-cinzel)] text-6xl md:text-8xl font-black tracking-tight text-primary-foreground leading-none">
+          <h1 className="font-cinzel text-6xl md:text-8xl font-black tracking-tight text-primary-foreground leading-none">
             Character<br />
-            <span className="font-[400]">Printer</span>
+            <span className="font-normal">Printer</span>
           </h1>
-          <p className="font-[family-name:var(--font-garamond)] italic text-xl md:text-2xl text-primary-foreground/70 max-w-sm mx-auto leading-relaxed">
+          <p className="font-garamond italic text-xl md:text-2xl text-primary-foreground/70 max-w-sm mx-auto leading-relaxed">
             Build your sheet, design your layout,<br />and print it for the table.
           </p>
         </div>
@@ -103,10 +90,7 @@ export default function LandingPage() {
         <OrnamentDivider flip />
 
         <div className="mt-10 relative">
-          <Link
-            href="/login"
-            className={buttonVariants({ variant: "secondary", size: "lg" })}
-          >
+          <Link href="/login" className={buttonVariants({ variant: "secondary", size: "lg" })}>
             Start Building
             <ArrowRight className="w-4 h-4" />
           </Link>
@@ -137,10 +121,10 @@ export default function LandingPage() {
               <div className="w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center">
                 <Icon className="w-4 h-4 text-foreground" />
               </div>
-              <h3 className="font-[family-name:var(--font-cinzel)] text-xs font-semibold tracking-[0.3em] uppercase text-foreground">
+              <h3 className="font-cinzel text-xs font-semibold tracking-[0.3em] uppercase text-foreground">
                 {title}
               </h3>
-              <p className="font-[family-name:var(--font-garamond)] text-sm text-muted-foreground leading-relaxed">
+              <p className="font-garamond text-sm text-muted-foreground leading-relaxed">
                 {desc}
               </p>
             </div>
@@ -150,7 +134,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border px-8 py-4 text-center">
-        <span className="font-[family-name:var(--font-cinzel)] text-[10px] tracking-[0.35em] uppercase text-muted-foreground">
+        <span className="font-cinzel text-[10px] tracking-[0.35em] uppercase text-muted-foreground">
           Character Printer &mdash; D&amp;D 5e
         </span>
       </footer>
