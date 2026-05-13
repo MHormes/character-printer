@@ -241,35 +241,96 @@ export default function CanvasPage({
 
   if (!character) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </main>
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="flex items-center justify-between bg-primary px-8 py-3 shrink-0">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/characters"
+              className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/70 hover:text-primary-foreground transition-colors flex items-center gap-2"
+            >
+              <ArrowLeft className="size-3.5" />
+              Characters
+            </Link>
+            <div className="h-4 w-px bg-primary-foreground/20" />
+            <span className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground">
+              Canvas
+            </span>
+          </div>
+        </header>
+        <div className="border-b border-border bg-section px-8 py-2" />
+        <main className="flex flex-1 items-center justify-center">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        </main>
+      </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
-        <div className="flex items-center gap-3">
+    <div className="flex min-h-screen flex-col bg-background">
+
+      {/* Primary nav bar */}
+      <header className="flex shrink-0 items-center justify-between bg-primary px-8 py-3">
+        <div className="flex items-center gap-4">
           <Link
             href="/characters"
-            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/70 hover:text-primary-foreground transition-colors flex items-center gap-2"
           >
-            <ArrowLeft className="size-4" />
+            <ArrowLeft className="size-3.5" />
             Characters
           </Link>
-          <h1 className="text-lg font-semibold">Canvas</h1>
+          <div className="h-4 w-px bg-primary-foreground/20" />
+          <span className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground">
+            {character.identity.name || "Canvas"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
           <Link
             href={`/forge/${id}`}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
+            className={buttonVariants({ variant: "secondary", size: "sm" })}
           >
             <Hammer className="size-4" />
-            Open Forge
+            Forge
           </Link>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleSave}
+            disabled={saveStatus === "saving"}
+          >
+            <Save className="size-4" />
+            Save
+          </Button>
         </div>
-        <div className="flex items-center gap-3">
+      </header>
+
+      {/* Secondary action bar */}
+      <div className="flex shrink-0 items-center justify-between border-b border-border bg-section px-8 py-2">
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {saveStatus === "saving" && (
+            <>
+              <Loader2 className="size-3 animate-spin" />
+              Saving…
+            </>
+          )}
+          {saveStatus === "saved" && (
+            <>
+              <Check className="size-3" />
+              Saved
+            </>
+          )}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            size="xs"
+            variant={autoSave ? "secondary" : "ghost"}
+            onClick={() => handleToggleAutoSave(!autoSave)}
+          >
+            Auto-save {autoSave ? "on" : "off"}
+          </Button>
+          <div className="h-4 w-px bg-border" />
           {showTemplateForm ? (
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-2 py-1">
+            <div className="flex items-center gap-2">
               <Input
                 value={templateName}
                 onChange={(e) => {
@@ -277,16 +338,16 @@ export default function CanvasPage({
                   if (templateError) setTemplateError(null);
                 }}
                 placeholder="Template name"
-                className="h-7 w-40 text-xs"
+                className="h-7 w-36 text-xs"
               />
               <Button
-                size="sm"
-                variant="outline"
+                size="xs"
+                variant="secondary"
                 onClick={handleSaveTemplate}
                 disabled={templateStatus === "saving"}
               >
-                <BookmarkPlus className="size-4" />
-                Save page
+                <BookmarkPlus className="size-3.5" />
+                Save
               </Button>
               <Button
                 size="icon-sm"
@@ -297,63 +358,32 @@ export default function CanvasPage({
                   setTemplateError(null);
                 }}
               >
-                <X className="size-4" />
+                <X className="size-3.5" />
               </Button>
             </div>
           ) : (
             <Button
-              size="sm"
-              variant="outline"
+              size="xs"
+              variant="ghost"
               onClick={() => setShowTemplateForm(true)}
             >
-              <BookmarkPlus className="size-4" />
+              <BookmarkPlus className="size-3.5" />
               Save as template
             </Button>
           )}
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
-            <input
-              type="checkbox"
-              checked={autoSave}
-              onChange={(e) => handleToggleAutoSave(e.target.checked)}
-              className="h-3.5 w-3.5 accent-foreground"
-            />
-            Auto-save
-          </label>
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {saveStatus === "saving" && (
-              <>
-                <Loader2 className="size-3 animate-spin" />
-                Saving…
-              </>
-            )}
-            {saveStatus === "saved" && (
-              <>
-                <Check className="size-3 text-green-600" />
-                Saved
-              </>
-            )}
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleSave}
-            disabled={saveStatus === "saving"}
-          >
-            <Save className="size-4" />
-            Save
-          </Button>
-          <div className="h-4 w-px bg-border mx-1" />
+          <div className="h-4 w-px bg-border" />
           <div className="relative">
-            <button
+            <Button
               type="button"
+              size="xs"
+              variant={showGridConfig ? "secondary" : "ghost"}
               onClick={() => setShowGridConfig((v) => !v)}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
             >
-              <Grid3x3 className="size-4" />
+              <Grid3x3 className="size-3.5" />
               Grid
-            </button>
+            </Button>
             {showGridConfig && (
-              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 flex min-w-64 items-center gap-2 rounded-lg border border-border bg-section px-3 py-2 shadow-md">
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 flex min-w-64 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-md">
                 <span className="text-xs text-muted-foreground">Columns</span>
                 <Input
                   type="number"
@@ -370,32 +400,33 @@ export default function CanvasPage({
               </div>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            <Printer className="size-4" />
-            Print
-          </button>
           <Button
-            size="sm"
-            variant="outline"
+            type="button"
+            size="xs"
+            variant="ghost"
+            onClick={() => window.print()}
+          >
+            <Printer className="size-3.5" />
+            Print
+          </Button>
+          <Button
+            size="xs"
+            variant="ghost"
             onClick={handleExportPdf}
             disabled={pdfStatus === "exporting"}
           >
             {pdfStatus === "exporting" ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Loader2 className="size-3.5 animate-spin" />
             ) : (
-              <FileDown className="size-4" />
+              <FileDown className="size-3.5" />
             )}
             Export PDF
           </Button>
         </div>
-      </header>
+      </div>
 
-      {!showGridConfig && templateError && (
-        <div className="border-b border-border bg-section px-6 py-2 text-xs text-destructive">
+      {templateError && (
+        <div className="border-b border-border bg-section px-8 py-2 text-xs text-destructive">
           {templateError}
         </div>
       )}
