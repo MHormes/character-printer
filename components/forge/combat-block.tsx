@@ -264,18 +264,20 @@ export function CombatBlock({
           Armor Class
         </h3>
 
-        {/* Mode selector */}
+        {/* Mode selector — locked when armor item drives the formula */}
         <div className="flex overflow-hidden rounded-md border border-input">
           {(["Standard", "Formula"] as AcMode[]).map((mode) => (
             <button
               key={mode}
               type="button"
-              onClick={() => onAcChange({ ...data.ac, mode })}
+              onClick={() => !data.ac.armorSourceId && onAcChange({ ...data.ac, mode })}
+              disabled={!!data.ac.armorSourceId}
               className={cn(
                 "flex-1 h-6 text-xs transition-colors",
                 mode === data.ac.mode
                   ? "bg-foreground text-background"
                   : "text-muted-foreground hover:text-foreground",
+                data.ac.armorSourceId && "cursor-not-allowed opacity-70",
               )}
             >
               {mode}
@@ -290,41 +292,63 @@ export function CombatBlock({
               <span className="w-10 shrink-0 text-xs text-muted-foreground">
                 Base
               </span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={data.ac.base === 0 ? "" : String(data.ac.base)}
-                placeholder="10"
-                onChange={(e) => {
-                  const n = parseInt(e.target.value, 10);
-                  onAcChange({ ...data.ac, base: isNaN(n) ? 0 : n });
-                }}
-                className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
-              />
+              {data.ac.armorSourceId ? (
+                <div className="flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded-md border border-input bg-muted/30 px-2">
+                  <Lock className="size-2.5 shrink-0 text-muted-foreground" />
+                  <span className="tabular-nums text-xs text-foreground">{data.ac.base}</span>
+                  <span className="min-w-0 truncate text-[10px] text-muted-foreground">
+                    {data.ac.armorSourceName}
+                  </span>
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={data.ac.base === 0 ? "" : String(data.ac.base)}
+                  placeholder="10"
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    onAcChange({ ...data.ac, base: isNaN(n) ? 0 : n });
+                  }}
+                  className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
+                />
+              )}
             </div>
             {(["statA", "statB"] as const).map((key) => (
               <div key={key} className="flex items-center gap-1.5">
                 <span className="w-10 shrink-0 text-xs text-muted-foreground">
                   + Stat
                 </span>
-                <select
-                  value={data.ac[key] ?? ""}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    onAcChange({
-                      ...data.ac,
-                      [key]: val === "" ? null : (val as AttributeKey),
-                    });
-                  }}
-                  className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
-                >
-                  <option value="">—</option>
-                  {ATTR_KEYS.map((k) => (
-                    <option key={k} value={k}>
-                      {ATTR_ABBR[k]} ({sign(resolveAttributeMod(attributes[k]))})
-                    </option>
-                  ))}
-                </select>
+                {data.ac.armorSourceId ? (
+                  <div className="flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded-md border border-input bg-muted/30 px-2">
+                    <Lock className="size-2.5 shrink-0 text-muted-foreground" />
+                    <span className="text-xs text-foreground">
+                      {data.ac[key] ? `${ATTR_ABBR[data.ac[key]!]} (${sign(resolveAttributeMod(attributes[data.ac[key]!]))})` : "—"}
+                    </span>
+                    {key === "statA" && data.ac.acMaxDex != null && data.ac[key] === "dex" && (
+                      <span className="text-[10px] text-muted-foreground">max +{data.ac.acMaxDex}</span>
+                    )}
+                  </div>
+                ) : (
+                  <select
+                    value={data.ac[key] ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      onAcChange({
+                        ...data.ac,
+                        [key]: val === "" ? null : (val as AttributeKey),
+                      });
+                    }}
+                    className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+                  >
+                    <option value="">—</option>
+                    {ATTR_KEYS.map((k) => (
+                      <option key={k} value={k}>
+                        {ATTR_ABBR[k]} ({sign(resolveAttributeMod(attributes[k]))})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             ))}
           </div>
@@ -333,16 +357,16 @@ export function CombatBlock({
         {/* Standard mode hint */}
         {data.ac.mode === "Standard" && (
           <p className="text-xs text-muted-foreground">
-            10 + DEX ({sign(dexMod)})
+            Unarmored: 10 + DEX ({sign(dexMod)})
             {acStackSum > 0 && ` + ${acStackSum}`}
             {acStackSum < 0 && ` - ${Math.abs(acStackSum)}`}
           </p>
         )}
 
-        {/* Stack total hint — shown when manual controls hidden and stack is non-zero */}
+        {/* Stack total hint in Formula mode — shown when manual controls hidden and stack is non-zero */}
         {!showManualControls && acStackSum !== 0 && data.ac.mode === "Formula" && (
           <p className="text-xs text-muted-foreground">
-            {acStackSum > 0 ? `+ ${acStackSum}` : `- ${Math.abs(acStackSum)}`} from modifiers
+            {acStackSum > 0 ? `+${acStackSum}` : acStackSum} from modifiers
           </p>
         )}
 

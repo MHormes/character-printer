@@ -71,6 +71,28 @@ export function syncInventoryToStacks(
   c.combat.initiative.stack = updateStack(c.combat.initiative.stack, get("combat.initiative"), prefix)
   c.combat.speed.stack      = updateStack(c.combat.speed.stack,      get("combat.speed"),      prefix)
 
+  // Armor formula sync: equipped armor with acBase drives Formula mode
+  const equippedArmors = inventory
+    .filter((item) => item.equipped && (item.acBase ?? null) !== null)
+    .sort((a, b) => (b.acBase ?? 0) - (a.acBase ?? 0))
+  const armorItem = equippedArmors[0] ?? null
+
+  if (armorItem) {
+    c.combat.ac.mode           = "Formula"
+    c.combat.ac.base           = armorItem.acBase!
+    c.combat.ac.statA          = armorItem.acDexBonus ? "dex" : null
+    c.combat.ac.statB          = null
+    c.combat.ac.armorSourceId  = armorItem.id
+    c.combat.ac.armorSourceName = armorItem.name || "(unnamed armor)"
+    c.combat.ac.acMaxDex       = armorItem.acMaxDex ?? null
+  } else if (c.combat.ac.armorSourceId) {
+    // Was armor-driven; revert to Standard when armor is removed/unequipped
+    c.combat.ac.mode           = "Standard"
+    c.combat.ac.armorSourceId  = null
+    c.combat.ac.armorSourceName = null
+    c.combat.ac.acMaxDex       = null
+  }
+
   // Spell slots
   for (const level of Object.keys(c.spells.slots)) {
     c.spells.slots[level].stack = updateStack(

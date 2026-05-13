@@ -608,18 +608,6 @@ export default function ForgePage({
       });
     }
 
-    if (isArmor && srdItem.acBase !== null) {
-      const acCategory = srdItem.armorCategory!;
-      const addsDex = acCategory !== "Heavy";
-      next.combat.ac = {
-        ...next.combat.ac,
-        mode: "Formula",
-        base: srdItem.acBase!,
-        statA: addsDex ? "dex" : null,
-        statB: null,
-      };
-    }
-
     if (srdItem.description) {
       next.features.push({
         id: crypto.randomUUID(),

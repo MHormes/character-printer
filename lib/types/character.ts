@@ -55,6 +55,9 @@ export type CombatData = {
     statB: AttributeKey | null;
     stack: ModifierEntry[];
     override: number | null;
+    armorSourceId?: string | null;   // item.id of the inventory armor driving the formula
+    armorSourceName?: string | null; // display label
+    acMaxDex?: number | null;        // DEX cap for medium armor
   };
   initiative: { stack: ModifierEntry[]; override: number | null };
   speed: { base: number; stack: ModifierEntry[]; override: number | null };
@@ -87,8 +90,10 @@ export type InventoryItem = {
   category: "Weapon" | "Armor" | "Tool" | "Consumable" | "Wondrous" | "Mundane";
   equipped: boolean;
   modifiers: { id: string; target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[];
-  // Armor constraints — populated when item is imported from SRD
-  acMaxDex?: number | null;
+  // Armor data — populated when item is imported from SRD
+  acBase?: number | null;           // armor AC base (e.g. 12 for studded leather); drives formula when equipped
+  acDexBonus?: boolean | null;      // true = light/medium (add DEX), false = heavy
+  acMaxDex?: number | null;         // DEX cap for medium armor
   stealthDisadvantage?: boolean | null;
   strMinimum?: number | null;
   // System-managed: "class-start:{classId}" — do not edit in UI

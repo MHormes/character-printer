@@ -67,7 +67,10 @@ export function resolveAc(c: CharacterData): number {
   }
 
   // Formula mode
-  const statAMod = ac.statA ? resolveAttributeMod(c.attributes[ac.statA]) : 0
+  let statAMod = ac.statA ? resolveAttributeMod(c.attributes[ac.statA]) : 0
+  if (ac.statA === "dex" && ac.acMaxDex != null) {
+    statAMod = Math.min(statAMod, ac.acMaxDex)
+  }
   const statBMod = ac.statB ? resolveAttributeMod(c.attributes[ac.statB]) : 0
   return ac.base + statAMod + statBMod + acStack
 }
