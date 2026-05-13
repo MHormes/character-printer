@@ -41,6 +41,8 @@ type CharacterStore = {
   setSpellCastingStat: (stat: AttributeKey | null) => void;
   setSpellSlots: (slots: CharacterData["spells"]["slots"]) => void;
   setSpellList: (list: SpellEntry[]) => void;
+  updateCharacteristicsField: (field: keyof NonNullable<CharacterData["characteristics"]>, value: string) => void;
+  updateBioField: (field: keyof NonNullable<CharacterData["bio"]>, value: string) => void;
   replaceCharacter: (data: CharacterData) => void;
 };
 
@@ -280,6 +282,36 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.spells.list = list;
+        state.isDirty = true;
+      }),
+
+    updateCharacteristicsField: (field, value) =>
+      set((state) => {
+        if (!state.character) return;
+        if (!state.character.characteristics) {
+          state.character.characteristics = {
+            personalityTraits: "",
+            ideals: "",
+            bonds: "",
+            flaws: "",
+          };
+        }
+        state.character.characteristics[field] = value;
+        state.isDirty = true;
+      }),
+
+    updateBioField: (field, value) =>
+      set((state) => {
+        if (!state.character) return;
+        if (!state.character.bio) {
+          state.character.bio = {
+            appearance: "",
+            backstory: "",
+            allies: "",
+            organizations: "",
+          };
+        }
+        state.character.bio[field] = value;
         state.isDirty = true;
       }),
 

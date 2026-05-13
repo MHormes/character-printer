@@ -40,10 +40,12 @@ import { FeaturesBlock } from "@/components/forge/features-block";
 import { TrackersBlock } from "@/components/forge/trackers-block";
 import { StatBoxesBlock } from "@/components/forge/stat-boxes-block";
 import { SpellsBlock } from "@/components/forge/spells-block";
+import { CharacteristicsBlock } from "@/components/forge/characteristics-block";
+import { BioBlock } from "@/components/forge/bio-block";
 import { ForgeSection } from "@/components/forge/forge-section";
 import {
   ChevronDown,
-  ChevronRight,
+  ChevronUp,
   CircleDot,
   Circle,
   X,
@@ -54,6 +56,9 @@ import {
   Loader2,
   Save,
   Layout,
+  User,
+  MessageSquare,
+  BookOpen,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -68,6 +73,8 @@ import type {
   FeatureEntry,
   TrackerEntry,
   InventoryItem,
+  Characteristics,
+  Bio,
 } from "@/lib/types/character";
 
 import {
@@ -211,7 +218,11 @@ export default function ForgePage({
   const setSpellCastingStat = useCharacterStore((s) => s.setSpellCastingStat);
   const setSpellSlots = useCharacterStore((s) => s.setSpellSlots);
   const setSpellList = useCharacterStore((s) => s.setSpellList);
+  const updateCharacteristicsField = useCharacterStore((s) => s.updateCharacteristicsField);
+  const updateBioField = useCharacterStore((s) => s.updateBioField);
   const replaceCharacter = useCharacterStore((s) => s.replaceCharacter);
+
+  const [identityTab, setIdentityTab] = useState<"basics" | "characteristics" | "bio">("basics");
 
   useEffect(() => {
     clearCharacter();
@@ -820,130 +831,141 @@ export default function ForgePage({
         </div>
       </div>
 
-      <ForgeSection title="Identity" className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
-          <StringField
-            label="Name"
-            value={identity.name}
-            onChange={(v) => updateIdentityField("name", v)}
-            placeholder="Character name"
-          />
-          <RaceField
-            race={identity.race}
-            subrace={identity.subrace}
-            ignoreAutomation={character.selectionIgnores?.race ?? false}
-            onRaceChange={(v) => updateIdentityField("race", v)}
-            onSubraceChange={(v) => updateIdentityField("subrace", v)}
-            onIgnoreAutomationChange={setRaceAutomationIgnored}
-            availableRaces={availableRaces}
-            availableSubraces={availableSubraces}
-          />
-          <BackgroundField
-            value={identity.background}
-            ignoreAutomation={character.selectionIgnores?.background ?? false}
-            onChange={(v) => updateIdentityField("background", v)}
-            onIgnoreAutomationChange={setBackgroundAutomationIgnored}
-            availableBackgrounds={availableBackgrounds}
-          />
-          <StringField
-            label="Deity"
-            value={identity.deity}
-            onChange={(v) => updateIdentityField("deity", v)}
-            placeholder="e.g. Tyr"
-          />
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Alignment
-            </label>
-            <select
-              value={identity.alignment}
-              onChange={(e) => updateIdentityField("alignment", e.target.value)}
-              className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+      <ForgeSection 
+        title="Identity" 
+        className="space-y-4"
+        collapsible={true}
+        headerAction={
+          <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg">
+            <Button
+              variant={identityTab === "basics" ? "secondary" : "ghost"}
+              size="xs"
+              onClick={() => setIdentityTab("basics")}
+              className="h-7 px-2"
             >
-              <option value="">—</option>
-              <option value="Lawful Good">Lawful Good</option>
-              <option value="Neutral Good">Neutral Good</option>
-              <option value="Chaotic Good">Chaotic Good</option>
-              <option value="Lawful Neutral">Lawful Neutral</option>
-              <option value="True Neutral">True Neutral</option>
-              <option value="Chaotic Neutral">Chaotic Neutral</option>
-              <option value="Lawful Evil">Lawful Evil</option>
-              <option value="Neutral Evil">Neutral Evil</option>
-              <option value="Chaotic Evil">Chaotic Evil</option>
-            </select>
+              <User className="size-3 mr-1" />
+              Basics
+            </Button>
+            <Button
+              variant={identityTab === "characteristics" ? "secondary" : "ghost"}
+              size="xs"
+              onClick={() => setIdentityTab("characteristics")}
+              className="h-7 px-2"
+            >
+              <MessageSquare className="size-3 mr-1" />
+              Characteristics
+            </Button>
+            <Button
+              variant={identityTab === "bio" ? "secondary" : "ghost"}
+              size="xs"
+              onClick={() => setIdentityTab("bio")}
+              className="h-7 px-2"
+            >
+              <BookOpen className="size-3 mr-1" />
+              Bio & Appearance
+            </Button>
           </div>
-          <div className="col-span-2 space-y-3">
-            <ClassesField
-              classes={identity.classes}
-              onChange={setClasses}
-              proficiencyBonus={pb}
-              availableClasses={availableClasses}
-              onClassPicked={(dbClass) => {
-                if (!spells.globalCastingStat && dbClass.spellcastingStat) {
-                  setSpellCastingStat(dbClass.spellcastingStat as AttributeKey);
-                }
-              }}
-            />
-            <ClassChoicesPanel
-              pendingChoices={pendingChoices}
-              equipmentPendingChoices={equipmentPendingChoices}
-              availableFeats={availableFeats}
-              onConfirmChoice={handleConfirmChoice}
-              onDismissChoice={handleDismissClassChoice}
-              onConfirmEquipmentChoice={handleConfirmEquipmentChoice}
-              onDismissEquipmentChoice={handleDismissEquipmentChoice}
+        }
+      >
+        {identityTab === "basics" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
+              <StringField
+                label="Name"
+                value={identity.name}
+                onChange={(v) => updateIdentityField("name", v)}
+                placeholder="Character name"
+              />
+              <RaceField
+                race={identity.race}
+                subrace={identity.subrace}
+                ignoreAutomation={character.selectionIgnores?.race ?? false}
+                onRaceChange={(v) => updateIdentityField("race", v)}
+                onSubraceChange={(v) => updateIdentityField("subrace", v)}
+                onIgnoreAutomationChange={setRaceAutomationIgnored}
+                availableRaces={availableRaces}
+                availableSubraces={availableSubraces}
+              />
+              <BackgroundField
+                value={identity.background}
+                ignoreAutomation={character.selectionIgnores?.background ?? false}
+                onChange={(v) => updateIdentityField("background", v)}
+                onIgnoreAutomationChange={setBackgroundAutomationIgnored}
+                availableBackgrounds={availableBackgrounds}
+              />
+              <StringField
+                label="Deity"
+                value={identity.deity}
+                onChange={(v) => updateIdentityField("deity", v)}
+                placeholder="e.g. Tyr"
+              />
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Alignment
+                </label>
+                <select
+                  value={identity.alignment}
+                  onChange={(e) => updateIdentityField("alignment", e.target.value)}
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="">—</option>
+                  <option value="Lawful Good">Lawful Good</option>
+                  <option value="Neutral Good">Neutral Good</option>
+                  <option value="Chaotic Good">Chaotic Good</option>
+                  <option value="Lawful Neutral">Lawful Neutral</option>
+                  <option value="True Neutral">True Neutral</option>
+                  <option value="Chaotic Neutral">Chaotic Neutral</option>
+                  <option value="Lawful Evil">Lawful Evil</option>
+                  <option value="Neutral Evil">Neutral Evil</option>
+                  <option value="Chaotic Evil">Chaotic Evil</option>
+                </select>
+              </div>
+              <div className="col-span-2 space-y-3">
+                <ClassesField
+                  classes={identity.classes}
+                  onChange={setClasses}
+                  proficiencyBonus={pb}
+                  availableClasses={availableClasses}
+                  onClassPicked={(dbClass) => {
+                    if (!spells.globalCastingStat && dbClass.spellcastingStat) {
+                      setSpellCastingStat(dbClass.spellcastingStat as AttributeKey);
+                    }
+                  }}
+                />
+                <ClassChoicesPanel
+                  pendingChoices={pendingChoices}
+                  equipmentPendingChoices={equipmentPendingChoices}
+                  availableFeats={availableFeats}
+                  onConfirmChoice={handleConfirmChoice}
+                  onDismissChoice={handleDismissClassChoice}
+                  onConfirmEquipmentChoice={handleConfirmEquipmentChoice}
+                  onDismissEquipmentChoice={handleDismissEquipmentChoice}
+                />
+              </div>
+            </div>
+            <RaceChoicesPanel
+              pendingChoices={racePendingChoices}
+              onConfirmChoice={handleConfirmRaceChoice}
+              onDismissChoice={handleDismissRaceChoice}
             />
           </div>
-        </div>
-        <RaceChoicesPanel
-          pendingChoices={racePendingChoices}
-          onConfirmChoice={handleConfirmRaceChoice}
-          onDismissChoice={handleDismissRaceChoice}
-        />
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
-          <StringField
-            label="Age"
-            value={identity.age}
-            onChange={(v) => updateIdentityField("age", v)}
-            placeholder="e.g. 25"
+        )}
+
+        {identityTab === "characteristics" && (
+          <CharacteristicsBlock
+            data={character.characteristics || { personalityTraits: "", ideals: "", bonds: "", flaws: "" }}
+            onChange={updateCharacteristicsField}
           />
-          <StringField
-            label="Gender"
-            value={identity.gender}
-            onChange={(v) => updateIdentityField("gender", v)}
-            placeholder="e.g. Male"
+        )}
+
+        {identityTab === "bio" && (
+          <BioBlock
+            bio={character.bio || { appearance: "", backstory: "", allies: "", organizations: "" }}
+            identity={identity}
+            onBioChange={updateBioField}
+            onIdentityChange={updateIdentityField}
           />
-          <StringField
-            label="Height"
-            value={identity.height}
-            onChange={(v) => updateIdentityField("height", v)}
-            placeholder="e.g. 5'10&quot;"
-          />
-          <StringField
-            label="Weight"
-            value={identity.weight}
-            onChange={(v) => updateIdentityField("weight", v)}
-            placeholder="e.g. 160 lbs"
-          />
-          <StringField
-            label="Eyes"
-            value={identity.eyes}
-            onChange={(v) => updateIdentityField("eyes", v)}
-            placeholder="e.g. Blue"
-          />
-          <StringField
-            label="Hair"
-            value={identity.hair}
-            onChange={(v) => updateIdentityField("hair", v)}
-            placeholder="e.g. Brown"
-          />
-          <StringField
-            label="Skin"
-            value={identity.skin}
-            onChange={(v) => updateIdentityField("skin", v)}
-            placeholder="e.g. Tanned"
-          />
-        </div>
+        )}
       </ForgeSection>
 
       <div className="flex flex-col xl:flex-row gap-6">
@@ -952,6 +974,7 @@ export default function ForgePage({
           <ForgeSection
             title="Core Stats"
             headerAction={renderManualSectionToggle("coreStats")}
+            collapsible={true}
           >
             <div className="grid grid-cols-3 gap-3">
               {ATTRIBUTE_KEYS.map((attr) => (
@@ -975,6 +998,7 @@ export default function ForgePage({
           <ForgeSection
             title="Saving Throws"
             headerAction={renderManualSectionToggle("savingThrows")}
+            collapsible={true}
           >
             <div className="grid grid-cols-3 gap-3">
               {ATTRIBUTE_KEYS.map((attr) => (
@@ -1007,7 +1031,7 @@ export default function ForgePage({
                   {globalSaveExpanded ? (
                     <ChevronDown className="size-3" />
                   ) : (
-                    <ChevronRight className="size-3" />
+                    <ChevronUp className="size-3" />
                   )}
                   Global modifier
                   {!globalSaveExpanded && saveGlobalStack.length > 0 && (
@@ -1158,6 +1182,7 @@ export default function ForgePage({
           title="Skills"
           className="w-full xl:w-62 shrink-0"
           headerAction={renderManualSectionToggle("skills")}
+          collapsible={true}
         >
           <SkillsBlock
             skills={skills}
@@ -1180,6 +1205,7 @@ export default function ForgePage({
         <ForgeSection
           title="Other Proficiencies"
           className="w-full xl:w-72 min-w-0"
+          collapsible={true}
         >
           <OtherProficienciesBlock
             proficiencies={otherProficiencies}
@@ -1194,6 +1220,7 @@ export default function ForgePage({
           <ForgeSection
             title="Combat"
             headerAction={renderManualSectionToggle("combat")}
+            collapsible={true}
           >
             <CombatBlock
               data={combat}
@@ -1209,7 +1236,7 @@ export default function ForgePage({
             />
           </ForgeSection>
 
-          <ForgeSection title="Attacks & Actions">
+          <ForgeSection title="Attacks & Actions" collapsible={true}>
             <ActionsBlock
               actions={actions}
               castingStat={spells.globalCastingStat}
@@ -1225,7 +1252,7 @@ export default function ForgePage({
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
-        <ForgeSection title="Features & Traits" className="flex-1 min-w-0">
+        <ForgeSection title="Features & Traits" className="flex-1 min-w-0" collapsible={true}>
           <FeaturesBlock features={features} onChange={setFeatures} />
         </ForgeSection>
 
@@ -1233,6 +1260,7 @@ export default function ForgePage({
           title="Trackers"
           className="flex-1 min-w-0"
           headerAction={renderManualSectionToggle("trackers")}
+          collapsible={true}
         >
           <TrackersBlock
             trackers={trackers}
@@ -1244,13 +1272,13 @@ export default function ForgePage({
           />
         </ForgeSection>
 
-        <ForgeSection title="Custom Stats" className="w-full md:w-72 shrink-0">
+        <ForgeSection title="Custom Stats" className="w-full md:w-72 shrink-0" collapsible={true}>
           <StatBoxesBlock statBoxes={statBoxes ?? []} onChange={setStatBoxes} />
         </ForgeSection>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
-        <ForgeSection title="Inventory" className="w-full md:w-1/3">
+        <ForgeSection title="Inventory" className="w-full md:w-1/3" collapsible={true}>
           <InventoryBlock
             inventory={inventory}
             onChange={setInventory}
@@ -1262,6 +1290,7 @@ export default function ForgePage({
           title="Spellcasting"
           className="w-full md:w-2/3"
           headerAction={renderManualSectionToggle("spells")}
+          collapsible={true}
         >
           <SpellsBlock
             slots={spells.slots}

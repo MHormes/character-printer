@@ -69,7 +69,7 @@ function FeaturePicker({
     runSearch(q);
   }
 
-  function handleAdd(feat: FeatRow) {
+  function handleAdd(feat: SrdFeatureResult) {
     onAdd(feat);
     setAddedNames((prev) => new Set([...prev, feat.name]));
   }

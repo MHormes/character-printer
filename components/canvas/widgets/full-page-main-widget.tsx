@@ -57,10 +57,9 @@ export function FullPageMainWidget() {
       <div style={slot(10, 12, 9, 3)}><SlimAttacksWidget /></div>
       <div style={slot(19, 7, 6, 19)}><FeaturesWidget /></div>
       <div style={slot(10, 15, 9, equipH)}><EquipmentWidget /></div>
-      <div style={slot(25, 0, 3, 4)}><StatBoxWidget statId={character.statBoxes[0]?.id} /></div>
-      <div style={slot(25, 4, 3, 4)}><StatBoxWidget statId={character.statBoxes[1]?.id} /></div>
-      <div style={slot(25, 8, 3, 4)}><StatBoxWidget statId={character.statBoxes[2]?.id} /></div>
-    </div>
+      <div style={slot(25, 0, 3, 4)}><StatBoxWidget statId={character.statBoxes?.[0]?.id} /></div>
+      <div style={slot(25, 4, 3, 4)}><StatBoxWidget statId={character.statBoxes?.[1]?.id} /></div>
+      <div style={slot(25, 8, 3, 4)}><StatBoxWidget statId={character.statBoxes?.[2]?.id} /></div>    </div>
   );
 }
 

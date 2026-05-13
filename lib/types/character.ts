@@ -232,6 +232,20 @@ export type SrdGrants = {
   raceAsiBonuses?: { abilityScore: AttributeKey; bonus: number; sourceId: string }[];
 };
 
+export type Characteristics = {
+  personalityTraits: string;
+  ideals: string;
+  bonds: string;
+  flaws: string;
+};
+
+export type Bio = {
+  appearance: string;
+  backstory: string;
+  allies: string;
+  organizations: string;
+};
+
 export type CharacterData = {
   version: string;
   profBonusStack: ModifierEntry[];
@@ -257,6 +271,8 @@ export type CharacterData = {
     level: number;
     classes: CharacterClassEntry[];
   };
+  characteristics?: Characteristics;
+  bio?: Bio;
   attributes: Record<AttributeKey, AttributeData>;
   saves: Record<AttributeKey, SaveData>;
   saveGlobalStack: ModifierEntry[];
