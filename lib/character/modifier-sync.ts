@@ -31,6 +31,7 @@ export function syncInventoryToStacks(
         id: mod.id,
         source: item.name || "(unnamed item)",
         value: mod.value,
+        type: mod.type,
         isActive: item.equipped,
         sourceId: `item:${item.id}`,
       })

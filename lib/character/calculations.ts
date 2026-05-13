@@ -6,9 +6,16 @@ export function sumStack(stack: ModifierEntry[]): number {
     .reduce((s, m) => s + m.value, 0)
 }
 
+function resolveStackWithSetTo(base: number, stack: ModifierEntry[]): number {
+  const active = (stack ?? []).filter((m) => m.isActive)
+  const setTos = active.filter((m) => m.type === "Set To").map((m) => m.value)
+  if (setTos.length > 0) return Math.max(...setTos)
+  return base + active.reduce((s, m) => s + m.value, 0)
+}
+
 export function resolveAttributeScore(attr: AttributeData): number {
   if (attr.override !== null) return attr.override
-  return attr.base + sumStack(attr.stack)
+  return resolveStackWithSetTo(attr.base, attr.stack)
 }
 
 export function resolveAttributeMod(attr: AttributeData): number {
@@ -21,6 +28,10 @@ export function resolvePb(c: CharacterData): number {
   return basePb + pbStackSum
 }
 
+function activeSetTos(stack: ModifierEntry[]): number[] {
+  return (stack ?? []).filter((m) => m.isActive && m.type === "Set To").map((m) => m.value)
+}
+
 export function resolveSkillBonus(
   c: CharacterData,
   skillKey: string,
@@ -28,6 +39,9 @@ export function resolveSkillBonus(
 ): number {
   const skill = c.skills[skillKey]
   if (skill.override !== null) return skill.override
+
+  const setTos = activeSetTos(skill.stack)
+  if (setTos.length > 0) return Math.max(...setTos)
 
   const pb = resolvePb(c)
   const attrMod = resolveAttributeMod(c.attributes[attrKey])
@@ -48,6 +62,9 @@ export function resolveSaveBonus(
 ): number {
   const save = c.saves[attrKey]
   if (save.override !== null) return save.override
+
+  const setTos = activeSetTos(save.stack)
+  if (setTos.length > 0) return Math.max(...setTos)
 
   const pb = resolvePb(c)
   const attrMod = resolveAttributeMod(c.attributes[attrKey])

@@ -6,6 +6,7 @@ export type ModifierEntry = {
   value: number;
   isActive: boolean;
   sourceId?: string; // namespaced: "item:<uuid>", "race:<id>", "class:<id>", etc. — set means system-managed, read-only in UI
+  type?: "Bonus" | "Set To"; // undefined = Bonus (backward compat)
 };
 
 export type AttributeKey = "str" | "dex" | "con" | "int" | "wis" | "cha";

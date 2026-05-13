@@ -619,78 +619,135 @@ function SortableInventoryItem({
       </div>
 
       {isExpanded && (
-        <div className={cn("border-t px-3 py-2 space-y-1.5", item.equipped ? "border-border" : "border-border/70")}>
+        <div className={cn("border-t px-3 py-2 space-y-2", item.equipped ? "border-border" : "border-border/70")}>
+          {/* Armor AC configuration — only for Armor category */}
+          {item.category === "Armor" && (
+            <div className="space-y-1.5 border-b border-border/60 pb-2">
+              <p className="text-xs text-muted-foreground">Armor AC</p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">Base</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={item.acBase ?? ""}
+                    placeholder="—"
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") { onPatch({ acBase: null }); return; }
+                      const n = parseInt(raw, 10);
+                      if (!isNaN(n)) onPatch({ acBase: n });
+                    }}
+                    className="h-6 w-12 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
+                  />
+                </div>
+                <label className="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={item.acDexBonus ?? true}
+                    onChange={(e) => onPatch({ acDexBonus: e.target.checked })}
+                    className="size-3"
+                  />
+                  + DEX
+                </label>
+                {(item.acDexBonus ?? true) && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">max</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={item.acMaxDex ?? ""}
+                      placeholder="—"
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === "") { onPatch({ acMaxDex: null }); return; }
+                        const n = parseInt(raw, 10);
+                        if (!isNaN(n)) onPatch({ acMaxDex: n });
+                      }}
+                      className="h-6 w-10 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">Modifiers</p>
           {item.modifiers.length === 0 && (
             <p className="text-xs text-muted-foreground/60">No modifiers.</p>
           )}
-          {item.modifiers.map((mod, idx) => (
-            <div key={idx} className="flex items-center gap-1.5">
-              <select
-                value={mod.target}
-                onChange={(e) =>
-                  patchModifier(idx, {
-                    target: e.target.value as ModifierTarget,
-                  })
-                }
-                className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
-              >
-                {MODIFIER_TARGETS.map((t) => (
-                  <option key={t.key} value={t.key}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={mod.type}
-                onChange={(e) =>
-                  patchModifier(idx, {
-                    type: e.target.value as "Bonus" | "Set To",
-                  })
-                }
-                className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
-              >
-                {MOD_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-              <div className="flex h-6 w-16 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                <span className="select-none pl-2 text-xs text-muted-foreground">
-                  +
-                </span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={mod.value === 0 ? "" : String(mod.value)}
-                  placeholder="0"
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === "") {
-                      patchModifier(idx, { value: 0 });
-                      return;
-                    }
-                    if (raw === "-") return;
-                    const n = parseInt(raw, 10);
-                    if (!isNaN(n)) patchModifier(idx, { value: n });
-                  }}
-                  onBlur={(e) => {
-                    if (e.target.value === "-")
-                      patchModifier(idx, { value: 0 });
-                  }}
-                  className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
-                />
+          {item.modifiers.map((mod, idx) => {
+            const availableTypes = mod.target === "combat.ac"
+              ? (["Bonus"] as const)
+              : MOD_TYPES;
+            return (
+              <div key={idx} className="flex items-center gap-1.5">
+                <select
+                  value={mod.target}
+                  onChange={(e) =>
+                    patchModifier(idx, {
+                      target: e.target.value as ModifierTarget,
+                    })
+                  }
+                  className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+                >
+                  {MODIFIER_TARGETS.map((t) => (
+                    <option key={t.key} value={t.key}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={mod.type}
+                  onChange={(e) =>
+                    patchModifier(idx, {
+                      type: e.target.value as "Bonus" | "Set To",
+                    })
+                  }
+                  className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+                >
+                  {availableTypes.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex h-6 w-16 items-center rounded-md border border-input bg-background focus-within:border-ring">
+                  <span className="select-none pl-2 text-xs text-muted-foreground">
+                    {mod.type === "Set To" ? "=" : "+"}
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={mod.value === 0 ? "" : String(mod.value)}
+                    placeholder="0"
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        patchModifier(idx, { value: 0 });
+                        return;
+                      }
+                      if (raw === "-") return;
+                      const n = parseInt(raw, 10);
+                      if (!isNaN(n)) patchModifier(idx, { value: n });
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value === "-")
+                        patchModifier(idx, { value: 0 });
+                    }}
+                    className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeModifier(idx)}
+                  className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <X className="size-2.5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => removeModifier(idx)}
-                className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-              >
-                <X className="size-2.5" />
-              </button>
-            </div>
-          ))}
+            );
+          })}
           <button
             type="button"
             onClick={addModifier}

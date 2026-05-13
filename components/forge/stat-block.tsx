@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { X, Plus, RotateCcw, CircleDot, Circle, ChevronDown, ChevronRight, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { AttributeData, ModifierEntry } from "@/lib/types/character"
+import { resolveAttributeScore } from "@/lib/character/calculations"
 
 type StatBlockProps = {
   label: string
@@ -18,12 +19,10 @@ type StatBlockProps = {
 export function StatBlock({ label, data, showManualControls, onBaseChange, onStackChange, onOverrideChange }: StatBlockProps) {
   const [expanded, setExpanded] = useState(false)
 
-  const stackTotal = data.stack
-    .filter((m) => m.isActive)
-    .reduce((sum, m) => sum + m.value, 0)
-  const calculated = data.base + stackTotal
+  const calculated = resolveAttributeScore(data)
   const total = data.override ?? calculated
   const dndMod = Math.floor((total - 10) / 2)
+  const stackTotal = data.stack.filter((m) => m.isActive).reduce((sum, m) => sum + m.value, 0)
 
   function addModifier() {
     onStackChange([...data.stack, { id: crypto.randomUUID(), source: "", value: 0, isActive: true }])

@@ -36,6 +36,8 @@ import { CharacterInfoDetailedWidget } from "@/components/canvas/widgets/charact
 import { CharacterInfoCompactWidget } from "@/components/canvas/widgets/character-info-compact-widget";
 import { CharacterAppearanceWidget } from "@/components/canvas/widgets/character-appearance-widget";
 import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget";
+import { CharacteristicsWidget } from "@/components/canvas/widgets/characteristics-widget";
+import { GenericTextWidget } from "@/components/canvas/widgets/generic-text-widget";
 
 function WidgetPreviewContent({ type }: { type: WidgetType }) {
   if (type === "CoreStats")              return <CoreStatsWidget />;
@@ -78,6 +80,8 @@ function WidgetPreviewContent({ type }: { type: WidgetType }) {
   if (type === "CharacterAppearance")   return <CharacterAppearanceWidget />;
   if (type === "SpellCard")             return <SpellCardWidget />;
   if (type === "StatBox")               return <StatBoxWidget />;
+  if (type === "Characteristics")       return <CharacteristicsWidget />;
+  if (type === "GenericText")           return <GenericTextWidget />;
   return null;
 }
 

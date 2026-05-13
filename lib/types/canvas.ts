@@ -21,6 +21,7 @@ export type WidgetType =
   | "TemplatePage2"
   | "TemplateSpellCards"
   | "TemplateFeatures"
+  | "Characteristics" | "GenericText"
 export type Rotation = 0 | 90 | 180 | 270
 export type PrintState = "Calculated" | "Blank"
 
@@ -37,6 +38,7 @@ export type CanvasWidget = {
   spellId?: string
   featureId?: string
   statId?: string
+  textSource?: string // for GenericText: traits, ideals, bonds, flaws, appearance, backstory, allies, organizations
 }
 
 export type CanvasTemplateWidget = Omit<CanvasWidget, "id">

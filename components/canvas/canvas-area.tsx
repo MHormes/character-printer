@@ -39,6 +39,8 @@ import { slimAttacksSvgH } from "@/components/canvas/widgets/slim-attacks-widget
 import { equipmentSvgH } from "@/components/canvas/widgets/equipment-widget";
 import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
 import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
+import { characteristicsSvgH } from "@/components/canvas/widgets/characteristics-widget";
+import { genericTextSvgH } from "@/components/canvas/widgets/generic-text-widget";
 import { featureCardGridH } from "@/components/canvas/widgets/feature-card-widget";
 import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
 
@@ -409,6 +411,12 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       (featuresSvgH(featuresCount) * 6 * rows * 210) / (cols * 297 * 96),
     ),
   );
+  const characteristicsH = Math.max(
+    4,
+    Math.round(
+      (characteristicsSvgH() * 6 * rows * 210) / (cols * 297 * 96),
+    ),
+  );
 
   const spellLevelH = (level: number) => {
     const count =
@@ -480,6 +488,13 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     { type: "Trackers" as const, label: "Trackers", w: 6, h: trackersH },
     { type: "Features" as const, label: "Features", w: 6, h: featuresH },
     { type: "FeatureCard" as const, label: "Feature Card", w: 9, h: 5 },
+    {
+      type: "Characteristics" as const,
+      label: "Characteristics",
+      w: 6,
+      h: characteristicsH,
+    },
+    { type: "GenericText" as const, label: "Generic Text", w: 9, h: 4 },
     { type: "StatBox" as const, label: "Stat Box", w: 3, h: 4 },
   ];
 

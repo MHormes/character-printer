@@ -49,8 +49,10 @@ import { CharacterInfoDetailedWidget } from "@/components/canvas/widgets/charact
 import { CharacterInfoCompactWidget } from "@/components/canvas/widgets/character-info-compact-widget";
 import { CharacterAppearanceWidget } from "@/components/canvas/widgets/character-appearance-widget";
 import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget";
+import { CharacteristicsWidget } from "@/components/canvas/widgets/characteristics-widget";
+import { GenericTextWidget, genericTextSvgH } from "@/components/canvas/widgets/generic-text-widget";
 
-function WidgetContent({ type, spellId, featureId, statId }: { type: WidgetType; spellId?: string; featureId?: string; statId?: string }) {
+function WidgetContent({ type, spellId, featureId, statId, textSource }: { type: WidgetType; spellId?: string; featureId?: string; statId?: string; textSource?: string }) {
   if (type === "CoreStats") return <CoreStatsWidget />;
   if (type === "Inspiration") return <InspirationWidget />;
   if (type === "Proficiency") return <ProficiencyWidget />;
@@ -95,6 +97,8 @@ function WidgetContent({ type, spellId, featureId, statId }: { type: WidgetType;
   if (type === "CharacterAppearance") return <CharacterAppearanceWidget />;
   if (type === "SpellCard") return <SpellCardWidget spellId={spellId} />;
   if (type === "StatBox") return <StatBoxWidget statId={statId} />;
+  if (type === "Characteristics") return <CharacteristicsWidget />;
+  if (type === "GenericText") return <GenericTextWidget source={textSource} />;
   if (type === "TemplatePage1") return null;
   if (type === "TemplatePage2") return null;
   if (type === "TemplateSpellCards") return null;
@@ -128,7 +132,8 @@ export function PlacedWidget({
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const updateWidgetData = useCanvasStore((s) => s.updateWidgetData);
-  const charSpells = useCharacterStore((s) => s.character?.spells.list ?? []);
+  const character = useCharacterStore((s) => s.character);
+  const charSpells = character?.spells.list ?? [];
   const features = useCharacterStore((s) => s.character?.features ?? []);
   const statBoxes = useCharacterStore((s) => s.character?.statBoxes ?? []);
 
@@ -141,6 +146,17 @@ export function PlacedWidget({
     .sort((a, b) => a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name));
   const charSpellNames = new Set(charSpells.map((s) => s.name.toLowerCase()));
   const dedupedDbSpells = spellResults.filter((s) => !charSpellNames.has(s.name.toLowerCase()));
+
+  const TEXT_SOURCES = [
+    { id: "personalityTraits", label: "Personality Traits" },
+    { id: "ideals", label: "Ideals" },
+    { id: "bonds", label: "Bonds" },
+    { id: "flaws", label: "Flaws" },
+    { id: "appearance", label: "Appearance" },
+    { id: "backstory", label: "Backstory" },
+    { id: "allies", label: "Allies & Organizations" },
+    { id: "organizations", label: "Organizations" },
+  ];
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -248,7 +264,7 @@ export function PlacedWidget({
               <Trash2 className="size-3" />
             </button>
           )}
-          {(widget.type === "SpellCard" || widget.type === "FeatureCard" || widget.type === "StatBox") && (
+          {(widget.type === "SpellCard" || widget.type === "FeatureCard" || widget.type === "StatBox" || widget.type === "GenericText") && (
             <button
               type="button"
               onClick={(e) => {
@@ -256,7 +272,7 @@ export function PlacedWidget({
                 setPickerOpen((v) => { if (v) setSpellSearch(""); return !v; });
               }}
               className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-              title={widget.type === "SpellCard" ? "Choose spell" : widget.type === "StatBox" ? "Choose stat" : "Choose feature"}
+              title={widget.type === "SpellCard" ? "Choose spell" : widget.type === "StatBox" ? "Choose stat" : widget.type === "GenericText" ? "Choose source" : "Choose feature"}
             >
               <Settings className="size-3" />
             </button>
@@ -409,6 +425,48 @@ export function PlacedWidget({
                 <span className="text-xs text-muted-foreground">{stat.value}</span>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {pickerOpen && widget.type === "GenericText" && (
+        <div
+          ref={pickerRef}
+          className="absolute left-0 z-50 w-48 rounded border border-border bg-card shadow-md"
+          style={{ top: "calc(100% + 2px)" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="max-h-64 overflow-y-auto py-1">
+            {TEXT_SOURCES.map((src) => {
+              let text = "";
+              if (src.id in (character?.characteristics || {})) {
+                text = (character?.characteristics as any)[src.id];
+              } else if (src.id in (character?.bio || {})) {
+                text = (character?.bio as any)[src.id];
+              }
+
+              return (
+                <button
+                  key={src.id}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newH = Math.min(
+                      Math.max(3, Math.round((genericTextSvgH(text) * 9 * rows * 210) / (cols * 297 * 96))),
+                      rows
+                    );
+                    updateWidgetData(widget.id, { textSource: src.id, h: newH });
+                    setPickerOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center justify-between px-3 py-1.5 text-left transition-colors hover:bg-accent",
+                    widget.textSource === src.id && "bg-accent"
+                  )}
+                >
+                  <span className="text-xs font-medium text-foreground">{src.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

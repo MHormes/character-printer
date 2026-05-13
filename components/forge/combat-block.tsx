@@ -94,7 +94,7 @@ function ModStack({
                   {mod.source}
                 </span>
                 <span className="shrink-0 tabular-nums text-xs text-foreground">
-                  {mod.value >= 0 ? `+${mod.value}` : mod.value}
+                  {mod.type === "Set To" ? `=${mod.value}` : mod.value >= 0 ? `+${mod.value}` : String(mod.value)}
                 </span>
                 {mod.isActive ? (
                   <CircleDot className="size-2.5 shrink-0 text-muted-foreground" />
