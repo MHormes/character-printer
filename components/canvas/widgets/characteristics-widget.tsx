@@ -1,13 +1,18 @@
 "use client";
 
 import { useCharacterStore } from "@/lib/store/character-store";
+import type { Characteristics } from "@/lib/types/character";
 import { DndFrame } from "./dnd-frame";
 
 const SVG_W = 96;
 const MARGIN = 3;
 const HEADER_H = 12;
 const BOX_GAP = 4;
-const BOX_H = 42;
+const TEXT_SIZE = 4.5;
+const LINE_H = 5.5;
+const BOX_TEXT_PAD_TOP = 8;
+const LABEL_H = 8;
+const MIN_BOX_H = 20;
 
 const ff = "Georgia, 'Times New Roman', serif";
 
@@ -29,8 +34,19 @@ function wrapText(text: string, width: number, fontSize: number): string[] {
   return lines;
 }
 
-export function characteristicsSvgH(): number {
-  return MARGIN * 2 + HEADER_H + 4 * BOX_H + 3 * BOX_GAP + 5;
+function sectionBoxH(text: string): number {
+  const lines = wrapText(text || "", SVG_W - MARGIN * 4, TEXT_SIZE);
+  return Math.max(MIN_BOX_H, BOX_TEXT_PAD_TOP + lines.length * LINE_H + LABEL_H);
+}
+
+export function characteristicsSvgH(c?: Characteristics): number {
+  if (!c) return MARGIN * 2 + HEADER_H + 4 * 30 + 3 * BOX_GAP + 5;
+  const total =
+    sectionBoxH(c.personalityTraits) +
+    sectionBoxH(c.ideals) +
+    sectionBoxH(c.bonds) +
+    sectionBoxH(c.flaws);
+  return MARGIN * 2 + HEADER_H + total + 3 * BOX_GAP + 5;
 }
 
 export function CharacteristicsWidget() {
@@ -51,7 +67,9 @@ export function CharacteristicsWidget() {
     { label: "FLAWS", text: c.flaws },
   ];
 
-  const svgH = characteristicsSvgH();
+  const svgH = characteristicsSvgH(c);
+
+  let curY = MARGIN + HEADER_H;
 
   return (
     <svg
@@ -74,25 +92,27 @@ export function CharacteristicsWidget() {
       </text>
 
       {sections.map((sec, i) => {
-        const y = MARGIN + HEADER_H + i * (BOX_H + BOX_GAP);
-        const textLines = wrapText(sec.text, SVG_W - MARGIN * 4, 4.5).slice(0, 6);
-        
+        const boxH = sectionBoxH(sec.text);
+        const y = curY;
+        curY += boxH + (i < sections.length - 1 ? BOX_GAP : 0);
+        const textLines = wrapText(sec.text, SVG_W - MARGIN * 4, TEXT_SIZE);
+
         return (
           <g key={sec.label}>
             <DndFrame
               x={MARGIN}
               y={y}
               w={SVG_W - MARGIN * 2}
-              h={BOX_H}
+              h={boxH}
               cornerOff={6}
             />
-            
+
             {textLines.map((line, li) => (
               <text
                 key={li}
                 x={MARGIN + 6}
-                y={y + 8 + li * 5.5}
-                fontSize="4.5"
+                y={y + BOX_TEXT_PAD_TOP + li * LINE_H}
+                fontSize={TEXT_SIZE}
                 fontFamily={ff}
                 fill="#1a1208"
               >
@@ -102,7 +122,7 @@ export function CharacteristicsWidget() {
 
             <text
               x={SVG_W / 2}
-              y={y + BOX_H - 5}
+              y={y + boxH - 3}
               textAnchor="middle"
               fontSize="4"
               fontWeight="700"

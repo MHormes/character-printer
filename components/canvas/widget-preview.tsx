@@ -37,7 +37,9 @@ import { CharacterInfoCompactWidget } from "@/components/canvas/widgets/characte
 import { CharacterAppearanceWidget } from "@/components/canvas/widgets/character-appearance-widget";
 import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget";
 import { CharacteristicsWidget } from "@/components/canvas/widgets/characteristics-widget";
-import { GenericTextWidget } from "@/components/canvas/widgets/generic-text-widget";
+import { CharacteristicCardWidget } from "@/components/canvas/widgets/characteristic-card-widget";
+import { BioTextWidget } from "@/components/canvas/widgets/bio-text-widget";
+import { FullPageBioWidget } from "@/components/canvas/widgets/full-page-bio-widget";
 
 function WidgetPreviewContent({ type }: { type: WidgetType }) {
   if (type === "CoreStats")              return <CoreStatsWidget />;
@@ -81,7 +83,9 @@ function WidgetPreviewContent({ type }: { type: WidgetType }) {
   if (type === "SpellCard")             return <SpellCardWidget />;
   if (type === "StatBox")               return <StatBoxWidget />;
   if (type === "Characteristics")       return <CharacteristicsWidget />;
-  if (type === "GenericText")           return <GenericTextWidget />;
+  if (type === "CharacteristicCard")    return <CharacteristicCardWidget />;
+  if (type === "BioText")               return <BioTextWidget />;
+  if (type === "FullPageBio")           return <FullPageBioWidget />;
   return null;
 }
 
@@ -100,6 +104,7 @@ export function WidgetPreview({ type, w, h }: WidgetPreviewProps) {
         maxHeight: "100%",
         pointerEvents: "none",
         flexShrink: 0,
+        overflow: "hidden",
       }}
     >
       <WidgetPreviewContent type={type} />

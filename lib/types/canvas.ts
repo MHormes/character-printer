@@ -21,7 +21,8 @@ export type WidgetType =
   | "TemplatePage2"
   | "TemplateSpellCards"
   | "TemplateFeatures"
-  | "Characteristics" | "GenericText"
+  | "Characteristics" | "CharacteristicCard"
+  | "BioText" | "FullPageBio" | "TemplateBio"
 export type Rotation = 0 | 90 | 180 | 270
 export type PrintState = "Calculated" | "Blank"
 

@@ -27,36 +27,33 @@ function wrapText(text: string, width: number, fontSize: number): string[] {
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  personalityTraits: "Personality Traits",
-  ideals: "Ideals",
-  bonds: "Bonds",
-  flaws: "Flaws",
   appearance: "Appearance",
   backstory: "Backstory",
   allies: "Allies & Organizations",
   organizations: "Organizations",
 };
 
-export function genericTextSvgH(text: string): number {
+export const BIO_SOURCES = [
+  { id: "appearance",    label: "Appearance" },
+  { id: "backstory",     label: "Backstory" },
+  { id: "allies",        label: "Allies & Organizations" },
+  { id: "organizations", label: "Organizations" },
+] as const;
+
+export function bioTextSvgH(text: string): number {
   const lines = wrapText(text, SVG_W - 12, 5.5);
   const textH = lines.length * 7;
   return Math.max(30, MARGIN * 2 + HEADER_H + textH + 8);
 }
 
-export function GenericTextWidget({ source = "backstory" }: { source?: string }) {
+export function BioTextWidget({ source = "backstory" }: { source?: string }) {
   const character = useCharacterStore((s) => s.character);
   if (!character) return null;
 
-  let text = "";
-  if (source in (character.characteristics || {})) {
-    text = (character.characteristics as any)[source];
-  } else if (source in (character.bio || {})) {
-    text = (character.bio as any)[source];
-  }
-
-  const label = SOURCE_LABELS[source] || source.charAt(0).toUpperCase() + source.slice(1);
+  const text = (character.bio as Record<string, string> | undefined)?.[source] ?? "";
+  const label = SOURCE_LABELS[source] ?? source.charAt(0).toUpperCase() + source.slice(1);
   const lines = wrapText(text, SVG_W - 12, 5.5);
-  const svgH = genericTextSvgH(text);
+  const svgH = bioTextSvgH(text);
   const frameH = svgH - MARGIN * 2;
 
   return (

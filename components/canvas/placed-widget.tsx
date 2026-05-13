@@ -50,7 +50,9 @@ import { CharacterInfoCompactWidget } from "@/components/canvas/widgets/characte
 import { CharacterAppearanceWidget } from "@/components/canvas/widgets/character-appearance-widget";
 import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget";
 import { CharacteristicsWidget } from "@/components/canvas/widgets/characteristics-widget";
-import { GenericTextWidget, genericTextSvgH } from "@/components/canvas/widgets/generic-text-widget";
+import { CharacteristicCardWidget, characteristicCardSvgH, CHAR_CARD_SOURCES } from "@/components/canvas/widgets/characteristic-card-widget";
+import { BioTextWidget, bioTextSvgH, BIO_SOURCES } from "@/components/canvas/widgets/bio-text-widget";
+import { FullPageBioWidget } from "@/components/canvas/widgets/full-page-bio-widget";
 
 function WidgetContent({ type, spellId, featureId, statId, textSource }: { type: WidgetType; spellId?: string; featureId?: string; statId?: string; textSource?: string }) {
   if (type === "CoreStats") return <CoreStatsWidget />;
@@ -98,11 +100,14 @@ function WidgetContent({ type, spellId, featureId, statId, textSource }: { type:
   if (type === "SpellCard") return <SpellCardWidget spellId={spellId} />;
   if (type === "StatBox") return <StatBoxWidget statId={statId} />;
   if (type === "Characteristics") return <CharacteristicsWidget />;
-  if (type === "GenericText") return <GenericTextWidget source={textSource} />;
+  if (type === "CharacteristicCard") return <CharacteristicCardWidget source={textSource} />;
+  if (type === "BioText") return <BioTextWidget source={textSource} />;
+  if (type === "FullPageBio") return <FullPageBioWidget />;
   if (type === "TemplatePage1") return null;
   if (type === "TemplatePage2") return null;
   if (type === "TemplateSpellCards") return null;
   if (type === "TemplateFeatures") return null;
+  if (type === "TemplateBio") return null;
   return null;
 }
 
@@ -147,16 +152,6 @@ export function PlacedWidget({
   const charSpellNames = new Set(charSpells.map((s) => s.name.toLowerCase()));
   const dedupedDbSpells = spellResults.filter((s) => !charSpellNames.has(s.name.toLowerCase()));
 
-  const TEXT_SOURCES = [
-    { id: "personalityTraits", label: "Personality Traits" },
-    { id: "ideals", label: "Ideals" },
-    { id: "bonds", label: "Bonds" },
-    { id: "flaws", label: "Flaws" },
-    { id: "appearance", label: "Appearance" },
-    { id: "backstory", label: "Backstory" },
-    { id: "allies", label: "Allies & Organizations" },
-    { id: "organizations", label: "Organizations" },
-  ];
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -198,13 +193,14 @@ export function PlacedWidget({
       widget.type === "FullPageMain" ||
       widget.type === "FullPageFeatures" ||
       widget.type === "FullPageSpells" ||
-      widget.type === "FullPageSpellSheet"
+      widget.type === "FullPageSpellSheet" ||
+      widget.type === "FullPageBio"
     ) {
-      return <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} />;
+      return <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} textSource={widget.textSource} />;
     }
     return (
       <div style={posStyle} className="overflow-hidden">
-        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} />
+        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} textSource={widget.textSource} />
       </div>
     );
   }
@@ -228,7 +224,7 @@ export function PlacedWidget({
           !widget.locked && "cursor-grab active:cursor-grabbing",
         )}
       >
-        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} />
+        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} textSource={widget.textSource} />
         {widget.locked && (
           <Lock className="absolute left-1 top-1 size-3 text-muted-foreground" />
         )}
@@ -264,7 +260,7 @@ export function PlacedWidget({
               <Trash2 className="size-3" />
             </button>
           )}
-          {(widget.type === "SpellCard" || widget.type === "FeatureCard" || widget.type === "StatBox" || widget.type === "GenericText") && (
+          {(widget.type === "SpellCard" || widget.type === "FeatureCard" || widget.type === "StatBox" || widget.type === "BioText" || widget.type === "CharacteristicCard") && (
             <button
               type="button"
               onClick={(e) => {
@@ -272,7 +268,7 @@ export function PlacedWidget({
                 setPickerOpen((v) => { if (v) setSpellSearch(""); return !v; });
               }}
               className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-              title={widget.type === "SpellCard" ? "Choose spell" : widget.type === "StatBox" ? "Choose stat" : widget.type === "GenericText" ? "Choose source" : "Choose feature"}
+              title={widget.type === "SpellCard" ? "Choose spell" : widget.type === "StatBox" ? "Choose stat" : widget.type === "BioText" ? "Choose bio field" : widget.type === "CharacteristicCard" ? "Choose characteristic" : "Choose feature"}
             >
               <Settings className="size-3" />
             </button>
@@ -429,7 +425,7 @@ export function PlacedWidget({
         </div>
       )}
 
-      {pickerOpen && widget.type === "GenericText" && (
+      {pickerOpen && widget.type === "CharacteristicCard" && (
         <div
           ref={pickerRef}
           className="absolute left-0 z-50 w-48 rounded border border-border bg-card shadow-md"
@@ -437,14 +433,42 @@ export function PlacedWidget({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="max-h-64 overflow-y-auto py-1">
-            {TEXT_SOURCES.map((src) => {
-              let text = "";
-              if (src.id in (character?.characteristics || {})) {
-                text = (character?.characteristics as any)[src.id];
-              } else if (src.id in (character?.bio || {})) {
-                text = (character?.bio as any)[src.id];
-              }
+            {CHAR_CARD_SOURCES.map((src) => (
+              <button
+                key={src.id}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const text = (character?.characteristics as Record<string, string> | undefined)?.[src.id] ?? "";
+                  const newH = Math.min(
+                    Math.max(2, Math.round((characteristicCardSvgH(text) * widget.w * rows * 210) / (cols * 297 * 96))),
+                    rows
+                  );
+                  updateWidgetData(widget.id, { textSource: src.id, h: newH });
+                  setPickerOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center px-3 py-1.5 text-left transition-colors hover:bg-accent",
+                  widget.textSource === src.id && "bg-accent"
+                )}
+              >
+                <span className="text-xs font-medium text-foreground">{src.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
+      {pickerOpen && widget.type === "BioText" && (
+        <div
+          ref={pickerRef}
+          className="absolute left-0 z-50 w-48 rounded border border-border bg-card shadow-md"
+          style={{ top: "calc(100% + 2px)" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="max-h-64 overflow-y-auto py-1">
+            {BIO_SOURCES.map((src) => {
+              const text = (character?.bio as Record<string, string> | undefined)?.[src.id] ?? "";
               return (
                 <button
                   key={src.id}
@@ -452,14 +476,14 @@ export function PlacedWidget({
                   onClick={(e) => {
                     e.stopPropagation();
                     const newH = Math.min(
-                      Math.max(3, Math.round((genericTextSvgH(text) * 9 * rows * 210) / (cols * 297 * 96))),
+                      Math.max(3, Math.round((bioTextSvgH(text) * widget.w * rows * 210) / (cols * 297 * 96))),
                       rows
                     );
                     updateWidgetData(widget.id, { textSource: src.id, h: newH });
                     setPickerOpen(false);
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between px-3 py-1.5 text-left transition-colors hover:bg-accent",
+                    "flex w-full items-center px-3 py-1.5 text-left transition-colors hover:bg-accent",
                     widget.textSource === src.id && "bg-accent"
                   )}
                 >

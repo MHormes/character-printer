@@ -2,7 +2,13 @@
 
 import { useRef, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, LayoutGrid, Plus, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -40,7 +46,7 @@ import { equipmentSvgH } from "@/components/canvas/widgets/equipment-widget";
 import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
 import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
 import { characteristicsSvgH } from "@/components/canvas/widgets/characteristics-widget";
-import { genericTextSvgH } from "@/components/canvas/widgets/generic-text-widget";
+import { bioTextSvgH } from "@/components/canvas/widgets/bio-text-widget";
 import { featureCardGridH } from "@/components/canvas/widgets/feature-card-widget";
 import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
 
@@ -414,7 +420,8 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
   const characteristicsH = Math.max(
     4,
     Math.round(
-      (characteristicsSvgH() * 6 * rows * 210) / (cols * 297 * 96),
+      (characteristicsSvgH(character?.characteristics) * 6 * rows * 210) /
+        (cols * 297 * 96),
     ),
   );
 
@@ -442,6 +449,18 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       h: 3,
     },
     { type: "CharacterAppearance" as const, label: "Appearance", w: 17, h: 3 },
+    {
+      type: "Characteristics" as const,
+      label: "Characteristics",
+      w: 6,
+      h: characteristicsH,
+    },
+    {
+      type: "CharacteristicCard" as const,
+      label: "Characteristic Card",
+      w: 6,
+      h: 5,
+    },
     { type: "CoreStats" as const, label: "Core Stats", w: 3, h: 18 },
     { type: "Inspiration" as const, label: "Inspiration", w: 7, h: 2 },
     { type: "Proficiency" as const, label: "Prof. Bonus", w: 7, h: 2 },
@@ -488,13 +507,8 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     { type: "Trackers" as const, label: "Trackers", w: 6, h: trackersH },
     { type: "Features" as const, label: "Features", w: 6, h: featuresH },
     { type: "FeatureCard" as const, label: "Feature Card", w: 9, h: 5 },
-    {
-      type: "Characteristics" as const,
-      label: "Characteristics",
-      w: 6,
-      h: characteristicsH,
-    },
-    { type: "GenericText" as const, label: "Generic Text", w: 9, h: 4 },
+
+    { type: "BioText" as const, label: "Bio Card", w: 6, h: 5 },
     { type: "StatBox" as const, label: "Stat Box", w: 3, h: 4 },
   ];
 
@@ -537,6 +551,16 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     {
       type: "FullPageSpells" as const,
       label: "Complete: Spell Cards",
+      fullPage: true as const,
+    },
+    {
+      type: "TemplateBio" as const,
+      label: "Template: Bio",
+      fullPage: true as const,
+    },
+    {
+      type: "FullPageBio" as const,
+      label: "Complete: Bio",
       fullPage: true as const,
     },
   ];
@@ -799,6 +823,76 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         return;
       }
 
+      if (data.type === "TemplateBio") {
+        const bio = character?.bio as Record<string, string> | undefined;
+        const BIO_FIELDS = [
+          { id: "appearance", label: "Appearance" },
+          { id: "backstory", label: "Backstory" },
+          { id: "allies", label: "Allies & Organizations" },
+          { id: "organizations", label: "Organizations" },
+        ];
+        const entries = BIO_FIELDS.filter((f) => bio?.[f.id]?.trim());
+        if (entries.length === 0) return;
+
+        const templateCols = DEFAULT_CANVAS_COLS;
+        const templateRows = rowsForCols(templateCols);
+        const COL_STARTS = [0, 10, 20];
+        const CARD_W = 9;
+
+        const pageWidgets: {
+          cols?: number;
+          widgets: Omit<CanvasWidget, "id">[];
+        }[] = [];
+        let currentPage: Omit<CanvasWidget, "id">[] = [];
+        let currentCol = 0;
+        let currentRow = 0;
+
+        for (const entry of entries) {
+          const cardW = Math.min(CARD_W, templateCols - COL_STARTS[currentCol]);
+          const h = Math.min(
+            Math.max(
+              3,
+              Math.round(
+                (bioTextSvgH(bio?.[entry.id] ?? "") *
+                  cardW *
+                  templateRows *
+                  210) /
+                  (templateCols * 297 * 96),
+              ),
+            ),
+            templateRows,
+          );
+
+          if (currentRow + h > templateRows) {
+            currentCol++;
+            currentRow = 0;
+            if (currentCol >= COL_STARTS.length) {
+              pageWidgets.push({ cols: templateCols, widgets: currentPage });
+              currentPage = [];
+              currentCol = 0;
+            }
+          }
+
+          currentPage.push({
+            type: "BioText" as WidgetType,
+            col: COL_STARTS[currentCol],
+            row: currentRow,
+            w: cardW,
+            h,
+            rotation: 0 as const,
+            locked: false,
+            printState: "Calculated" as const,
+            textSource: entry.id,
+          });
+          currentRow += h;
+        }
+
+        if (currentPage.length > 0)
+          pageWidgets.push({ cols: templateCols, widgets: currentPage });
+        addWidgetsMultiPage(pageWidgets);
+        return;
+      }
+
       if (data.fullPage) {
         addWidget({
           type: data.type as WidgetType,
@@ -1036,78 +1130,80 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
           )}
 
           {/* Canvas display with floating nav arrows */}
-          {!overviewMode && <div
-            className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center bg-muted/30 p-8"
-            onClick={() => setSelected(null)}
-          >
+          {!overviewMode && (
             <div
-              className="relative aspect-[210/297] w-full max-w-5xl bg-card shadow-lg py-[4mm] px-[2.828mm] box-border"
-              onClick={(e) => e.stopPropagation()}
+              className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center bg-muted/30 p-8"
+              onClick={() => setSelected(null)}
             >
               <div
-                id="canvas-editor"
-                ref={setGridRef}
-                className="relative h-full w-full overflow-visible"
-                style={{
-                  backgroundImage: [
-                    "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
-                    "linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)",
-                  ].join(", "),
-                  backgroundSize: `${100 / cols}% ${100 / rows}%`,
-                }}
+                className="relative aspect-[210/297] w-full max-w-5xl bg-card shadow-lg py-[4mm] px-[2.828mm] box-border"
+                onClick={(e) => e.stopPropagation()}
               >
-                {widgets.map((widget) => (
-                  <PlacedWidget
-                    key={widget.id}
-                    widget={widget}
-                    cols={cols}
-                    rows={rows}
-                    selected={selectedId === widget.id}
-                    onSelect={(e) => {
-                      e.stopPropagation();
-                      setSelected(widget.id);
-                    }}
-                    onRotate={() => rotateWidget(widget.id)}
-                    onToggleLock={() => toggleLock(widget.id)}
-                    onDelete={() => removeWidget(widget.id)}
-                  />
-                ))}
-                {dropPreview && (
-                  <div
-                    className="pointer-events-none absolute z-20 rounded border-2 border-primary bg-primary/10"
-                    style={{
-                      left: `${(dropPreview.col / cols) * 100}%`,
-                      top: `${(dropPreview.row / rows) * 100}%`,
-                      width: `${(dropPreview.w / cols) * 100}%`,
-                      height: `${(dropPreview.h / rows) * 100}%`,
-                    }}
-                  />
-                )}
+                <div
+                  id="canvas-editor"
+                  ref={setGridRef}
+                  className="relative h-full w-full overflow-visible"
+                  style={{
+                    backgroundImage: [
+                      "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
+                      "linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)",
+                    ].join(", "),
+                    backgroundSize: `${100 / cols}% ${100 / rows}%`,
+                  }}
+                >
+                  {widgets.map((widget) => (
+                    <PlacedWidget
+                      key={widget.id}
+                      widget={widget}
+                      cols={cols}
+                      rows={rows}
+                      selected={selectedId === widget.id}
+                      onSelect={(e) => {
+                        e.stopPropagation();
+                        setSelected(widget.id);
+                      }}
+                      onRotate={() => rotateWidget(widget.id)}
+                      onToggleLock={() => toggleLock(widget.id)}
+                      onDelete={() => removeWidget(widget.id)}
+                    />
+                  ))}
+                  {dropPreview && (
+                    <div
+                      className="pointer-events-none absolute z-20 rounded border-2 border-primary bg-primary/10"
+                      style={{
+                        left: `${(dropPreview.col / cols) * 100}%`,
+                        top: `${(dropPreview.row / rows) * 100}%`,
+                        width: `${(dropPreview.w / cols) * 100}%`,
+                        height: `${(dropPreview.h / rows) * 100}%`,
+                      }}
+                    />
+                  )}
+                </div>
               </div>
+
+              {/* Floating prev arrow */}
+              {currentPageIndex > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setPage(currentPageIndex - 1)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+              )}
+
+              {/* Floating next arrow */}
+              {currentPageIndex < pages.length - 1 && (
+                <button
+                  type="button"
+                  onClick={() => setPage(currentPageIndex + 1)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+              )}
             </div>
-
-            {/* Floating prev arrow */}
-            {currentPageIndex > 0 && (
-              <button
-                type="button"
-                onClick={() => setPage(currentPageIndex - 1)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
-              >
-                <ChevronLeft className="size-4" />
-              </button>
-            )}
-
-            {/* Floating next arrow */}
-            {currentPageIndex < pages.length - 1 && (
-              <button
-                type="button"
-                onClick={() => setPage(currentPageIndex + 1)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
-              >
-                <ChevronRight className="size-4" />
-              </button>
-            )}
-          </div>}
+          )}
         </div>
 
         {/* Print portal — all pages, hidden normally, shown by globals.css @media print */}
@@ -1120,7 +1216,8 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                     w.type === "FullPageMain" ||
                     w.type === "FullPageFeatures" ||
                     w.type === "FullPageSpells" ||
-                    w.type === "FullPageSpellSheet",
+                    w.type === "FullPageSpellSheet" ||
+                    w.type === "FullPageBio",
                 );
                 if (fullPageWidget) {
                   const pageRows = rowsForCols(page.cols);
