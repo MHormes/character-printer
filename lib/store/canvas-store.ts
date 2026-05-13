@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { arrayMove } from "@dnd-kit/sortable"
 import { instantiateTemplateWidgets, normalizeCanvasPages } from "@/lib/canvas/page-utils"
 import {
   DEFAULT_CANVAS_COLS,
@@ -34,6 +35,8 @@ type CanvasStore = {
     data: { spellId?: string; featureId?: string; statId?: string; w?: number; h?: number },
   ) => void
   replaceCurrentPage: (cols: number, widgets: CanvasTemplateWidget[]) => void
+  reorderPages: (fromIndex: number, toIndex: number) => void
+  insertPageAt: (index: number) => void
 }
 
 function patchPage(
@@ -211,4 +214,29 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
       widgets: instantiateTemplateWidgets(widgets),
     }))
   ),
+
+  reorderPages: (fromIndex, toIndex) => set((s) => {
+    const pages = arrayMove(s.pages, fromIndex, toIndex)
+    // Follow the active page to its new position
+    const movedId = s.pages[s.currentPageIndex].id
+    const newCurrentIndex = pages.findIndex((p) => p.id === movedId)
+    return {
+      pages,
+      currentPageIndex: newCurrentIndex,
+      cols: pages[newCurrentIndex].cols,
+      widgets: pages[newCurrentIndex].widgets,
+    }
+  }),
+
+  insertPageAt: (index) => set((s) => {
+    const newPage: CanvasPage = { id: crypto.randomUUID(), cols: DEFAULT_CANVAS_COLS, widgets: [] }
+    const pages = [...s.pages.slice(0, index), newPage, ...s.pages.slice(index)]
+    return {
+      pages,
+      currentPageIndex: index,
+      cols: DEFAULT_CANVAS_COLS,
+      widgets: [],
+      selectedId: null,
+    }
+  }),
 }))

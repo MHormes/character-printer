@@ -2,7 +2,7 @@
 
 import { useRef, useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutGrid, Plus, Trash2 } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -27,6 +27,7 @@ import {
 import { PaletteTile } from "@/components/canvas/palette-tile";
 import { PlacedWidget } from "@/components/canvas/placed-widget";
 import { SavedTemplateTile } from "@/components/canvas/saved-template-tile";
+import { PageOverview } from "@/components/canvas/page-overview";
 import {
   SPELL_CARD_GRID_H,
   SPELL_CARD_GRID_W,
@@ -317,6 +318,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     replaceCurrentPage,
   } = useCanvasStore();
   const rows = rowsForCols(cols);
+  const [overviewMode, setOverviewMode] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -983,26 +985,43 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
           <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border bg-section px-3 py-1">
             <button
               type="button"
-              onClick={addPage}
+              onClick={() => setOverviewMode((v) => !v)}
               className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
-              <Plus className="size-3" />
-              Add page
+              <LayoutGrid className="size-3" />
+              {overviewMode ? "Back to editor" : "Page overview"}
             </button>
-            {pages.length > 1 && (
-              <button
-                type="button"
-                onClick={() => deletePage(currentPageIndex)}
-                className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-destructive"
-              >
-                <Trash2 className="size-3" />
-                Delete page
-              </button>
+            {!overviewMode && (
+              <>
+                <button
+                  type="button"
+                  onClick={addPage}
+                  className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Plus className="size-3" />
+                  Add page
+                </button>
+                {pages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => deletePage(currentPageIndex)}
+                    className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-destructive"
+                  >
+                    <Trash2 className="size-3" />
+                    Delete page
+                  </button>
+                )}
+              </>
             )}
           </div>
 
+          {/* Overview mode */}
+          {overviewMode && (
+            <PageOverview onClose={() => setOverviewMode(false)} />
+          )}
+
           {/* Canvas display with floating nav arrows */}
-          <div
+          {!overviewMode && <div
             className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center bg-muted/30 p-8"
             onClick={() => setSelected(null)}
           >
@@ -1073,7 +1092,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                 <ChevronRight className="size-4" />
               </button>
             )}
-          </div>
+          </div>}
         </div>
 
         {/* Print portal — all pages, hidden normally, shown by globals.css @media print */}
