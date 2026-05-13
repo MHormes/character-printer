@@ -387,7 +387,7 @@ export function SpellsBlock({
                         className={cn(
                           "h-5 w-10 rounded border text-center text-xs tabular-nums focus:outline-none focus:border-ring",
                           slot.override !== null ? "border-amber-500/50 bg-amber-500/5 text-amber-600 pr-4" : "border-input bg-background",
-                          "placeholder:text-foreground/30"
+                          "placeholder:text-card-foreground/40"
                         )}
                       />
                       {slot.override !== null && (
@@ -398,7 +398,7 @@ export function SpellsBlock({
                       )}
                     </div>
                   ) : (
-                    <div className="flex h-5 w-10 items-center justify-center rounded border border-input bg-background text-xs font-medium tabular-nums text-foreground">
+                    <div className="flex h-5 w-10 items-center justify-center rounded border border-input bg-background text-xs font-medium tabular-nums text-card-foreground">
                       {slot.override ?? slot.base + sumStack(slot.stack)}
                     </div>
                   )}
@@ -480,7 +480,7 @@ export function SpellsBlock({
                               onBlur={(e) => {
                                 if (e.target.value === "-") patchSlotModifier(slotLevelKey, mod.id, { value: 0 })
                               }}
-                              className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                              className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
                             />
                           </div>
                         </div>
@@ -774,7 +774,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
                       }}
                       className={cn(
                         "h-6 w-16 rounded-md border border-input bg-background text-center text-xs",
-                        "placeholder:text-foreground/30 focus:outline-none focus:border-ring",
+                        "placeholder:text-card-foreground/40 focus:outline-none focus:border-ring",
                         spell.fixedDC !== null && "pr-5",
                       )}
                     />
@@ -845,7 +845,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
                     const n = parseInt(raw, 10)
                     if (!isNaN(n)) onPatchDmg(idx, { diceCount: n })
                   }}
-                  className="h-6 w-8 rounded-md border border-input bg-background text-center text-xs placeholder:text-foreground/30 focus:outline-none focus:border-ring"
+                  className="h-6 w-8 rounded-md border border-input bg-background text-center text-xs placeholder:text-card-foreground/40 focus:outline-none focus:border-ring"
                 />
                 <select value={dmg.dieType} onChange={e => onPatchDmg(idx, { dieType: e.target.value as DieType })}
                   className="h-6 rounded-md border border-input bg-background px-1 text-xs text-foreground focus:outline-none focus:border-ring">
@@ -869,7 +869,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
                       const n = parseInt(raw, 10)
                       if (!isNaN(n)) onPatchDmg(idx, { flatBonus: n })
                     }}
-                    className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-foreground/30 focus:outline-none"
+                    className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-card-foreground/40 focus:outline-none"
                   />
                 </div>
                 <input type="text" value={dmg.type} placeholder={spell.mode === "Heal" ? "Healing" : "Fire"}

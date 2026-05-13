@@ -64,7 +64,7 @@ export function IntegerField({
           min={min}
           max={max}
           className={cn(
-            "min-w-0 flex-1 bg-transparent text-center text-foreground",
+            "min-w-0 flex-1 bg-transparent text-center text-card-foreground",
             "focus:outline-none [appearance:textfield]",
             "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
             compact ? "text-2xl font-bold" : "text-sm"

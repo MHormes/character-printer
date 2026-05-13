@@ -256,7 +256,7 @@ function SortableActionItem({
                     }}
                     className={cn(
                       "h-6 w-16 rounded-md border border-input bg-background text-center text-xs",
-                      "placeholder:text-foreground/30 focus:outline-none focus:border-ring",
+                      "placeholder:text-card-foreground/40 focus:outline-none focus:border-ring",
                       action.fixedDC !== null && "pr-5",
                     )}
                   />
@@ -299,7 +299,7 @@ function SortableActionItem({
                         const n = parseInt(raw, 10)
                         if (!isNaN(n)) onPatch({ attackBonus: n })
                       }}
-                      className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-foreground/30 focus:outline-none"
+                      className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-card-foreground/40 focus:outline-none"
                     />
                   </div>
                   <span className="font-semibold tabular-nums text-xs">{sign(calcAttackToHit)}</span>
@@ -327,7 +327,7 @@ function SortableActionItem({
                       const n = parseInt(raw, 10)
                       if (!isNaN(n)) patchDmg({ diceCount: n })
                     }}
-                    className="h-6 w-8 rounded-md border border-input bg-background text-center text-xs placeholder:text-foreground/30 focus:outline-none focus:border-ring"
+                    className="h-6 w-8 rounded-md border border-input bg-background text-center text-xs placeholder:text-card-foreground/40 focus:outline-none focus:border-ring"
                   />
                   <select value={dmg.dieType} onChange={(e) => patchDmg({ dieType: e.target.value as DieType })}
                     className="h-6 rounded-md border border-input bg-background px-1 text-xs text-foreground focus:outline-none focus:border-ring">
@@ -351,7 +351,7 @@ function SortableActionItem({
                         const n = parseInt(raw, 10)
                         if (!isNaN(n)) patchDmg({ flatBonus: n })
                       }}
-                      className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-foreground/30 focus:outline-none"
+                      className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-card-foreground/40 focus:outline-none"
                     />
                   </div>
                   <input

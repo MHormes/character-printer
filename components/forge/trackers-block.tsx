@@ -197,7 +197,7 @@ function SortableTrackerItem({
                               const n = parseInt(raw, 10)
                               if (!isNaN(n)) onPatch({ stack: tracker.stack.map(m => m.id === mod.id ? { ...m, value: n } : m) })
                             }}
-                            className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                            className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
                           />
                         </div>
                       </div>

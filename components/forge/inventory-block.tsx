@@ -735,7 +735,7 @@ function SortableInventoryItem({
                       if (e.target.value === "-")
                         patchModifier(idx, { value: 0 });
                     }}
-                    className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                    className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
                   />
                 </div>
                 <button

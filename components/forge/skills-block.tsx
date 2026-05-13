@@ -206,7 +206,7 @@ export function SkillsBlock({
                   onChange={(e) => handleOverrideChange(key, e.target.value)}
                   className={cn(
                     "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                    "placeholder:text-foreground/30",
+                    "placeholder:text-card-foreground/40",
                     "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
                     "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
                     isOverridden && "pr-4",
@@ -224,7 +224,7 @@ export function SkillsBlock({
                 )}
               </div>
             ) : (
-              <div className="flex h-6 w-12 shrink-0 items-center justify-center rounded-md border border-input bg-background text-xs font-medium tabular-nums text-foreground">
+              <div className="flex h-6 w-12 shrink-0 items-center justify-center rounded-md border border-input bg-background text-xs font-medium tabular-nums text-card-foreground">
                 {total}
               </div>
             )}
@@ -234,7 +234,7 @@ export function SkillsBlock({
 
       <div className="mt-2 flex flex-col gap-1 rounded-md border border-border bg-card/60 p-2">
         <div className="flex items-center gap-2">
-          <span className="flex-1 text-xs font-medium text-foreground">
+          <span className="flex-1 text-xs font-medium text-card-foreground">
             Passive Perception
           </span>
           {showManualControls ? (
@@ -247,7 +247,7 @@ export function SkillsBlock({
                 onChange={(e) => handlePassiveOverrideChange(e.target.value)}
                 className={cn(
                   "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                  "placeholder:text-foreground/30",
+                  "placeholder:text-card-foreground/40",
                   "focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
                   "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
                   passiveOverridden && "pr-4",
@@ -265,7 +265,7 @@ export function SkillsBlock({
               )}
             </div>
           ) : (
-            <div className="flex h-6 w-12 shrink-0 items-center justify-center rounded-md border border-input bg-background text-xs font-medium tabular-nums text-foreground">
+            <div className="flex h-6 w-12 shrink-0 items-center justify-center rounded-md border border-input bg-background text-xs font-medium tabular-nums text-card-foreground">
               {passivePerception.override ?? passiveValue}
             </div>
           )}
@@ -324,7 +324,7 @@ export function SkillsBlock({
                           if (!isNaN(n)) updatePassiveMod(mod.id, { value: n })
                         }}
                         onBlur={(e) => { if (e.target.value === "-") updatePassiveMod(mod.id, { value: 0 }) }}
-                        className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                        className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -414,7 +414,7 @@ export function SkillsBlock({
                           if (!isNaN(n)) updateGlobalMod(mod.id, { value: n })
                         }}
                         onBlur={(e) => { if (e.target.value === "-") updateGlobalMod(mod.id, { value: 0 }) }}
-                        className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                        className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
                       />
                     </div>
                   </div>

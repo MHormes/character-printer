@@ -63,7 +63,7 @@ export function BioBlock({ bio, identity, onBioChange, onIdentityChange }: BioBl
           <select
             value={identity.size ?? ""}
             onChange={(e) => onIdentityChange("size", e.target.value)}
-            className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-card-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <option value="">—</option>
             <option value="Tiny">Tiny</option>

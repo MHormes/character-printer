@@ -20,11 +20,35 @@ import {
   getAllClassStartingEquipment,
   getAllClassStartingEquipmentOptions,
 } from "@/lib/actions/5e-data";
-import type { ClassRow, RaceRow, SubraceRow, BackgroundRow, SpellSlotRow, ItemRow, ClassFeatureRow, ClassProficiencyRow, RaceTraitRow, ClassSkillChoiceRow, FeatRow, RaceAbilityBonusRow, RaceAbilityBonusOptionRow, RaceSkillChoiceRow, ClassStartingEquipmentRow, ClassStartingEquipmentOptionRow } from "@/lib/actions/5e-data";
+import type {
+  ClassRow,
+  RaceRow,
+  SubraceRow,
+  BackgroundRow,
+  SpellSlotRow,
+  ItemRow,
+  ClassFeatureRow,
+  ClassProficiencyRow,
+  RaceTraitRow,
+  ClassSkillChoiceRow,
+  FeatRow,
+  RaceAbilityBonusRow,
+  RaceAbilityBonusOptionRow,
+  RaceSkillChoiceRow,
+  ClassStartingEquipmentRow,
+  ClassStartingEquipmentOptionRow,
+} from "@/lib/actions/5e-data";
 import { ClassChoicesPanel } from "@/components/forge/class-choices-panel";
 import type { ResolvedEquipmentItem } from "@/components/forge/class-choices-panel";
 import { RaceChoicesPanel } from "@/components/forge/race-choices-panel";
-import { derivePendingChoices, deriveRacePendingChoices, deriveEquipmentPendingChoices, type PendingChoice, type RacePendingChoice, type EquipmentPendingChoice } from "@/lib/character/derive-pending-choices";
+import {
+  derivePendingChoices,
+  deriveRacePendingChoices,
+  deriveEquipmentPendingChoices,
+  type PendingChoice,
+  type RacePendingChoice,
+  type EquipmentPendingChoice,
+} from "@/lib/character/derive-pending-choices";
 import { StringField } from "@/components/forge/string-field";
 import { ClassesField } from "@/components/forge/classes-field";
 import { RaceField } from "@/components/forge/race-field";
@@ -77,17 +101,21 @@ import type {
   Bio,
 } from "@/lib/types/character";
 
-import {
-  resolvePb,
-  resolveAttributeMod,
-} from "@/lib/character/calculations";
+import { resolvePb, resolveAttributeMod } from "@/lib/character/calculations";
 import {
   deriveSpellSlotBases,
   spellSlotBasesEqual,
   type SpellSlotBaseMap,
   type SpellSlotClassLike,
 } from "@/lib/character/spell-slots";
-import { applyRace, applyClasses, applyBackground, applyClassStartingEquipment, clearRaceAutomation, clearBackgroundAutomation } from "@/lib/character/apply-srd";
+import {
+  applyRace,
+  applyClasses,
+  applyBackground,
+  applyClassStartingEquipment,
+  clearRaceAutomation,
+  clearBackgroundAutomation,
+} from "@/lib/character/apply-srd";
 
 const ATTRIBUTE_KEYS: AttributeKey[] = [
   "str",
@@ -153,25 +181,50 @@ export default function ForgePage({
   const [manualUiPrefs, setManualUiPrefs] = useState<ForgeManualUiPrefs>(
     DEFAULT_MANUAL_UI_PREFS,
   );
-  const [manualUiLoadedForId, setManualUiLoadedForId] = useState<string | null>(null);
+  const [manualUiLoadedForId, setManualUiLoadedForId] = useState<string | null>(
+    null,
+  );
   const [availableClasses, setAvailableClasses] = useState<ClassRow[]>([]);
-  const [availableSpellSlotRows, setAvailableSpellSlotRows] = useState<SpellSlotRow[]>([]);
+  const [availableSpellSlotRows, setAvailableSpellSlotRows] = useState<
+    SpellSlotRow[]
+  >([]);
   const [availableRaces, setAvailableRaces] = useState<RaceRow[]>([]);
   const [availableSubraces, setAvailableSubraces] = useState<SubraceRow[]>([]);
-  const [availableBackgrounds, setAvailableBackgrounds] = useState<BackgroundRow[]>([]);
-  const [allClassFeatureRows, setAllClassFeatureRows] = useState<ClassFeatureRow[]>([]);
-  const [allClassProfRows, setAllClassProfRows] = useState<ClassProficiencyRow[]>([]);
+  const [availableBackgrounds, setAvailableBackgrounds] = useState<
+    BackgroundRow[]
+  >([]);
+  const [allClassFeatureRows, setAllClassFeatureRows] = useState<
+    ClassFeatureRow[]
+  >([]);
+  const [allClassProfRows, setAllClassProfRows] = useState<
+    ClassProficiencyRow[]
+  >([]);
   const [allRaceTraitRows, setAllRaceTraitRows] = useState<RaceTraitRow[]>([]);
-  const [allClassSkillChoiceRows, setAllClassSkillChoiceRows] = useState<ClassSkillChoiceRow[]>([]);
-  const [allRaceAsiBonusRows, setAllRaceAsiBonusRows] = useState<RaceAbilityBonusRow[]>([]);
-  const [allRaceAsiOptionRows, setAllRaceAsiOptionRows] = useState<RaceAbilityBonusOptionRow[]>([]);
-  const [allRaceSkillChoiceRows, setAllRaceSkillChoiceRows] = useState<RaceSkillChoiceRow[]>([]);
+  const [allClassSkillChoiceRows, setAllClassSkillChoiceRows] = useState<
+    ClassSkillChoiceRow[]
+  >([]);
+  const [allRaceAsiBonusRows, setAllRaceAsiBonusRows] = useState<
+    RaceAbilityBonusRow[]
+  >([]);
+  const [allRaceAsiOptionRows, setAllRaceAsiOptionRows] = useState<
+    RaceAbilityBonusOptionRow[]
+  >([]);
+  const [allRaceSkillChoiceRows, setAllRaceSkillChoiceRows] = useState<
+    RaceSkillChoiceRow[]
+  >([]);
   const [availableFeats, setAvailableFeats] = useState<FeatRow[]>([]);
-  const [allClassStartEquipRows, setAllClassStartEquipRows] = useState<ClassStartingEquipmentRow[]>([]);
-  const [allClassStartEquipOptionRows, setAllClassStartEquipOptionRows] = useState<ClassStartingEquipmentOptionRow[]>([]);
+  const [allClassStartEquipRows, setAllClassStartEquipRows] = useState<
+    ClassStartingEquipmentRow[]
+  >([]);
+  const [allClassStartEquipOptionRows, setAllClassStartEquipOptionRows] =
+    useState<ClassStartingEquipmentOptionRow[]>([]);
   const [pendingChoices, setPendingChoices] = useState<PendingChoice[]>([]);
-  const [racePendingChoices, setRacePendingChoices] = useState<RacePendingChoice[]>([]);
-  const [equipmentPendingChoices, setEquipmentPendingChoices] = useState<EquipmentPendingChoice[]>([]);
+  const [racePendingChoices, setRacePendingChoices] = useState<
+    RacePendingChoice[]
+  >([]);
+  const [equipmentPendingChoices, setEquipmentPendingChoices] = useState<
+    EquipmentPendingChoice[]
+  >([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
@@ -218,11 +271,15 @@ export default function ForgePage({
   const setSpellCastingStat = useCharacterStore((s) => s.setSpellCastingStat);
   const setSpellSlots = useCharacterStore((s) => s.setSpellSlots);
   const setSpellList = useCharacterStore((s) => s.setSpellList);
-  const updateCharacteristicsField = useCharacterStore((s) => s.updateCharacteristicsField);
+  const updateCharacteristicsField = useCharacterStore(
+    (s) => s.updateCharacteristicsField,
+  );
   const updateBioField = useCharacterStore((s) => s.updateBioField);
   const replaceCharacter = useCharacterStore((s) => s.replaceCharacter);
 
-  const [identityTab, setIdentityTab] = useState<"basics" | "characteristics" | "bio">("basics");
+  const [identityTab, setIdentityTab] = useState<
+    "basics" | "characteristics" | "bio"
+  >("basics");
 
   useEffect(() => {
     clearCharacter();
@@ -313,7 +370,11 @@ export default function ForgePage({
   }
 
   useEffect(() => {
-    if (!character || availableClasses.length === 0 || availableSpellSlotRows.length === 0) {
+    if (
+      !character ||
+      availableClasses.length === 0 ||
+      availableSpellSlotRows.length === 0
+    ) {
       return;
     }
 
@@ -323,7 +384,10 @@ export default function ForgePage({
       slotRows: availableSpellSlotRows,
     });
     const currentBases = Object.fromEntries(
-      Object.entries(character.spells.slots).map(([level, slot]) => [level, slot.base]),
+      Object.entries(character.spells.slots).map(([level, slot]) => [
+        level,
+        slot.base,
+      ]),
     ) as SpellSlotBaseMap;
 
     if (spellSlotBasesEqual(currentBases, derivedBases)) return;
@@ -336,12 +400,7 @@ export default function ForgePage({
         ]),
       ),
     );
-  }, [
-    availableClasses,
-    availableSpellSlotRows,
-    character,
-    setSpellSlots,
-  ]);
+  }, [availableClasses, availableSpellSlotRows, character, setSpellSlots]);
 
   // Keep a ref so the SRD effect can read the latest character without `character` being a dep.
   const characterRef = useRef(character);
@@ -367,7 +426,7 @@ export default function ForgePage({
 
   const bgKey = character?.identity.background ?? "";
   const ignoreKey = `${character?.selectionIgnores?.race ? "race-off" : "race-on"}|${character?.selectionIgnores?.background ? "bg-off" : "bg-on"}`;
-  
+
   const srdKey = `${fullClassKey}|${fullRaceKey}|${bgKey}|${ignoreKey}`;
 
   useEffect(() => {
@@ -379,7 +438,8 @@ export default function ForgePage({
       availableRaces.length === 0 ||
       availableBackgrounds.length === 0 ||
       allRaceAsiBonusRows.length === 0
-    ) return;
+    )
+      return;
 
     let updated = structuredClone(char);
     let changed = false;
@@ -387,36 +447,46 @@ export default function ForgePage({
     // 1. Class features + primary-class saving throw proficiencies
     if (char.automationKeys?.srdClassKey !== fullClassKey) {
       updated = applyClasses(
-        updated, 
-        char.identity.classes, 
-        allClassFeatureRows, 
-        allClassProfRows, 
-        char.automationKeys?.srdClassKey
+        updated,
+        char.identity.classes,
+        allClassFeatureRows,
+        allClassProfRows,
+        char.automationKeys?.srdClassKey,
       );
-      updated.automationKeys = { ...updated.automationKeys, srdClassKey: fullClassKey };
+      updated.automationKeys = {
+        ...updated.automationKeys,
+        srdClassKey: fullClassKey,
+      };
       changed = true;
     }
 
     // 1b. Starting equipment
-    if (allClassStartEquipRows.length > 0 && char.automationKeys?.srdClassKey !== fullClassKey) {
+    if (
+      allClassStartEquipRows.length > 0 &&
+      char.automationKeys?.srdClassKey !== fullClassKey
+    ) {
       updated = applyClassStartingEquipment(
-        updated, 
-        char.identity.classes, 
-        allClassStartEquipRows, 
-        char.automationKeys?.srdClassKey
+        updated,
+        char.identity.classes,
+        allClassStartEquipRows,
+        char.automationKeys?.srdClassKey,
       );
       changed = true;
     }
 
     // 2. Race traits + speed
-    const currentRaceKey = char.selectionIgnores?.race ? "ignored" : fullRaceKey;
+    const currentRaceKey = char.selectionIgnores?.race
+      ? "ignored"
+      : fullRaceKey;
     if (char.automationKeys?.srdRaceKey !== currentRaceKey) {
       if (char.identity.race && !char.selectionIgnores?.race) {
         const matchedRace = availableRaces.find(
           (r) => r.name.toLowerCase() === char.identity.race.toLowerCase(),
         );
         if (matchedRace) {
-          const raceTraits = allRaceTraitRows.filter((t) => t.raceId === matchedRace.id);
+          const raceTraits = allRaceTraitRows.filter(
+            (t) => t.raceId === matchedRace.id,
+          );
           const matchedSubrace = char.identity.subrace
             ? availableSubraces.find(
                 (s) =>
@@ -428,20 +498,23 @@ export default function ForgePage({
             ? allRaceTraitRows.filter((t) => t.subraceId === matchedSubrace.id)
             : undefined;
           updated = applyRace(
-            updated, 
-            matchedRace, 
-            raceTraits, 
-            allRaceAsiBonusRows, 
-            char.raceChoices ?? [], 
+            updated,
+            matchedRace,
+            raceTraits,
+            allRaceAsiBonusRows,
+            char.raceChoices ?? [],
             char.automationKeys?.srdRaceKey,
-            matchedSubrace, 
-            subraceTraits
+            matchedSubrace,
+            subraceTraits,
           );
         }
       } else {
         updated = clearRaceAutomation(updated);
       }
-      updated.automationKeys = { ...updated.automationKeys, srdRaceKey: currentRaceKey };
+      updated.automationKeys = {
+        ...updated.automationKeys,
+        srdRaceKey: currentRaceKey,
+      };
       changed = true;
     }
 
@@ -450,22 +523,26 @@ export default function ForgePage({
     if (updated.automationKeys?.srdBackgroundKey !== currentBgKey) {
       if (char.identity.background && !char.selectionIgnores?.background) {
         const bgRow = availableBackgrounds.find(
-          (b) => b.name.toLowerCase() === char.identity.background.toLowerCase(),
+          (b) =>
+            b.name.toLowerCase() === char.identity.background.toLowerCase(),
         );
         if (bgRow) updated = applyBackground(updated, bgRow);
       } else {
         updated = clearBackgroundAutomation(updated);
       }
-      updated.automationKeys = { ...updated.automationKeys, srdBackgroundKey: currentBgKey };
+      updated.automationKeys = {
+        ...updated.automationKeys,
+        srdBackgroundKey: currentBgKey,
+      };
       changed = true;
     }
 
     if (changed) {
       replaceCharacter(updated);
     }
-  // srdKey captures all identity-level changes; static arrays change once at load.
-  // Intentionally omitting `character` to avoid infinite loops.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // srdKey captures all identity-level changes; static arrays change once at load.
+    // Intentionally omitting `character` to avoid infinite loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     srdKey,
     allClassFeatureRows,
@@ -480,7 +557,11 @@ export default function ForgePage({
 
   // Derive pending choices whenever character or static data changes.
   useEffect(() => {
-    if (!character || allClassFeatureRows.length === 0 || allClassSkillChoiceRows.length === 0) {
+    if (
+      !character ||
+      allClassFeatureRows.length === 0 ||
+      allClassSkillChoiceRows.length === 0
+    ) {
       setPendingChoices([]);
       return;
     }
@@ -516,14 +597,23 @@ export default function ForgePage({
       return;
     }
     const matchedRace = character.identity.race
-      ? availableRaces.find((r) => r.name.toLowerCase() === character.identity.race.toLowerCase())
+      ? availableRaces.find(
+          (r) => r.name.toLowerCase() === character.identity.race.toLowerCase(),
+        )
       : undefined;
     setRacePendingChoices(
-      deriveRacePendingChoices(character, matchedRace, allRaceAsiOptionRows, allRaceSkillChoiceRows),
+      deriveRacePendingChoices(
+        character,
+        matchedRace,
+        allRaceAsiOptionRows,
+        allRaceSkillChoiceRows,
+      ),
     );
   }, [character, availableRaces, allRaceAsiOptionRows, allRaceSkillChoiceRows]);
 
-  function handleConfirmRaceChoice(choices: import("@/lib/types/character").RaceChoiceMade[]) {
+  function handleConfirmRaceChoice(
+    choices: import("@/lib/types/character").RaceChoiceMade[],
+  ) {
     if (!character) return;
     const existing = character.raceChoices ?? [];
     replaceCharacter({ ...character, raceChoices: [...existing, ...choices] });
@@ -533,7 +623,10 @@ export default function ForgePage({
     if (!character) return;
     replaceCharacter({
       ...character,
-      dismissedClassChoiceKeys: [...(character.dismissedClassChoiceKeys ?? []), choiceKey],
+      dismissedClassChoiceKeys: [
+        ...(character.dismissedClassChoiceKeys ?? []),
+        choiceKey,
+      ],
     });
   }
 
@@ -541,7 +634,10 @@ export default function ForgePage({
     if (!character) return;
     replaceCharacter({
       ...character,
-      dismissedRaceChoiceKeys: [...(character.dismissedRaceChoiceKeys ?? []), choiceKey],
+      dismissedRaceChoiceKeys: [
+        ...(character.dismissedRaceChoiceKeys ?? []),
+        choiceKey,
+      ],
     });
   }
 
@@ -549,7 +645,10 @@ export default function ForgePage({
     if (!character) return;
     replaceCharacter({
       ...character,
-      dismissedEquipmentChoiceKeys: [...(character.dismissedEquipmentChoiceKeys ?? []), choiceKey],
+      dismissedEquipmentChoiceKeys: [
+        ...(character.dismissedEquipmentChoiceKeys ?? []),
+        choiceKey,
+      ],
     });
   }
 
@@ -569,7 +668,8 @@ export default function ForgePage({
 
     const next = structuredClone(baseCharacter);
     const isWeapon = srdItem.equipmentCategory === "Weapon";
-    const isArmor = srdItem.armorCategory !== null && srdItem.armorCategory !== "Shield";
+    const isArmor =
+      srdItem.armorCategory !== null && srdItem.armorCategory !== "Shield";
 
     if (isWeapon && srdItem.damageDiceCount && srdItem.damageDieType) {
       const rawProperties = srdItem.properties;
@@ -664,7 +764,10 @@ export default function ForgePage({
     const existing = character.equipmentChoicesMade ?? [];
     let updated: CharacterData = {
       ...character,
-      inventory: [...character.inventory, ...items.map((item) => item.inventoryItem)],
+      inventory: [
+        ...character.inventory,
+        ...items.map((item) => item.inventoryItem),
+      ],
       equipmentChoicesMade: [
         ...existing,
         { id: crypto.randomUUID(), classId, choiceIndex },
@@ -680,11 +783,18 @@ export default function ForgePage({
     replaceCharacter(updated);
   }
 
-  function handleConfirmChoice(choices: import("@/lib/types/character").ClassChoiceMade | import("@/lib/types/character").ClassChoiceMade[]) {
+  function handleConfirmChoice(
+    choices:
+      | import("@/lib/types/character").ClassChoiceMade
+      | import("@/lib/types/character").ClassChoiceMade[],
+  ) {
     if (!character) return;
     const incoming = Array.isArray(choices) ? choices : [choices];
     const existing = character.classChoices ?? [];
-    replaceCharacter({ ...character, classChoices: [...existing, ...incoming] });
+    replaceCharacter({
+      ...character,
+      classChoices: [...existing, ...incoming],
+    });
   }
 
   function applyItemFromSrd(srdItem: ItemRow, invItem: InventoryItem) {
@@ -779,6 +889,9 @@ export default function ForgePage({
         type="button"
         size="xs"
         variant={visible ? "secondary" : "outline"}
+        className={
+          !visible ? "text-card-foreground hover:text-card-foreground" : ""
+        }
         onClick={() => setManualSection(section, !visible)}
       >
         {visible ? "Hide manual" : "Show manual"}
@@ -843,7 +956,12 @@ export default function ForgePage({
           <Button
             type="button"
             size="xs"
-            variant={manualControlsEnabled ? "secondary" : "ghost"}
+            variant={manualControlsEnabled ? "outline" : "secondary"}
+            className={
+              manualControlsEnabled
+                ? "text-card-foreground hover:text-card-foreground"
+                : ""
+            }
             onClick={toggleManualControls}
           >
             {manualControlsEnabled ? "Manual on" : "Manual off"}
@@ -859,486 +977,533 @@ export default function ForgePage({
         </div>
       </div>
 
-    <main className="space-y-10 p-6 flex-1">
-
-      <ForgeSection 
-        title="Identity" 
-        className="space-y-4"
-        collapsible={true}
-        headerAction={
-          <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg">
-            <Button
-              variant={identityTab === "basics" ? "secondary" : "ghost"}
-              size="xs"
-              onClick={() => setIdentityTab("basics")}
-              className="h-7 px-2"
-            >
-              <User className="size-3 mr-1" />
-              Basics
-            </Button>
-            <Button
-              variant={identityTab === "characteristics" ? "secondary" : "ghost"}
-              size="xs"
-              onClick={() => setIdentityTab("characteristics")}
-              className="h-7 px-2"
-            >
-              <MessageSquare className="size-3 mr-1" />
-              Characteristics
-            </Button>
-            <Button
-              variant={identityTab === "bio" ? "secondary" : "ghost"}
-              size="xs"
-              onClick={() => setIdentityTab("bio")}
-              className="h-7 px-2"
-            >
-              <BookOpen className="size-3 mr-1" />
-              Bio & Appearance
-            </Button>
-          </div>
-        }
-      >
-        {identityTab === "basics" && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
-              <StringField
-                label="Name"
-                value={identity.name}
-                onChange={(v) => updateIdentityField("name", v)}
-                placeholder="Character name"
-              />
-              <RaceField
-                race={identity.race}
-                subrace={identity.subrace}
-                ignoreAutomation={character.selectionIgnores?.race ?? false}
-                onRaceChange={(v) => updateIdentityField("race", v)}
-                onSubraceChange={(v) => updateIdentityField("subrace", v)}
-                onIgnoreAutomationChange={setRaceAutomationIgnored}
-                availableRaces={availableRaces}
-                availableSubraces={availableSubraces}
-              />
-              <BackgroundField
-                value={identity.background}
-                ignoreAutomation={character.selectionIgnores?.background ?? false}
-                onChange={(v) => updateIdentityField("background", v)}
-                onIgnoreAutomationChange={setBackgroundAutomationIgnored}
-                availableBackgrounds={availableBackgrounds}
-              />
-              <StringField
-                label="Deity"
-                value={identity.deity}
-                onChange={(v) => updateIdentityField("deity", v)}
-                placeholder="e.g. Tyr"
-              />
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Alignment
-                </label>
-                <select
-                  value={identity.alignment}
-                  onChange={(e) => updateIdentityField("alignment", e.target.value)}
-                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <option value="">—</option>
-                  <option value="Lawful Good">Lawful Good</option>
-                  <option value="Neutral Good">Neutral Good</option>
-                  <option value="Chaotic Good">Chaotic Good</option>
-                  <option value="Lawful Neutral">Lawful Neutral</option>
-                  <option value="True Neutral">True Neutral</option>
-                  <option value="Chaotic Neutral">Chaotic Neutral</option>
-                  <option value="Lawful Evil">Lawful Evil</option>
-                  <option value="Neutral Evil">Neutral Evil</option>
-                  <option value="Chaotic Evil">Chaotic Evil</option>
-                </select>
-              </div>
-              <div className="col-span-2 space-y-3">
-                <ClassesField
-                  classes={identity.classes}
-                  onChange={setClasses}
-                  proficiencyBonus={pb}
-                  availableClasses={availableClasses}
-                  onClassPicked={(dbClass) => {
-                    if (!spells.globalCastingStat && dbClass.spellcastingStat) {
-                      setSpellCastingStat(dbClass.spellcastingStat as AttributeKey);
-                    }
-                  }}
-                />
-                <ClassChoicesPanel
-                  pendingChoices={pendingChoices}
-                  equipmentPendingChoices={equipmentPendingChoices}
-                  availableFeats={availableFeats}
-                  onConfirmChoice={handleConfirmChoice}
-                  onDismissChoice={handleDismissClassChoice}
-                  onConfirmEquipmentChoice={handleConfirmEquipmentChoice}
-                  onDismissEquipmentChoice={handleDismissEquipmentChoice}
-                />
-              </div>
+      <main className="space-y-4 p-4 flex-1">
+        <ForgeSection
+          title="Identity"
+          className="space-y-4"
+          collapsible={true}
+          headerAction={
+            <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg">
+              <Button
+                variant={identityTab === "basics" ? "secondary" : "ghost"}
+                size="xs"
+                onClick={() => setIdentityTab("basics")}
+                className="h-7 px-2 hover:text-card-foreground"
+              >
+                <User className="size-3 mr-1" />
+                Basics
+              </Button>
+              <Button
+                variant={
+                  identityTab === "characteristics" ? "secondary" : "ghost"
+                }
+                size="xs"
+                onClick={() => setIdentityTab("characteristics")}
+                className="h-7 px-2 hover:text-card-foreground"
+              >
+                <MessageSquare className="size-3 mr-1" />
+                Characteristics
+              </Button>
+              <Button
+                variant={identityTab === "bio" ? "secondary" : "ghost"}
+                size="xs"
+                onClick={() => setIdentityTab("bio")}
+                className="h-7 px-2 hover:text-card-foreground"
+              >
+                <BookOpen className="size-3 mr-1" />
+                Bio & Appearance
+              </Button>
             </div>
-            <RaceChoicesPanel
-              pendingChoices={racePendingChoices}
-              onConfirmChoice={handleConfirmRaceChoice}
-              onDismissChoice={handleDismissRaceChoice}
+          }
+        >
+          {identityTab === "basics" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
+                <StringField
+                  label="Name"
+                  value={identity.name}
+                  onChange={(v) => updateIdentityField("name", v)}
+                  placeholder="Character name"
+                />
+                <RaceField
+                  race={identity.race}
+                  subrace={identity.subrace}
+                  ignoreAutomation={character.selectionIgnores?.race ?? false}
+                  onRaceChange={(v) => updateIdentityField("race", v)}
+                  onSubraceChange={(v) => updateIdentityField("subrace", v)}
+                  onIgnoreAutomationChange={setRaceAutomationIgnored}
+                  availableRaces={availableRaces}
+                  availableSubraces={availableSubraces}
+                />
+                <BackgroundField
+                  value={identity.background}
+                  ignoreAutomation={
+                    character.selectionIgnores?.background ?? false
+                  }
+                  onChange={(v) => updateIdentityField("background", v)}
+                  onIgnoreAutomationChange={setBackgroundAutomationIgnored}
+                  availableBackgrounds={availableBackgrounds}
+                />
+                <StringField
+                  label="Deity"
+                  value={identity.deity}
+                  onChange={(v) => updateIdentityField("deity", v)}
+                  placeholder="e.g. Tyr"
+                />
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Alignment
+                  </label>
+                  <select
+                    value={identity.alignment}
+                    onChange={(e) =>
+                      updateIdentityField("alignment", e.target.value)
+                    }
+                    className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-card-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <option value="">—</option>
+                    <option value="Lawful Good">Lawful Good</option>
+                    <option value="Neutral Good">Neutral Good</option>
+                    <option value="Chaotic Good">Chaotic Good</option>
+                    <option value="Lawful Neutral">Lawful Neutral</option>
+                    <option value="True Neutral">True Neutral</option>
+                    <option value="Chaotic Neutral">Chaotic Neutral</option>
+                    <option value="Lawful Evil">Lawful Evil</option>
+                    <option value="Neutral Evil">Neutral Evil</option>
+                    <option value="Chaotic Evil">Chaotic Evil</option>
+                  </select>
+                </div>
+                <div className="col-span-2 space-y-3">
+                  <ClassesField
+                    classes={identity.classes}
+                    onChange={setClasses}
+                    proficiencyBonus={pb}
+                    availableClasses={availableClasses}
+                    onClassPicked={(dbClass) => {
+                      if (
+                        !spells.globalCastingStat &&
+                        dbClass.spellcastingStat
+                      ) {
+                        setSpellCastingStat(
+                          dbClass.spellcastingStat as AttributeKey,
+                        );
+                      }
+                    }}
+                  />
+                  <ClassChoicesPanel
+                    pendingChoices={pendingChoices}
+                    equipmentPendingChoices={equipmentPendingChoices}
+                    availableFeats={availableFeats}
+                    onConfirmChoice={handleConfirmChoice}
+                    onDismissChoice={handleDismissClassChoice}
+                    onConfirmEquipmentChoice={handleConfirmEquipmentChoice}
+                    onDismissEquipmentChoice={handleDismissEquipmentChoice}
+                  />
+                </div>
+              </div>
+              <RaceChoicesPanel
+                pendingChoices={racePendingChoices}
+                onConfirmChoice={handleConfirmRaceChoice}
+                onDismissChoice={handleDismissRaceChoice}
+              />
+            </div>
+          )}
+
+          {identityTab === "characteristics" && (
+            <CharacteristicsBlock
+              data={
+                character.characteristics || {
+                  personalityTraits: "",
+                  ideals: "",
+                  bonds: "",
+                  flaws: "",
+                }
+              }
+              onChange={updateCharacteristicsField}
             />
+          )}
+
+          {identityTab === "bio" && (
+            <BioBlock
+              bio={
+                character.bio || {
+                  appearance: "",
+                  backstory: "",
+                  allies: "",
+                  organizations: "",
+                }
+              }
+              identity={identity}
+              onBioChange={updateBioField}
+              onIdentityChange={updateIdentityField}
+            />
+          )}
+        </ForgeSection>
+
+        <div className="flex flex-col xl:flex-row gap-4">
+          {/* Core stats + saves stacked */}
+          <div className="w-full xl:w-1/4 flex flex-col gap-4">
+            <ForgeSection
+              title="Core Stats"
+              headerAction={renderManualSectionToggle("coreStats")}
+              collapsible={true}
+            >
+              <div className="grid grid-cols-3 gap-3">
+                {ATTRIBUTE_KEYS.map((attr) => (
+                  <StatBlock
+                    key={attr}
+                    label={ATTRIBUTE_LABELS[attr]}
+                    data={attributes[attr]}
+                    showManualControls={isManualSectionVisible("coreStats")}
+                    onBaseChange={(v) => updateAttributeBase(attr, v)}
+                    onStackChange={(stack: ModifierEntry[]) =>
+                      setAttributeStack(attr, stack)
+                    }
+                    onOverrideChange={(override) =>
+                      setAttributeOverride(attr, override)
+                    }
+                  />
+                ))}
+              </div>
+            </ForgeSection>
+
+            <ForgeSection
+              title="Saving Throws"
+              headerAction={renderManualSectionToggle("savingThrows")}
+              collapsible={true}
+            >
+              <div className="grid grid-cols-3 gap-3">
+                {ATTRIBUTE_KEYS.map((attr) => (
+                  <SaveBlock
+                    key={attr}
+                    label={SAVE_LABELS[attr]}
+                    data={saves[attr]}
+                    attrMod={resolveAttributeMod(attributes[attr])}
+                    proficiencyBonus={pb}
+                    globalStack={saveGlobalStack}
+                    attrKey={attr}
+                    showManualControls={isManualSectionVisible("savingThrows")}
+                    onProficiencyChange={(p) => setSaveProficiency(attr, p)}
+                    onStackChange={(stack) => setSaveStack(attr, stack)}
+                    onOverrideChange={(override) =>
+                      setSaveOverride(attr, override)
+                    }
+                  />
+                ))}
+              </div>
+
+              {/* Global save modifier */}
+              {isManualSectionVisible("savingThrows") && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setGlobalSaveExpanded((v) => !v)}
+                    className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {globalSaveExpanded ? (
+                      <ChevronDown className="size-3" />
+                    ) : (
+                      <ChevronUp className="size-3" />
+                    )}
+                    Global modifier
+                    {!globalSaveExpanded && saveGlobalStack.length > 0 && (
+                      <span className="ml-auto tabular-nums">
+                        {saveGlobalStack
+                          .filter((m) => m.isActive)
+                          .reduce((s, m) => s + m.value, 0) >= 0
+                          ? `+${saveGlobalStack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)}`
+                          : saveGlobalStack
+                              .filter((m) => m.isActive)
+                              .reduce((s, m) => s + m.value, 0)}
+                      </span>
+                    )}
+                  </button>
+                  {globalSaveExpanded && (
+                    <div className="flex flex-col gap-1.5">
+                      {saveGlobalStack.map((mod) =>
+                        mod.sourceId ? (
+                          <div
+                            key={mod.id}
+                            className={`flex items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5${!mod.isActive ? " opacity-40" : ""}`}
+                          >
+                            <Lock className="size-2.5 shrink-0 text-muted-foreground" />
+                            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                              {mod.source}
+                            </span>
+                            <span className="shrink-0 tabular-nums text-xs text-foreground">
+                              {mod.value >= 0 ? `+${mod.value}` : mod.value}
+                            </span>
+                            {mod.isActive ? (
+                              <CircleDot className="size-2.5 shrink-0 text-muted-foreground" />
+                            ) : (
+                              <Circle className="size-2.5 shrink-0 text-muted-foreground" />
+                            )}
+                          </div>
+                        ) : (
+                          <div key={mod.id} className="flex items-start gap-1">
+                            <div className="flex min-w-0 flex-1 flex-col gap-1">
+                              <Input
+                                type="text"
+                                value={mod.source}
+                                placeholder="Source"
+                                className="h-6 text-xs"
+                                onChange={(e) =>
+                                  setGlobalSaveStack(
+                                    saveGlobalStack.map((m) =>
+                                      m.id === mod.id
+                                        ? { ...m, source: e.target.value }
+                                        : m,
+                                    ),
+                                  )
+                                }
+                              />
+                              <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
+                                <span className="select-none pl-2 text-xs text-muted-foreground">
+                                  +
+                                </span>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={
+                                    mod.value === 0 ? "" : String(mod.value)
+                                  }
+                                  placeholder="0"
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    if (raw === "") {
+                                      setGlobalSaveStack(
+                                        saveGlobalStack.map((m) =>
+                                          m.id === mod.id
+                                            ? { ...m, value: 0 }
+                                            : m,
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    if (raw === "-") return;
+                                    const n = parseInt(raw, 10);
+                                    if (!isNaN(n))
+                                      setGlobalSaveStack(
+                                        saveGlobalStack.map((m) =>
+                                          m.id === mod.id
+                                            ? { ...m, value: n }
+                                            : m,
+                                        ),
+                                      );
+                                  }}
+                                  className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
+                                />
+                              </div>
+                            </div>
+                            <div className="mt-0.5 flex flex-col gap-0.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setGlobalSaveStack(
+                                    saveGlobalStack.filter(
+                                      (m) => m.id !== mod.id,
+                                    ),
+                                  )
+                                }
+                                className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <X className="size-2.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setGlobalSaveStack(
+                                    saveGlobalStack.map((m) =>
+                                      m.id === mod.id
+                                        ? { ...m, isActive: !m.isActive }
+                                        : m,
+                                    ),
+                                  )
+                                }
+                                className="flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                              >
+                                {mod.isActive ? (
+                                  <CircleDot className="size-2.5" />
+                                ) : (
+                                  <Circle className="size-2.5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        ),
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setGlobalSaveStack([
+                            ...saveGlobalStack,
+                            {
+                              id: crypto.randomUUID(),
+                              source: "",
+                              value: 0,
+                              isActive: true,
+                            },
+                          ])
+                        }
+                        className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <Plus className="size-3" />
+                        Add modifier
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </ForgeSection>
           </div>
-        )}
 
-        {identityTab === "characteristics" && (
-          <CharacteristicsBlock
-            data={character.characteristics || { personalityTraits: "", ideals: "", bonds: "", flaws: "" }}
-            onChange={updateCharacteristicsField}
-          />
-        )}
-
-        {identityTab === "bio" && (
-          <BioBlock
-            bio={character.bio || { appearance: "", backstory: "", allies: "", organizations: "" }}
-            identity={identity}
-            onBioChange={updateBioField}
-            onIdentityChange={updateIdentityField}
-          />
-        )}
-      </ForgeSection>
-
-      <div className="flex flex-col xl:flex-row gap-6">
-        {/* Core stats + saves stacked */}
-        <div className="w-full xl:w-1/4 flex flex-col gap-4">
+          {/* Skills */}
           <ForgeSection
-            title="Core Stats"
-            headerAction={renderManualSectionToggle("coreStats")}
+            title="Skills"
+            className="w-full xl:w-62 shrink-0"
+            headerAction={renderManualSectionToggle("skills")}
             collapsible={true}
           >
-            <div className="grid grid-cols-3 gap-3">
-              {ATTRIBUTE_KEYS.map((attr) => (
-                <StatBlock
-                  key={attr}
-                  label={ATTRIBUTE_LABELS[attr]}
-                  data={attributes[attr]}
-                  showManualControls={isManualSectionVisible("coreStats")}
-                  onBaseChange={(v) => updateAttributeBase(attr, v)}
-                  onStackChange={(stack: ModifierEntry[]) =>
-                    setAttributeStack(attr, stack)
-                  }
-                  onOverrideChange={(override) =>
-                    setAttributeOverride(attr, override)
-                  }
-                />
-              ))}
-            </div>
+            <SkillsBlock
+              skills={skills}
+              attributes={attributes}
+              proficiencyBonus={pb}
+              jackOfAllTrades={jackOfAllTrades}
+              globalStack={skillGlobalStack}
+              passivePerception={passivePerception}
+              showManualControls={isManualSectionVisible("skills")}
+              onStateChange={setSkillState}
+              onOverrideChange={setSkillOverride}
+              onJackOfAllTradesChange={setJackOfAllTrades}
+              onGlobalStackChange={setGlobalSkillStack}
+              onPassivePerceptionStackChange={setPassivePerceptionStack}
+              onPassivePerceptionOverrideChange={setPassivePerceptionOverride}
+            />
+          </ForgeSection>
+
+          {/* Other Proficiencies */}
+          <ForgeSection
+            title="Other Proficiencies"
+            className="w-full xl:w-72 min-w-0"
+            collapsible={true}
+          >
+            <OtherProficienciesBlock
+              proficiencies={otherProficiencies}
+              attributes={attributes}
+              proficiencyBonus={pb}
+              onChange={setOtherProficiencies}
+            />
+          </ForgeSection>
+
+          {/* Combat */}
+          <div className="w-full xl:flex-1 min-w-0 flex flex-col gap-4">
+            <ForgeSection
+              title="Combat"
+              headerAction={renderManualSectionToggle("combat")}
+              collapsible={true}
+            >
+              <CombatBlock
+                data={combat}
+                attributes={attributes}
+                classes={identity.classes}
+                proficiencyBonus={pb}
+                jackOfAllTrades={jackOfAllTrades}
+                showManualControls={isManualSectionVisible("combat")}
+                onAcChange={setAc}
+                onInitiativeChange={setInitiative}
+                onSpeedChange={setSpeed}
+                onHpChange={setHp}
+              />
+            </ForgeSection>
+
+            <ForgeSection title="Attacks & Actions" collapsible={true}>
+              <ActionsBlock
+                actions={actions}
+                castingStat={spells.globalCastingStat}
+                attributes={attributes}
+                proficiencyBonus={pb}
+                attackStack={spells.attackStack}
+                dcStack={spells.dcStack}
+                onChange={setActions}
+                onCastingStatChange={setSpellCastingStat}
+              />
+            </ForgeSection>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-4 items-start">
+          <ForgeSection
+            title="Features & Traits"
+            className="flex-1 min-w-0"
+            collapsible={true}
+          >
+            <FeaturesBlock features={features} onChange={setFeatures} />
           </ForgeSection>
 
           <ForgeSection
-            title="Saving Throws"
-            headerAction={renderManualSectionToggle("savingThrows")}
+            title="Trackers"
+            className="flex-1 min-w-0"
+            headerAction={renderManualSectionToggle("trackers")}
             collapsible={true}
           >
-            <div className="grid grid-cols-3 gap-3">
-              {ATTRIBUTE_KEYS.map((attr) => (
-                <SaveBlock
-                  key={attr}
-                  label={SAVE_LABELS[attr]}
-                  data={saves[attr]}
-                  attrMod={resolveAttributeMod(attributes[attr])}
-                  proficiencyBonus={pb}
-                  globalStack={saveGlobalStack}
-                  attrKey={attr}
-                  showManualControls={isManualSectionVisible("savingThrows")}
-                  onProficiencyChange={(p) => setSaveProficiency(attr, p)}
-                  onStackChange={(stack) => setSaveStack(attr, stack)}
-                  onOverrideChange={(override) =>
-                    setSaveOverride(attr, override)
-                  }
-                />
-              ))}
-            </div>
+            <TrackersBlock
+              trackers={trackers}
+              showManualControls={isManualSectionVisible("trackers")}
+              attributes={attributes}
+              level={identity.level}
+              pb={pb}
+              onChange={setTrackers}
+            />
+          </ForgeSection>
 
-            {/* Global save modifier */}
-            {isManualSectionVisible("savingThrows") && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setGlobalSaveExpanded((v) => !v)}
-                  className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {globalSaveExpanded ? (
-                    <ChevronDown className="size-3" />
-                  ) : (
-                    <ChevronUp className="size-3" />
-                  )}
-                  Global modifier
-                  {!globalSaveExpanded && saveGlobalStack.length > 0 && (
-                    <span className="ml-auto tabular-nums">
-                      {saveGlobalStack
-                        .filter((m) => m.isActive)
-                        .reduce((s, m) => s + m.value, 0) >= 0
-                        ? `+${saveGlobalStack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0)}`
-                        : saveGlobalStack
-                            .filter((m) => m.isActive)
-                            .reduce((s, m) => s + m.value, 0)}
-                    </span>
-                  )}
-                </button>
-                {globalSaveExpanded && (
-              <div className="flex flex-col gap-1.5">
-                {saveGlobalStack.map((mod) =>
-                  mod.sourceId ? (
-                    <div
-                      key={mod.id}
-                      className={`flex items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5${!mod.isActive ? " opacity-40" : ""}`}
-                    >
-                      <Lock className="size-2.5 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                        {mod.source}
-                      </span>
-                      <span className="shrink-0 tabular-nums text-xs text-foreground">
-                        {mod.value >= 0 ? `+${mod.value}` : mod.value}
-                      </span>
-                      {mod.isActive ? (
-                        <CircleDot className="size-2.5 shrink-0 text-muted-foreground" />
-                      ) : (
-                        <Circle className="size-2.5 shrink-0 text-muted-foreground" />
-                      )}
-                    </div>
-                  ) : (
-                    <div key={mod.id} className="flex items-start gap-1">
-                      <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <Input
-                          type="text"
-                          value={mod.source}
-                          placeholder="Source"
-                          className="h-6 text-xs"
-                          onChange={(e) =>
-                            setGlobalSaveStack(
-                              saveGlobalStack.map((m) =>
-                                m.id === mod.id
-                                  ? { ...m, source: e.target.value }
-                                  : m,
-                              ),
-                            )
-                          }
-                        />
-                        <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                          <span className="select-none pl-2 text-xs text-muted-foreground">
-                            +
-                          </span>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={mod.value === 0 ? "" : String(mod.value)}
-                            placeholder="0"
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              if (raw === "") {
-                                setGlobalSaveStack(
-                                  saveGlobalStack.map((m) =>
-                                    m.id === mod.id ? { ...m, value: 0 } : m,
-                                  ),
-                                );
-                                return;
-                              }
-                              if (raw === "-") return;
-                              const n = parseInt(raw, 10);
-                              if (!isNaN(n))
-                                setGlobalSaveStack(
-                                  saveGlobalStack.map((m) =>
-                                    m.id === mod.id ? { ...m, value: n } : m,
-                                  ),
-                                );
-                            }}
-                            className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-0.5 flex flex-col gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setGlobalSaveStack(
-                              saveGlobalStack.filter((m) => m.id !== mod.id),
-                            )
-                          }
-                          className="flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          <X className="size-2.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setGlobalSaveStack(
-                              saveGlobalStack.map((m) =>
-                                m.id === mod.id
-                                  ? { ...m, isActive: !m.isActive }
-                                  : m,
-                              ),
-                            )
-                          }
-                          className="flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          {mod.isActive ? (
-                            <CircleDot className="size-2.5" />
-                          ) : (
-                            <Circle className="size-2.5" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  ),
-                )}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setGlobalSaveStack([
-                      ...saveGlobalStack,
-                      {
-                        id: crypto.randomUUID(),
-                        source: "",
-                        value: 0,
-                        isActive: true,
-                      },
-                    ])
-                  }
-                  className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Plus className="size-3" />
-                  Add modifier
-                </button>
-              </div>
-                )}
-              </>
-            )}
+          <ForgeSection
+            title="Custom Stats"
+            className="w-full md:w-72 shrink-0"
+            collapsible={true}
+          >
+            <StatBoxesBlock
+              statBoxes={statBoxes ?? []}
+              onChange={setStatBoxes}
+            />
           </ForgeSection>
         </div>
 
-        {/* Skills */}
-        <ForgeSection
-          title="Skills"
-          className="w-full xl:w-62 shrink-0"
-          headerAction={renderManualSectionToggle("skills")}
-          collapsible={true}
-        >
-          <SkillsBlock
-            skills={skills}
-            attributes={attributes}
-            proficiencyBonus={pb}
-            jackOfAllTrades={jackOfAllTrades}
-            globalStack={skillGlobalStack}
-            passivePerception={passivePerception}
-            showManualControls={isManualSectionVisible("skills")}
-            onStateChange={setSkillState}
-            onOverrideChange={setSkillOverride}
-            onJackOfAllTradesChange={setJackOfAllTrades}
-            onGlobalStackChange={setGlobalSkillStack}
-            onPassivePerceptionStackChange={setPassivePerceptionStack}
-            onPassivePerceptionOverrideChange={setPassivePerceptionOverride}
-          />
-        </ForgeSection>
-
-        {/* Other Proficiencies */}
-        <ForgeSection
-          title="Other Proficiencies"
-          className="w-full xl:w-72 min-w-0"
-          collapsible={true}
-        >
-          <OtherProficienciesBlock
-            proficiencies={otherProficiencies}
-            attributes={attributes}
-            proficiencyBonus={pb}
-            onChange={setOtherProficiencies}
-          />
-        </ForgeSection>
-
-        {/* Combat */}
-        <div className="w-full xl:flex-1 min-w-0 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row gap-4 items-start">
           <ForgeSection
-            title="Combat"
-            headerAction={renderManualSectionToggle("combat")}
+            title="Inventory"
+            className="w-full md:w-1/3"
             collapsible={true}
           >
-            <CombatBlock
-              data={combat}
-              attributes={attributes}
-              classes={identity.classes}
-              proficiencyBonus={pb}
-              jackOfAllTrades={jackOfAllTrades}
-              showManualControls={isManualSectionVisible("combat")}
-              onAcChange={setAc}
-              onInitiativeChange={setInitiative}
-              onSpeedChange={setSpeed}
-              onHpChange={setHp}
+            <InventoryBlock
+              inventory={inventory}
+              onChange={setInventory}
+              onSrdItemSelected={applyItemFromSrd}
             />
           </ForgeSection>
 
-          <ForgeSection title="Attacks & Actions" collapsible={true}>
-            <ActionsBlock
-              actions={actions}
+          <ForgeSection
+            title="Spellcasting"
+            className="w-full md:w-2/3"
+            headerAction={renderManualSectionToggle("spells")}
+            collapsible={true}
+          >
+            <SpellsBlock
+              slots={spells.slots}
+              list={spells.list}
               castingStat={spells.globalCastingStat}
               attributes={attributes}
               proficiencyBonus={pb}
               attackStack={spells.attackStack}
               dcStack={spells.dcStack}
-              onChange={setActions}
-              onCastingStatChange={setSpellCastingStat}
+              availableClasses={availableClasses}
+              characterClasses={identity.classes}
+              showManualControls={isManualSectionVisible("spells")}
+              onSlotsChange={setSpellSlots}
+              onListChange={setSpellList}
             />
           </ForgeSection>
         </div>
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-6 items-start">
-        <ForgeSection title="Features & Traits" className="flex-1 min-w-0" collapsible={true}>
-          <FeaturesBlock features={features} onChange={setFeatures} />
-        </ForgeSection>
-
-        <ForgeSection
-          title="Trackers"
-          className="flex-1 min-w-0"
-          headerAction={renderManualSectionToggle("trackers")}
-          collapsible={true}
-        >
-          <TrackersBlock
-            trackers={trackers}
-            showManualControls={isManualSectionVisible("trackers")}
-            attributes={attributes}
-            level={identity.level}
-            pb={pb}
-            onChange={setTrackers}
-          />
-        </ForgeSection>
-
-        <ForgeSection title="Custom Stats" className="w-full md:w-72 shrink-0" collapsible={true}>
-          <StatBoxesBlock statBoxes={statBoxes ?? []} onChange={setStatBoxes} />
-        </ForgeSection>
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-6 items-start">
-        <ForgeSection title="Inventory" className="w-full md:w-1/3" collapsible={true}>
-          <InventoryBlock
-            inventory={inventory}
-            onChange={setInventory}
-            onSrdItemSelected={applyItemFromSrd}
-          />
-        </ForgeSection>
-
-        <ForgeSection
-          title="Spellcasting"
-          className="w-full md:w-2/3"
-          headerAction={renderManualSectionToggle("spells")}
-          collapsible={true}
-        >
-          <SpellsBlock
-            slots={spells.slots}
-            list={spells.list}
-            castingStat={spells.globalCastingStat}
-            attributes={attributes}
-            proficiencyBonus={pb}
-            attackStack={spells.attackStack}
-            dcStack={spells.dcStack}
-            availableClasses={availableClasses}
-            characterClasses={identity.classes}
-            showManualControls={isManualSectionVisible("spells")}
-            onSlotsChange={setSpellSlots}
-            onListChange={setSpellList}
-          />
-        </ForgeSection>
-      </div>
-    </main>
+      </main>
     </div>
   );
 }

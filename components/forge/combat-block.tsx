@@ -140,7 +140,7 @@ function ModStack({
                       onBlur={(e) => {
                         if (e.target.value === "-") patch(mod.id, { value: 0 });
                       }}
-                      className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-foreground/30 focus:outline-none"
+                      className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -403,7 +403,7 @@ export function CombatBlock({
                 }}
                 className={cn(
                   "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                  "placeholder:text-foreground/30 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
+                  "placeholder:text-card-foreground/40 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
                   "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
                   acOverridden && "pr-5",
                 )}
@@ -476,7 +476,7 @@ export function CombatBlock({
                 onBlur={() => setInitRaw(null)}
                 className={cn(
                   "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                  "placeholder:text-foreground/30 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
+                  "placeholder:text-card-foreground/40 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
                   initOverridden && "pr-5",
                 )}
               />
@@ -559,7 +559,7 @@ export function CombatBlock({
                 }}
                 className={cn(
                   "h-6 w-full rounded-md border border-input bg-background text-center text-xs transition-colors",
-                  "placeholder:text-foreground/30 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
+                  "placeholder:text-card-foreground/40 focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/50",
                   speedOverridden && "pr-5",
                 )}
               />
@@ -612,7 +612,7 @@ export function CombatBlock({
                   }}
                   className={cn(
                     "h-9 w-20 rounded-md border border-input bg-background text-center text-lg font-semibold focus:outline-none focus:border-ring",
-                    "placeholder:text-foreground/30",
+                    "placeholder:text-card-foreground/40",
                     hpOverridden && "pr-5",
                   )}
                 />

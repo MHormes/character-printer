@@ -323,7 +323,8 @@ export default function CanvasPage({
           <Button
             type="button"
             size="xs"
-            variant={autoSave ? "secondary" : "ghost"}
+            variant={autoSave ? "outline" : "secondary"}
+            className={autoSave ? "text-card-foreground hover:text-card-foreground" : ""}
             onClick={() => handleToggleAutoSave(!autoSave)}
           >
             Auto-save {autoSave ? "on" : "off"}
@@ -351,7 +352,8 @@ export default function CanvasPage({
               </Button>
               <Button
                 size="icon-sm"
-                variant="ghost"
+                variant="outline"
+                className="text-card-foreground hover:text-card-foreground"
                 onClick={() => {
                   setShowTemplateForm(false);
                   setTemplateName("");
@@ -364,7 +366,8 @@ export default function CanvasPage({
           ) : (
             <Button
               size="xs"
-              variant="ghost"
+              variant="outline"
+              className="text-card-foreground hover:text-card-foreground"
               onClick={() => setShowTemplateForm(true)}
             >
               <BookmarkPlus className="size-3.5" />
@@ -376,7 +379,8 @@ export default function CanvasPage({
             <Button
               type="button"
               size="xs"
-              variant={showGridConfig ? "secondary" : "ghost"}
+              variant={showGridConfig ? "secondary" : "outline"}
+              className={!showGridConfig ? "text-card-foreground hover:text-card-foreground" : ""}
               onClick={() => setShowGridConfig((v) => !v)}
             >
               <Grid3x3 className="size-3.5" />
@@ -403,7 +407,8 @@ export default function CanvasPage({
           <Button
             type="button"
             size="xs"
-            variant="ghost"
+            variant="outline"
+            className="text-card-foreground hover:text-card-foreground"
             onClick={() => window.print()}
           >
             <Printer className="size-3.5" />
@@ -411,7 +416,8 @@ export default function CanvasPage({
           </Button>
           <Button
             size="xs"
-            variant="ghost"
+            variant="outline"
+            className="text-card-foreground hover:text-card-foreground"
             onClick={handleExportPdf}
             disabled={pdfStatus === "exporting"}
           >
