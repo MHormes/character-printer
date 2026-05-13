@@ -135,15 +135,45 @@ export async function loadCharacter(id: string): Promise<{ data: CharacterData; 
   }
 }
 
-export async function listAllCharacters(): Promise<{ id: string; name: string; updatedAt: Date | null }[]> {
-  return anyDb
+export type CharacterSummary = {
+  id: string
+  name: string
+  updatedAt: Date | null
+  system: string
+  race: string
+  classLabels: string
+  level: number
+}
+
+export async function listAllCharacters(): Promise<CharacterSummary[]> {
+  const rows = await anyDb
     .select({
       id: sqliteCharacters.id,
       name: sqliteCharacters.name,
       updatedAt: sqliteCharacters.updatedAt,
+      data: sqliteCharacters.data,
     })
     .from(sqliteCharacters)
     .orderBy(sqliteCharacters.updatedAt)
+
+  return rows.map((row: any) => {
+    const data = row.data as Partial<CharacterData>
+    const srdKey = data.automationKeys?.srdClassKey ?? data.identity?.classes?.[0]?.classId
+    const system = srdKey ? (srdKey.split(":")[0] ?? "dnd5e") : "dnd5e"
+    const classLabels =
+      data.identity?.classLabels ||
+      data.identity?.classes?.filter((c) => c.name).map((c) => c.name).join(" / ") ||
+      ""
+    return {
+      id: row.id,
+      name: row.name,
+      updatedAt: row.updatedAt,
+      system,
+      race: data.identity?.race ?? "",
+      classLabels,
+      level: data.identity?.level ?? 1,
+    }
+  })
 }
 
 export async function deleteCharacter(id: string): Promise<void> {
