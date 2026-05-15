@@ -107,4 +107,15 @@ export function syncInventoryToStacks(
   c.spells.attackStack = updateStack(c.spells.attackStack, get("spell.attack"), prefix)
   c.spells.dcStack     = updateStack(c.spells.dcStack,     get("spell.dc"),     prefix)
   c.profBonusStack     = updateStack(c.profBonusStack,     get("prof_bonus"),   prefix)
+
+  syncGlobalSkillToInitiative(c)
+}
+
+export function syncGlobalSkillToInitiative(c: CharacterData): void {
+  const prefix = "global_skill:"
+  const mirrored = c.skillGlobalStack.map((entry) => ({
+    ...entry,
+    sourceId: `${prefix}${entry.id}`,
+  }))
+  c.combat.initiative.stack = updateStack(c.combat.initiative.stack, mirrored, prefix)
 }

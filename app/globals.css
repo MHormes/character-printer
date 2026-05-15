@@ -146,6 +146,7 @@
     --border: oklch(1 0 0 / 12%);
 
     input:not([type="checkbox"]):not([type="radio"]),
+    textarea,
     select {
       color: var(--card-foreground);
     }

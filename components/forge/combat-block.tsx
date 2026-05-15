@@ -495,7 +495,7 @@ export function CombatBlock({
             </div>
           ) : (
             <div className="flex h-6 min-w-0 flex-1 items-center justify-center rounded-md border border-input bg-background px-2 text-xs font-medium tabular-nums text-foreground">
-              {data.initiative.override ?? initCalc}
+              {`${data.initiative.override ?? initCalc}.${dexScore}`}
             </div>
           )}
         </div>

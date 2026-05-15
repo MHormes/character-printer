@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { CharacterData, AttributeKey, SkillState, FeatureEntry, TrackerEntry, SpellEntry, StatBox } from "@/lib/types/character";
-import { syncInventoryToStacks } from "@/lib/character/modifier-sync";
+import { syncInventoryToStacks, syncGlobalSkillToInitiative } from "@/lib/character/modifier-sync";
 
 type CharacterStore = {
   character: CharacterData | null;
@@ -190,6 +190,7 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.skillGlobalStack = stack;
+        syncGlobalSkillToInitiative(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
