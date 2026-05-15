@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "dotenv -e .env.development -- next dev",
     "build": "dotenv -e .env.production -- next build",
+    "build:container": "next build",
     "start": "dotenv -e .env.production -- next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
@@ -12,7 +13,9 @@
     "db:migrate:prod": "dotenv -e .env.production -- drizzle-kit migrate",
     "db:studio:dev": "dotenv -e .env.development -- drizzle-kit studio",
     "db:studio:prod": "dotenv -e .env.production -- drizzle-kit studio",
-    "db:seed": "dotenv -e .env.development -- tsx scripts/seed-5e.ts"
+    "db:seed": "dotenv -e .env.development -- tsx scripts/seed-5e.ts",
+    "docker:dev": "sh scripts/setup.sh development",
+    "docker:prod": "sh scripts/setup.sh production"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1047.0",

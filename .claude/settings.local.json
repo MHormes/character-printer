@@ -9,7 +9,9 @@
       "Bash(sqlite3 dev.db \".tables\")",
       "Bash(npm run *)",
       "Bash(Get-ChildItem *)",
-      "Bash(grep -E '\\\\.tsx$')"
+      "Bash(grep -E '\\\\.tsx$')",
+      "Bash(Select-Object Name)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }

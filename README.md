@@ -99,6 +99,12 @@ All character state is a single JSON blob. Example:
 
 ---
 
+## Running
+
+For setup and operations, see [docs/running-the-application.md](docs/running-the-application.md).
+
+---
+
 ## License
 
 Copyright (c) 2026 Maarten Hormes - ALL RIGHTS RESERVED.
