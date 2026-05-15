@@ -102,6 +102,8 @@ import type {
 } from "@/lib/types/character";
 
 import { resolvePb, resolveAttributeMod } from "@/lib/character/calculations";
+import { getRuleSet } from "@/lib/rules";
+import { RuleSetProvider } from "@/lib/rules/rule-context";
 import {
   deriveSpellSlotBases,
   spellSlotBasesEqual,
@@ -281,6 +283,8 @@ export default function ForgePage({
     "basics" | "characteristics" | "bio"
   >("basics");
 
+  const srdSystem = character ? getRuleSet(character.edition).srdSystem : null;
+
   useEffect(() => {
     clearCharacter();
     loadCharacter(id).then((res) => {
@@ -320,22 +324,23 @@ export default function ForgePage({
   }, [id, manualUiLoadedForId, manualUiPrefs]);
 
   useEffect(() => {
-    getClasses().then(setAvailableClasses);
-    getClassSpellSlots().then(setAvailableSpellSlotRows);
-    getRaces().then(setAvailableRaces);
-    getSubraces().then(setAvailableSubraces);
-    getBackgrounds().then(setAvailableBackgrounds);
-    getAllClassFeatures().then(setAllClassFeatureRows);
-    getAllClassProficiencies().then(setAllClassProfRows);
-    getAllRaceTraits().then(setAllRaceTraitRows);
-    getAllClassSkillChoices().then(setAllClassSkillChoiceRows);
-    getAllRaceAbilityBonuses().then(setAllRaceAsiBonusRows);
-    getAllRaceAbilityBonusOptions().then(setAllRaceAsiOptionRows);
-    getAllRaceSkillChoices().then(setAllRaceSkillChoiceRows);
-    searchFeats().then(setAvailableFeats);
-    getAllClassStartingEquipment().then(setAllClassStartEquipRows);
-    getAllClassStartingEquipmentOptions().then(setAllClassStartEquipOptionRows);
-  }, []);
+    if (!srdSystem) return;
+    getClasses(srdSystem).then(setAvailableClasses);
+    getClassSpellSlots(srdSystem).then(setAvailableSpellSlotRows);
+    getRaces(srdSystem).then(setAvailableRaces);
+    getSubraces(undefined, srdSystem).then(setAvailableSubraces);
+    getBackgrounds(srdSystem).then(setAvailableBackgrounds);
+    getAllClassFeatures(srdSystem).then(setAllClassFeatureRows);
+    getAllClassProficiencies(srdSystem).then(setAllClassProfRows);
+    getAllRaceTraits(srdSystem).then(setAllRaceTraitRows);
+    getAllClassSkillChoices(srdSystem).then(setAllClassSkillChoiceRows);
+    getAllRaceAbilityBonuses(srdSystem).then(setAllRaceAsiBonusRows);
+    getAllRaceAbilityBonusOptions(srdSystem).then(setAllRaceAsiOptionRows);
+    getAllRaceSkillChoices(srdSystem).then(setAllRaceSkillChoiceRows);
+    searchFeats(undefined, srdSystem).then(setAvailableFeats);
+    getAllClassStartingEquipment(srdSystem).then(setAllClassStartEquipRows);
+    getAllClassStartingEquipmentOptions(srdSystem).then(setAllClassStartEquipOptionRows);
+  }, [srdSystem]);
 
   // Auto-save on change with 1.5s debounce
   useEffect(() => {
@@ -900,6 +905,7 @@ export default function ForgePage({
   }
 
   return (
+    <RuleSetProvider edition={character.edition}>
     <div className="min-h-screen flex flex-col bg-background">
       {/* Primary nav bar */}
       <header className="flex items-center justify-between bg-primary px-8 py-3 shrink-0">
@@ -1505,5 +1511,6 @@ export default function ForgePage({
         </div>
       </main>
     </div>
+    </RuleSetProvider>
   );
 }

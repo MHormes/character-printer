@@ -4,15 +4,13 @@ import Link from "next/link"
 import { listAllCharacters, createCharacter, deleteCharacter } from "@/lib/actions/character"
 import { getOrCreateStubUser } from "@/lib/actions/user"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { Plus, Pencil, Trash2, Scroll } from "lucide-react"
+import { Pencil, Trash2, Scroll } from "lucide-react"
+import { NewCharacterDialog } from "@/components/characters/new-character-dialog"
+import type { Edition } from "@/lib/types/character"
 
-const SYSTEM_LABELS: Record<string, string> = {
-  dnd5e: "D&D 5e",
-  dnd5_5e: "D&D 2024",
-}
-
-function systemLabel(key: string) {
-  return SYSTEM_LABELS[key] ?? key
+const EDITION_LABELS: Record<Edition, string> = {
+  "2014": "D&D 5e 2014",
+  "2024": "D&D 5e 2024",
 }
 
 function formatDate(date: Date | null) {
@@ -20,10 +18,11 @@ function formatDate(date: Date | null) {
   return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(date)
 }
 
-async function createAction() {
+async function createAction(formData: FormData) {
   "use server"
+  const edition = (formData.get("edition") as Edition) || "2014"
   const user = await getOrCreateStubUser()
-  const { id } = await createCharacter(user.id)
+  const { id } = await createCharacter(user.id, edition)
   redirect(`/forge/${id}`)
 }
 
@@ -48,12 +47,7 @@ export default async function CharactersPage() {
         >
           Character Printer
         </Link>
-        <form action={createAction}>
-          <Button type="submit" size="sm" variant="secondary">
-            <Plus className="w-3.5 h-3.5" />
-            New Character
-          </Button>
-        </form>
+        <NewCharacterDialog createAction={createAction} size="sm" />
       </header>
 
       <main className="px-8 py-10 max-w-screen-2xl mx-auto">
@@ -86,12 +80,7 @@ export default async function CharactersPage() {
                 Create your first character to begin.
               </p>
             </div>
-            <form action={createAction}>
-              <Button type="submit">
-                <Plus className="w-4 h-4" />
-                New Character
-              </Button>
-            </form>
+            <NewCharacterDialog createAction={createAction} />
           </div>
         ) : (
           <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -103,7 +92,7 @@ export default async function CharactersPage() {
                 {/* Card accent + system badge + actions */}
                 <div className="bg-primary px-4 py-2.5 flex items-center justify-between">
                   <span className="font-cinzel text-[10px] tracking-[0.25em] uppercase text-primary-foreground/70">
-                    {systemLabel(char.system)}
+                    {EDITION_LABELS[char.edition] ?? char.edition}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <Link

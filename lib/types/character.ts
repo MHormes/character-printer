@@ -247,8 +247,11 @@ export type Bio = {
   organizations: string;
 };
 
+export type Edition = "2014" | "2024";
+
 export type CharacterData = {
   version: string;
+  edition: Edition;
   profBonusStack: ModifierEntry[];
   selectionIgnores?: SelectionIgnores;
   dismissedClassChoiceKeys?: string[];

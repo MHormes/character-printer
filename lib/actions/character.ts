@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client"
 import { sqliteCharacters, sqliteClasses } from "@/lib/db/schema"
 import { normalizeCanvasPages } from "@/lib/canvas/page-utils"
 import { createDefaultCharacter } from "@/lib/character/defaults"
-import type { CharacterData, AttributeKey } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, Edition } from "@/lib/types/character"
 import { eq } from "drizzle-orm"
 import { randomUUID } from "crypto"
 
@@ -44,6 +44,7 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
   return {
     ...defaults,
     ...data,
+    edition: data.edition ?? "2014",
     selectionIgnores: {
       race: data.selectionIgnores?.race ?? defaults.selectionIgnores!.race,
       background: data.selectionIgnores?.background ?? defaults.selectionIgnores!.background,
@@ -94,9 +95,9 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
   }
 }
 
-export async function createCharacter(userId: string): Promise<{ id: string }> {
+export async function createCharacter(userId: string, edition: Edition = "2014"): Promise<{ id: string }> {
   const id = randomUUID()
-  const data = createDefaultCharacter(id)
+  const data = createDefaultCharacter(id, edition)
 
   await anyDb.insert(sqliteCharacters).values({
     id,
@@ -140,6 +141,7 @@ export type CharacterSummary = {
   name: string
   updatedAt: Date | null
   system: string
+  edition: Edition
   race: string
   classLabels: string
   level: number
@@ -169,6 +171,7 @@ export async function listAllCharacters(): Promise<CharacterSummary[]> {
       name: row.name,
       updatedAt: row.updatedAt,
       system,
+      edition: (data.edition ?? "2014") as Edition,
       race: data.identity?.race ?? "",
       classLabels,
       level: data.identity?.level ?? 1,

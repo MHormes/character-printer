@@ -28,29 +28,7 @@ import {
   resolvePb,
   resolvePassivePerception,
 } from "@/lib/character/calculations";
-
-type SkillMeta = { label: string; attr: AttributeKey };
-
-const SKILLS: { key: string; meta: SkillMeta }[] = [
-  { key: "acrobatics", meta: { label: "Acrobatics", attr: "dex" } },
-  { key: "animalHandling", meta: { label: "Animal Handling", attr: "wis" } },
-  { key: "arcana", meta: { label: "Arcana", attr: "int" } },
-  { key: "athletics", meta: { label: "Athletics", attr: "str" } },
-  { key: "deception", meta: { label: "Deception", attr: "cha" } },
-  { key: "history", meta: { label: "History", attr: "int" } },
-  { key: "insight", meta: { label: "Insight", attr: "wis" } },
-  { key: "intimidation", meta: { label: "Intimidation", attr: "cha" } },
-  { key: "investigation", meta: { label: "Investigation", attr: "int" } },
-  { key: "medicine", meta: { label: "Medicine", attr: "wis" } },
-  { key: "nature", meta: { label: "Nature", attr: "int" } },
-  { key: "perception", meta: { label: "Perception", attr: "wis" } },
-  { key: "performance", meta: { label: "Performance", attr: "cha" } },
-  { key: "persuasion", meta: { label: "Persuasion", attr: "cha" } },
-  { key: "religion", meta: { label: "Religion", attr: "int" } },
-  { key: "sleightOfHand", meta: { label: "Sleight of Hand", attr: "dex" } },
-  { key: "stealth", meta: { label: "Stealth", attr: "dex" } },
-  { key: "survival", meta: { label: "Survival", attr: "wis" } },
-];
+import { useRuleSet } from "@/lib/rules/rule-context";
 
 const NEXT_STATE: Record<SkillState, SkillState> = {
   None: "Proficient",
@@ -97,6 +75,7 @@ export function SkillsBlock({
 }: SkillsBlockProps) {
   const [globalExpanded, setGlobalExpanded] = useState(false);
   const [passiveExpanded, setPassiveExpanded] = useState(false);
+  const rules = useRuleSet();
 
   const mockChar = {
     skills,
@@ -221,10 +200,10 @@ export function SkillsBlock({
       </button>
 
       {/* Skill rows */}
-      {SKILLS.map(({ key, meta }) => {
+      {rules.skills.map(({ key, label, attr }) => {
         const skill = skills[key];
         if (!skill) return null;
-        const calc = calculated(key, meta.attr);
+        const calc = calculated(key, attr);
         const isOverridden = skill.override !== null;
         const total = skill.override ?? calc;
 
@@ -259,11 +238,11 @@ export function SkillsBlock({
                   : "text-foreground font-medium",
               )}
             >
-              {meta.label}
+              {label}
             </span>
 
             <span className="w-6 shrink-0 text-center text-xs text-muted-foreground tabular-nums">
-              {meta.attr.toUpperCase()}
+              {attr.toUpperCase()}
             </span>
 
             {showManualControls ? (

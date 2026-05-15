@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { RaceRow, SubraceRow } from "@/lib/actions/5e-data"
+import { useRuleSet } from "@/lib/rules/rule-context"
 
 type RaceFieldProps = {
   race: string
@@ -29,6 +30,7 @@ export function RaceField({
   const [raceOpen, setRaceOpen] = useState(false)
   const [subraceOpen, setSubraceOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const rules = useRuleSet()
 
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
@@ -71,7 +73,7 @@ export function RaceField({
       {/* Race combobox */}
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Race
+          {rules.labels.race}
         </label>
         <div className="relative">
           <div className="flex h-8 items-center rounded-md border border-input bg-background shadow-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
@@ -139,7 +141,7 @@ export function RaceField({
       {/* Subrace combobox */}
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Subrace
+          {rules.labels.subrace}
         </label>
         <div className="relative">
           <div className="flex h-8 items-center rounded-md border border-input bg-background shadow-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
