@@ -8,6 +8,7 @@ import {
   getClassSpellSlots,
   getRaces,
   getSubraces,
+  getSubclasses,
   getBackgrounds,
   getAllClassFeatures,
   getAllClassProficiencies,
@@ -24,6 +25,7 @@ import type {
   ClassRow,
   RaceRow,
   SubraceRow,
+  SubclassRow,
   BackgroundRow,
   SpellSlotRow,
   ItemRow,
@@ -192,6 +194,7 @@ export default function ForgePage({
   >([]);
   const [availableRaces, setAvailableRaces] = useState<RaceRow[]>([]);
   const [availableSubraces, setAvailableSubraces] = useState<SubraceRow[]>([]);
+  const [availableSubclasses, setAvailableSubclasses] = useState<SubclassRow[]>([]);
   const [availableBackgrounds, setAvailableBackgrounds] = useState<
     BackgroundRow[]
   >([]);
@@ -261,6 +264,7 @@ export default function ForgePage({
   );
   const setGlobalSkillStack = useCharacterStore((s) => s.setGlobalSkillStack);
   const setJackOfAllTrades = useCharacterStore((s) => s.setJackOfAllTrades);
+  const setJackOfAllTradesSaves = useCharacterStore((s) => s.setJackOfAllTradesSaves);
   const setAc = useCharacterStore((s) => s.setAc);
   const setInitiative = useCharacterStore((s) => s.setInitiative);
   const setSpeed = useCharacterStore((s) => s.setSpeed);
@@ -277,6 +281,7 @@ export default function ForgePage({
     (s) => s.updateCharacteristicsField,
   );
   const updateBioField = useCharacterStore((s) => s.updateBioField);
+  const setPortraitImage = useCharacterStore((s) => s.setPortraitImage);
   const replaceCharacter = useCharacterStore((s) => s.replaceCharacter);
 
   const [identityTab, setIdentityTab] = useState<
@@ -329,6 +334,7 @@ export default function ForgePage({
     getClassSpellSlots(srdSystem).then(setAvailableSpellSlotRows);
     getRaces(srdSystem).then(setAvailableRaces);
     getSubraces(undefined, srdSystem).then(setAvailableSubraces);
+    getSubclasses(undefined, srdSystem).then(setAvailableSubclasses);
     getBackgrounds(srdSystem).then(setAvailableBackgrounds);
     getAllClassFeatures(srdSystem).then(setAllClassFeatureRows);
     getAllClassProficiencies(srdSystem).then(setAllClassProfRows);
@@ -423,6 +429,12 @@ export default function ForgePage({
     .join(",");
   const fullClassKey = `${classStateKey}|${classChoicesKey}`;
 
+  // Subclass state key — drives re-render when subclass picks change
+  const subclassStateKey = (character?.identity.classes ?? [])
+    .filter((c) => c.classId)
+    .map((c) => `${c.classId}|${c.subclassId ?? ""}:${c.level}`)
+    .join(",");
+
   const raceKey = `${character?.identity.race ?? ""}::${character?.identity.subrace ?? ""}`;
   const raceChoicesKey = (character?.raceChoices ?? [])
     .map((c) => `${c.id}:${c.type}:${c.skillKey || "asi"}`)
@@ -432,17 +444,14 @@ export default function ForgePage({
   const bgKey = character?.identity.background ?? "";
   const ignoreKey = `${character?.selectionIgnores?.race ? "race-off" : "race-on"}|${character?.selectionIgnores?.background ? "bg-off" : "bg-on"}`;
 
-  const srdKey = `${fullClassKey}|${fullRaceKey}|${bgKey}|${ignoreKey}`;
+  const srdKey = `${fullClassKey}|${fullRaceKey}|${bgKey}|${ignoreKey}|${subclassStateKey}`;
 
   useEffect(() => {
     const char = characterRef.current;
     if (
       !char ||
-      allClassFeatureRows.length === 0 ||
-      allRaceTraitRows.length === 0 ||
       availableRaces.length === 0 ||
-      availableBackgrounds.length === 0 ||
-      allRaceAsiBonusRows.length === 0
+      availableBackgrounds.length === 0
     )
       return;
 
@@ -450,7 +459,21 @@ export default function ForgePage({
     let changed = false;
 
     // 1. Class features + primary-class saving throw proficiencies
-    if (char.automationKeys?.srdClassKey !== fullClassKey) {
+    //    Migration: 2024 chars processed when class features were missing in DB
+    //    get a forced re-run so features populate correctly.
+    const noClassFeaturesYet =
+      char.edition === "2024" &&
+      allClassFeatureRows.length > 0 &&
+      char.identity.classes.some((c) => c.classId) &&
+      !char.features.some((f) => f.sourceId?.startsWith("class:")) &&
+      !!char.automationKeys?.srdClassKey;
+
+    const subclassChanged = (char.automationKeys?.srdSubclassKey ?? "") !== subclassStateKey;
+    if (char.automationKeys?.srdClassKey !== fullClassKey || subclassChanged || noClassFeaturesYet) {
+      if (noClassFeaturesYet) {
+        // Clear the stored key so applyClasses re-processes from level 0
+        updated.automationKeys = { ...updated.automationKeys, srdClassKey: undefined };
+      }
       updated = applyClasses(
         updated,
         char.identity.classes,
@@ -796,10 +819,30 @@ export default function ForgePage({
     if (!character) return;
     const incoming = Array.isArray(choices) ? choices : [choices];
     const existing = character.classChoices ?? [];
-    replaceCharacter({
-      ...character,
-      classChoices: [...existing, ...incoming],
-    });
+    const newClassChoices = [...existing, ...incoming];
+
+    if (allClassFeatureRows.length > 0 && allClassProfRows.length > 0) {
+      // Apply immediately so stats/skills update without waiting for the SRD effect
+      const newChoicesKey = newClassChoices
+        .map((c) => `${c.id}:${c.type}:${c.featId || c.skillKey || "asi"}`)
+        .join(",");
+      const newFullClassKey = `${classStateKey}|${newChoicesKey}`;
+      const withChoices: CharacterData = { ...character, classChoices: newClassChoices };
+      const applied = applyClasses(
+        withChoices,
+        withChoices.identity.classes,
+        allClassFeatureRows,
+        allClassProfRows,
+        character.automationKeys?.srdClassKey,
+      );
+      applied.automationKeys = {
+        ...applied.automationKeys,
+        srdClassKey: newFullClassKey,
+      };
+      replaceCharacter(applied);
+    } else {
+      replaceCharacter({ ...character, classChoices: newClassChoices });
+    }
   }
 
   function applyItemFromSrd(srdItem: ItemRow, invItem: InventoryItem) {
@@ -852,6 +895,7 @@ export default function ForgePage({
     skillGlobalStack,
     passivePerception,
     jackOfAllTrades,
+    jackOfAllTradesSaves,
     otherProficiencies,
     combat,
     inventory,
@@ -1046,6 +1090,9 @@ export default function ForgePage({
                   ignoreAutomation={
                     character.selectionIgnores?.background ?? false
                   }
+                  selectedBackground={availableBackgrounds.find(
+                    (b) => b.name.toLowerCase() === identity.background.toLowerCase(),
+                  )}
                   onChange={(v) => updateIdentityField("background", v)}
                   onIgnoreAutomationChange={setBackgroundAutomationIgnored}
                   availableBackgrounds={availableBackgrounds}
@@ -1085,6 +1132,7 @@ export default function ForgePage({
                     onChange={setClasses}
                     proficiencyBonus={pb}
                     availableClasses={availableClasses}
+                    availableSubclasses={availableSubclasses}
                     onClassPicked={(dbClass) => {
                       if (
                         !spells.globalCastingStat &&
@@ -1131,6 +1179,7 @@ export default function ForgePage({
 
           {identityTab === "bio" && (
             <BioBlock
+              characterId={id}
               bio={
                 character.bio || {
                   appearance: "",
@@ -1140,8 +1189,10 @@ export default function ForgePage({
                 }
               }
               identity={identity}
+              portraitImage={character.portraitImage ?? null}
               onBioChange={updateBioField}
               onIdentityChange={updateIdentityField}
+              onPortraitImageChange={setPortraitImage}
             />
           )}
         </ForgeSection>
@@ -1375,12 +1426,14 @@ export default function ForgePage({
               attributes={attributes}
               proficiencyBonus={pb}
               jackOfAllTrades={jackOfAllTrades}
+              jackOfAllTradesSaves={jackOfAllTradesSaves}
               globalStack={skillGlobalStack}
               passivePerception={passivePerception}
               showManualControls={isManualSectionVisible("skills")}
               onStateChange={setSkillState}
               onOverrideChange={setSkillOverride}
               onJackOfAllTradesChange={setJackOfAllTrades}
+              onJackOfAllTradesSavesChange={setJackOfAllTradesSaves}
               onGlobalStackChange={setGlobalSkillStack}
               onPassivePerceptionStackChange={setPassivePerceptionStack}
               onPassivePerceptionOverrideChange={setPassivePerceptionOverride}
@@ -1397,6 +1450,7 @@ export default function ForgePage({
               proficiencies={otherProficiencies}
               attributes={attributes}
               proficiencyBonus={pb}
+              system={character.edition === "2024" ? "dnd5e_2024" : "dnd5e"}
               onChange={setOtherProficiencies}
             />
           </ForgeSection>

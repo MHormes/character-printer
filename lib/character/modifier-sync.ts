@@ -1,4 +1,5 @@
 import type { CharacterData, InventoryItem, ModifierEntry, ModifierTarget } from "@/lib/types/character"
+import { resolvePb } from "./calculations"
 
 const ATTR_KEYS = ["str", "dex", "con", "int", "wis", "cha"] as const
 
@@ -109,6 +110,25 @@ export function syncInventoryToStacks(
   c.profBonusStack     = updateStack(c.profBonusStack,     get("prof_bonus"),   prefix)
 
   syncGlobalSkillToInitiative(c)
+}
+
+export function syncJoatToStacks(c: CharacterData): void {
+  const prefix = "joat:"
+  const pb = resolvePb(c)
+  const joatVal = Math.floor(pb / 2)
+
+  // Initiative: JoAT always applies when the feature is active
+  const initIncoming: ModifierEntry[] = c.jackOfAllTrades
+    ? [{ id: "joat:initiative:entry", source: "Jack of All Trades", sourceId: "joat:initiative", value: joatVal, isActive: true }]
+    : []
+  c.combat.initiative.stack = updateStack(c.combat.initiative.stack, initIncoming, prefix)
+
+  // Saving throws: JoAT applies only when explicitly enabled (2024 rule)
+  const saveIncoming: ModifierEntry[] =
+    c.jackOfAllTrades && (c.jackOfAllTradesSaves ?? false)
+      ? [{ id: "joat:saves:entry", source: "Jack of All Trades", sourceId: "joat:saves", value: joatVal, isActive: true }]
+      : []
+  c.saveGlobalStack = updateStack(c.saveGlobalStack, saveIncoming, prefix)
 }
 
 export function syncGlobalSkillToInitiative(c: CharacterData): void {

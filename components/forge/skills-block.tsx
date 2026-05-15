@@ -47,12 +47,14 @@ type SkillsBlockProps = {
   attributes: Record<AttributeKey, AttributeData>;
   proficiencyBonus: number;
   jackOfAllTrades: boolean;
+  jackOfAllTradesSaves?: boolean;
   globalStack: ModifierEntry[];
   passivePerception: DerivedValueData;
   showManualControls: boolean;
   onStateChange: (key: string, state: SkillState) => void;
   onOverrideChange: (key: string, override: number | null) => void;
   onJackOfAllTradesChange: (value: boolean) => void;
+  onJackOfAllTradesSavesChange?: (value: boolean) => void;
   onGlobalStackChange: (stack: ModifierEntry[]) => void;
   onPassivePerceptionStackChange: (stack: ModifierEntry[]) => void;
   onPassivePerceptionOverrideChange: (override: number | null) => void;
@@ -63,12 +65,14 @@ export function SkillsBlock({
   attributes,
   proficiencyBonus,
   jackOfAllTrades,
+  jackOfAllTradesSaves,
   globalStack,
   passivePerception,
   showManualControls,
   onStateChange,
   onOverrideChange,
   onJackOfAllTradesChange,
+  onJackOfAllTradesSavesChange,
   onGlobalStackChange,
   onPassivePerceptionStackChange,
   onPassivePerceptionOverrideChange,

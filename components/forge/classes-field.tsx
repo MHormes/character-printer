@@ -6,7 +6,7 @@ import { IntegerField } from "@/components/forge/integer-field"
 import { Button } from "@/components/ui/button"
 import { X, Plus, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { ClassRow } from "@/lib/actions/5e-data"
+import type { ClassRow, SubclassRow } from "@/lib/actions/5e-data"
 import type { CharacterClassEntry } from "@/lib/types/character"
 
 const HIT_DICE = ["d6", "d8", "d10", "d12"] as const
@@ -16,6 +16,7 @@ type ClassesFieldProps = {
   onChange: (classes: CharacterClassEntry[]) => void
   proficiencyBonus: number
   availableClasses?: ClassRow[]
+  availableSubclasses?: SubclassRow[]
   onClassPicked?: (dbClass: ClassRow) => void
 }
 
@@ -24,26 +25,32 @@ export function ClassesField({
   onChange,
   proficiencyBonus,
   availableClasses = [],
+  availableSubclasses = [],
   onClassPicked,
 }: ClassesFieldProps) {
   const [openIdx, setOpenIdx] = useState<number | null>(null)
+  const [subclassOpenIdx, setSubclassOpenIdx] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
-      if (!containerRef.current?.contains(e.target as Node)) setOpenIdx(null)
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpenIdx(null)
+        setSubclassOpenIdx(null)
+      }
     }
     document.addEventListener("mousedown", onMouseDown)
     return () => document.removeEventListener("mousedown", onMouseDown)
   }, [])
 
   function add() {
-    onChange([...classes, { classId: null, name: "", subclass: "", level: 1, hitDie: "d8", ignoreAutomation: false }])
+    onChange([...classes, { classId: null, name: "", subclass: "", subclassId: null, level: 1, hitDie: "d8", ignoreAutomation: false }])
   }
 
   function remove(index: number) {
     onChange(classes.filter((_, i) => i !== index))
     if (openIdx === index) setOpenIdx(null)
+    if (subclassOpenIdx === index) setSubclassOpenIdx(null)
   }
 
   function update<K extends keyof CharacterClassEntry>(index: number, key: K, value: CharacterClassEntry[K]) {
@@ -54,12 +61,30 @@ export function ClassesField({
     onChange(
       classes.map((c, i) =>
         i === index
-          ? { ...c, classId: dbClass.id, name: dbClass.name, hitDie: dbClass.hitDie, ignoreAutomation: false }
+          ? { ...c, classId: dbClass.id, name: dbClass.name, hitDie: dbClass.hitDie, subclass: "", subclassId: null, ignoreAutomation: false }
           : c,
       ),
     )
     onClassPicked?.(dbClass)
     setOpenIdx(null)
+  }
+
+  function pickSubclassFromDb(index: number, dbSubclass: SubclassRow) {
+    onChange(
+      classes.map((c, i) =>
+        i === index ? { ...c, subclass: dbSubclass.name, subclassId: dbSubclass.id } : c,
+      ),
+    )
+    setSubclassOpenIdx(null)
+  }
+
+  function clearSubclass(index: number) {
+    onChange(
+      classes.map((c, i) =>
+        i === index ? { ...c, subclass: "", subclassId: null } : c,
+      ),
+    )
+    setSubclassOpenIdx(null)
   }
 
   function ignoreAutomation(index: number) {
@@ -82,6 +107,12 @@ export function ClassesField({
           c.name.toLowerCase().includes(cls.name.toLowerCase()),
         )
         const isOpen = openIdx === i && availableClasses.length > 0
+
+        const filteredSubclasses = availableSubclasses.filter(
+          (s) => s.classId === cls.classId && s.name.toLowerCase().includes(cls.subclass.toLowerCase()),
+        )
+        const hasDbSubclasses = cls.classId !== null && filteredSubclasses.length > 0
+        const isSubclassOpen = subclassOpenIdx === i && hasDbSubclasses
 
         return (
           <div key={i} className="relative flex items-end gap-2">
@@ -158,13 +189,69 @@ export function ClassesField({
                 )}
               </div>
 
-              <Input
-                type="text"
-                value={cls.subclass}
-                onChange={(e) => update(i, "subclass", e.target.value)}
-                placeholder="Subclass"
-                className="h-6 text-xs"
-              />
+              {/* Subclass combobox */}
+              <div className="relative">
+                <div className="flex h-6 items-center rounded-md border border-input bg-background shadow-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+                  <input
+                    type="text"
+                    value={cls.subclass}
+                    placeholder="Subclass"
+                    className="min-w-0 flex-1 bg-transparent px-2 text-xs focus:outline-none"
+                    onChange={(e) => {
+                      onChange(
+                        classes.map((c, idx) =>
+                          idx === i ? { ...c, subclass: e.target.value, subclassId: null } : c,
+                        ),
+                      )
+                      setSubclassOpenIdx(i)
+                    }}
+                    onFocus={() => { if (hasDbSubclasses) setSubclassOpenIdx(i) }}
+                  />
+                  {cls.subclassId && (
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onMouseDown={(e) => { e.preventDefault(); clearSubclass(i) }}
+                      className="flex h-full items-center px-1.5 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="size-2.5" />
+                    </button>
+                  )}
+                  {hasDbSubclasses && !cls.subclassId && (
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        setSubclassOpenIdx(subclassOpenIdx === i ? null : i)
+                      }}
+                      className="flex h-full items-center px-1.5 text-muted-foreground hover:text-foreground"
+                    >
+                      <ChevronDown className="size-2.5" />
+                    </button>
+                  )}
+                </div>
+                {isSubclassOpen && (
+                  <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
+                    {filteredSubclasses.slice(0, 10).map((sc) => (
+                      <button
+                        key={sc.id}
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); pickSubclassFromDb(i, sc) }}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-2 px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground",
+                          cls.subclassId === sc.id && "bg-accent/50",
+                        )}
+                      >
+                        <span>{sc.name}</span>
+                        {sc.subclassFlavor && (
+                          <span className="text-muted-foreground">{sc.subclassFlavor}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <select

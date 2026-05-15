@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { CharacterData, AttributeKey, SkillState, FeatureEntry, TrackerEntry, SpellEntry, StatBox } from "@/lib/types/character";
-import { syncInventoryToStacks, syncGlobalSkillToInitiative } from "@/lib/character/modifier-sync";
+import { syncInventoryToStacks, syncGlobalSkillToInitiative, syncJoatToStacks } from "@/lib/character/modifier-sync";
 
 type CharacterStore = {
   character: CharacterData | null;
@@ -29,6 +29,7 @@ type CharacterStore = {
   setOtherProficiencies: (list: CharacterData["otherProficiencies"]) => void;
   setGlobalSkillStack: (stack: CharacterData["skillGlobalStack"]) => void;
   setJackOfAllTrades: (value: boolean) => void;
+  setJackOfAllTradesSaves: (value: boolean) => void;
   setAc: (ac: CharacterData["combat"]["ac"]) => void;
   setInitiative: (initiative: CharacterData["combat"]["initiative"]) => void;
   setSpeed: (speed: CharacterData["combat"]["speed"]) => void;
@@ -43,6 +44,7 @@ type CharacterStore = {
   setSpellList: (list: SpellEntry[]) => void;
   updateCharacteristicsField: (field: keyof NonNullable<CharacterData["characteristics"]>, value: string) => void;
   updateBioField: (field: keyof NonNullable<CharacterData["bio"]>, value: string) => void;
+  setPortraitImage: (image: CharacterData["portraitImage"]) => void;
   replaceCharacter: (data: CharacterData) => void;
 };
 
@@ -56,6 +58,8 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         state.character = data;
         if (autoSave !== undefined) state.autoSave = autoSave;
+        syncGlobalSkillToInitiative(state.character as unknown as CharacterData);
+        syncJoatToStacks(state.character as unknown as CharacterData);
         state.isDirty = false;
       }),
 
@@ -176,6 +180,7 @@ export const useCharacterStore = create<CharacterStore>()(
         if (!state.character) return;
         state.character.identity.classes = classes;
         state.character.identity.level = classes.reduce((sum, c) => sum + c.level, 0) || 1;
+        syncJoatToStacks(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -198,6 +203,19 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.jackOfAllTrades = value;
+        // 2024: JoAT applies to saves — keep both flags in sync
+        if (state.character.edition === "2024") {
+          state.character.jackOfAllTradesSaves = value;
+        }
+        syncJoatToStacks(state.character as unknown as CharacterData);
+        state.isDirty = true;
+      }),
+
+    setJackOfAllTradesSaves: (value) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.jackOfAllTradesSaves = value;
+        syncJoatToStacks(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -316,10 +334,20 @@ export const useCharacterStore = create<CharacterStore>()(
         state.isDirty = true;
       }),
 
+    setPortraitImage: (image) =>
+      set((state) => {
+        if (!state.character) return;
+        state.character.portraitImage = image ?? null;
+        state.isDirty = true;
+      }),
+
     replaceCharacter: (data) =>
       set((state) => {
-        state.character = data;
-        if (data) syncInventoryToStacks(state.character as unknown as CharacterData, data.inventory);
+        state.character = structuredClone(data);
+        if (state.character) {
+          syncInventoryToStacks(state.character as unknown as CharacterData, state.character.inventory);
+          syncJoatToStacks(state.character as unknown as CharacterData);
+        }
         state.isDirty = true;
       }),
   }))

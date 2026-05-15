@@ -44,6 +44,7 @@ export type OtherProficiency = {
   training: "Proficient" | "Expertise";
   stat: AttributeKey | null;
   override: number | null;
+  sourceId?: string; // "class:<classId>:prof" = system-managed, read-only in UI
 };
 
 export type AcMode = "Standard" | "Formula";
@@ -187,6 +188,7 @@ export type CharacterClassEntry = {
   classId: string | null;
   name: string;
   subclass: string;
+  subclassId: string | null;
   level: number;
   hitDie: string;
   ignoreAutomation?: boolean;
@@ -227,6 +229,13 @@ export type EquipmentChoiceMade = {
   choiceIndex: number;
 };
 
+export type BackgroundChoiceMade = {
+  id: string;
+  backgroundId: string;
+  type: "asi";
+  improvements: { attr: AttributeKey; bonus: number }[];
+};
+
 export type SrdGrants = {
   saveProficiencies: string[];
   skillProficiencies: string[];
@@ -246,6 +255,14 @@ export type Bio = {
   backstory: string;
   allies: string;
   organizations: string;
+};
+
+export type CharacterImage = {
+  key: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  updatedAt: string;
 };
 
 export type Edition = "2014" | "2024";
@@ -279,6 +296,7 @@ export type CharacterData = {
   };
   characteristics?: Characteristics;
   bio?: Bio;
+  portraitImage?: CharacterImage | null;
   attributes: Record<AttributeKey, AttributeData>;
   saves: Record<AttributeKey, SaveData>;
   saveGlobalStack: ModifierEntry[];
@@ -307,11 +325,13 @@ export type CharacterData = {
   };
   automationKeys?: {
     srdClassKey?: string;
+    srdSubclassKey?: string; // "classId|subclassId:level,..." — updated by applyClasses
     srdRaceKey?: string;
     srdBackgroundKey?: string;
   };
   srdGrants?: SrdGrants;
   classChoices?: ClassChoiceMade[];
   raceChoices?: RaceChoiceMade[];
+  backgroundChoices?: BackgroundChoiceMade[];
   equipmentChoicesMade?: EquipmentChoiceMade[];
 };

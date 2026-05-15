@@ -71,7 +71,9 @@ export function resolveSaveBonus(
   const stackSum = sumStack(save.stack)
   const globalSum = sumStack(c.saveGlobalStack)
 
-  return attrMod + stackSum + globalSum + (save.proficient ? pb : 0)
+  const profMod = save.proficient ? pb : 0
+
+  return attrMod + stackSum + globalSum + profMod
 }
 
 export function resolveAc(c: CharacterData): number {
@@ -98,10 +100,8 @@ export function resolveInitiative(c: CharacterData): number {
 
   const dexMod = resolveAttributeMod(c.attributes["dex"])
   const stackSum = sumStack(init.stack)
-  const pb = resolvePb(c)
-  const joatBonus = c.jackOfAllTrades ? Math.floor(pb / 2) : 0
 
-  return dexMod + stackSum + joatBonus
+  return dexMod + stackSum
 }
 
 export function resolveSpeed(c: CharacterData): number {

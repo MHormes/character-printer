@@ -453,15 +453,15 @@ async function main() {
     fetchJson<Raw5eMagicItem[]>(`${BASE_URL}/5e-SRD-Magic-Items.json`),
   ]);
 
-  // Base class features only (no subclass features)
   const baseClassFeatures = rawFeatures.filter((f) => !f.subclass);
+  const subclassFeatures = rawFeatures.filter((f) => !!f.subclass);
 
   console.log(
     `  ${rawSpells.length} spells, ${rawClasses.length} classes, ${rawLevels.length} levels, ` +
     `${rawRaces.length} races, ${rawSubraces.length} subraces, ${PHB_BACKGROUNDS.length} backgrounds (hardcoded), ` +
-    `${baseClassFeatures.length} class features, ${rawTraits.length} traits, ${rawProficiencies.length} proficiencies, ` +
-    `${rawLanguages.length} languages, ${rawSubclasses.length} subclasses, ${rawFeats.length} feats, ` +
-    `${rawEquipment.length} equipment, ${rawMagicItems.length} magic items`,
+    `${baseClassFeatures.length} base class features + ${subclassFeatures.length} subclass features, ${rawTraits.length} traits, ` +
+    `${rawProficiencies.length} proficiencies, ${rawLanguages.length} languages, ${rawSubclasses.length} subclasses, ` +
+    `${rawFeats.length} feats, ${rawEquipment.length} equipment, ${rawMagicItems.length} magic items`,
   );
 
   console.log("Clearing existing SRD data...");
@@ -719,26 +719,52 @@ async function main() {
   }
   console.log(`  ${magicItemRows.length} magic items`);
 
-  console.log("Inserting class features...");
   // Build a classId lookup from index → DB id
   const classIdByIndex = new Map(rawClasses.map((c) => [c.index, classId(c.index)]));
-  const featureRows = baseClassFeatures
-    .filter((f) => classIdByIndex.has(f.class.index))
-    .map((f) => ({
-      id: `${SYSTEM}:${f.index}`,
+
+  // Subclasses must be inserted before class features (FK constraint)
+  console.log("Inserting subclasses...");
+  const subclassRows = rawSubclasses
+    .filter((s) => classIdByIndex.has(s.class.index))
+    .map((s) => ({
+      id: `${SYSTEM}:${s.index}`,
       system: SYSTEM,
-      classId: classIdByIndex.get(f.class.index)!,
-      level: f.level,
-      name: f.name,
-      description: f.desc.join("\n\n"),
+      classId: classIdByIndex.get(s.class.index)!,
+      name: s.name,
+      subclassFlavor: s.subclass_flavor ?? null,
+      description: Array.isArray(s.desc) ? s.desc.join("\n\n") : (s.desc ?? ""),
       source: SOURCE,
       userId: null as string | null,
     }));
+  for (let i = 0; i < subclassRows.length; i += 100) {
+    db.insert(sqliteSubclasses).values(subclassRows.slice(i, i + 100)).run();
+  }
+  console.log(`  ${subclassRows.length} subclasses`);
+  const subclassIdByIndex = new Map(rawSubclasses.map((s) => [s.index, `${SYSTEM}:${s.index}`]));
+
+  console.log("Inserting class features...");
+  const allClassFeatures = [...baseClassFeatures, ...subclassFeatures];
+  const featureRows = allClassFeatures
+    .filter((f) => classIdByIndex.has(f.class.index))
+    .map((f) => {
+      const scId = f.subclass ? subclassIdByIndex.get(f.subclass.index) ?? null : null;
+      return {
+        id: `${SYSTEM}:${f.index}`,
+        system: SYSTEM,
+        classId: classIdByIndex.get(f.class.index)!,
+        subclassId: scId,
+        level: f.level,
+        name: f.name,
+        description: f.desc.join("\n\n"),
+        source: SOURCE,
+        userId: null as string | null,
+      };
+    });
 
   for (let i = 0; i < featureRows.length; i += 100) {
     db.insert(sqliteClassFeatures).values(featureRows.slice(i, i + 100)).run();
   }
-  console.log(`  ${featureRows.length} class features`);
+  console.log(`  ${baseClassFeatures.length} base + ${subclassFeatures.length} subclass features`);
 
   console.log("Inserting race traits...");
   // Build lookup: race index → DB id, subrace index → DB id
@@ -944,24 +970,6 @@ async function main() {
   if (languageRows.length) db.insert(sqliteLanguages).values(languageRows).run();
   console.log(`  ${languageRows.length} languages`);
 
-  console.log("Inserting subclasses...");
-  const subclassRows = rawSubclasses
-    .filter((s) => classIdByIndex.has(s.class.index))
-    .map((s) => ({
-      id: `${SYSTEM}:${s.index}`,
-      system: SYSTEM,
-      classId: classIdByIndex.get(s.class.index)!,
-      name: s.name,
-      subclassFlavor: s.subclass_flavor ?? null,
-      description: Array.isArray(s.desc) ? s.desc.join("\n\n") : (s.desc ?? ""),
-      source: SOURCE,
-      userId: null as string | null,
-    }));
-  for (let i = 0; i < subclassRows.length; i += 100) {
-    db.insert(sqliteSubclasses).values(subclassRows.slice(i, i + 100)).run();
-  }
-  console.log(`  ${subclassRows.length} subclasses`);
-
   console.log("Inserting feats...");
   const featRows = rawFeats.map((f) => ({
     id: `${SYSTEM}:${f.index}`,
@@ -1041,7 +1049,7 @@ async function main() {
   console.log(
     `Done. ${spellRows.length} spells | ${classRows.length} classes | ${slotRows.length} slot rows | ` +
     `${classMappingRows.length} class→spell links | ${raceRows.length} races | ${subraceRows.length} subraces | ` +
-    `${PHB_BACKGROUNDS.length} backgrounds | ${featureRows.length} class features | ${traitRows.length} race traits | ` +
+    `${PHB_BACKGROUNDS.length} backgrounds | ${featureRows.length} features (base+subclass) | ${traitRows.length} race traits | ` +
     `${classProfRows.length} class profs | ${languageRows.length} languages | ${subclassRows.length} subclasses | ` +
     `${featRows.length} feats | ${itemRows.length} equipment | ${magicItemRows.length} magic items | ` +
     `${fixedEquipRows.length} fixed start equip | ${equipOptionRows.length} equip choice groups`,

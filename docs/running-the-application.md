@@ -22,6 +22,7 @@ Steps:
    DB_DRIVER=sqlite
    DATABASE_URL=./dev.db
    NEXTAUTH_URL=http://localhost:3000
+   STORAGE_DRIVER=local
    ```
 
 2. Install dependencies:
@@ -51,6 +52,13 @@ Steps:
    ```
 
 6. Open `http://localhost:3000`.
+
+Character image uploads work in this native local mode without MinIO. Uploaded
+files are stored under `.local-storage/`, which is ignored by git. The
+character JSON stores the same durable object key shape used by S3, so switching
+to Docker/production storage does not require a schema change.
+Uploads and previews go through the app server, so browser CORS settings are not
+needed for local storage.
 
 ## 2. Local Docker Compose
 
@@ -96,6 +104,11 @@ Useful URLs:
 
 The default local bucket is `character-images`. The MinIO username and password
 come from `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`.
+
+Docker and production use `STORAGE_DRIVER=s3` with MinIO/S3. Native development
+can use `STORAGE_DRIVER=local` when MinIO is not running.
+Image uploads and previews still go through the app server first, which avoids
+direct browser-to-MinIO CORS requirements.
 
 ## 3. Production Docker Profile
 

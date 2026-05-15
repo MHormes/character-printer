@@ -158,6 +158,20 @@
     --accent-foreground: oklch(0.23 0.040 52);
     --border: oklch(0.83 0.018 68);
   }
+
+  .bg-popover {
+    --foreground: oklch(0.14 0.025 52);
+    --muted-foreground: oklch(0.49 0.022 55);
+    --accent-foreground: oklch(0.23 0.040 52);
+    --border: oklch(0.83 0.018 68);
+  }
+
+  .dark .bg-popover {
+    --foreground: oklch(0.93 0.009 75);
+    --muted-foreground: oklch(0.61 0.018 58);
+    --accent-foreground: oklch(0.93 0.009 75);
+    --border: oklch(1 0 0 / 10%);
+  }
 }
 
 #print-all-pages,

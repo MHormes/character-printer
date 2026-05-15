@@ -5,6 +5,7 @@ import type {
   RaceAbilityBonusOptionRow,
   RaceSkillChoiceRow,
   RaceRow,
+  BackgroundRow,
   ClassStartingEquipmentOptionRow,
 } from "@/lib/actions/5e-data"
 import type { CharacterClassEntry } from "@/lib/types/character"
@@ -57,6 +58,37 @@ export function getRacePendingChoiceKey(choice: Pick<RacePendingChoice, "raceId"
 
 export function getEquipmentPendingChoiceKey(choice: Pick<EquipmentPendingChoice, "classId" | "choiceIndex">): string {
   return `${choice.classId}:equip:${choice.choiceIndex}`
+}
+
+export type BackgroundPendingChoice = {
+  backgroundId: string;
+  backgroundName: string;
+  type: "asi";
+  asiPool: AttributeKey[];
+}
+
+export function getBackgroundPendingChoiceKey(choice: Pick<BackgroundPendingChoice, "backgroundId" | "type">): string {
+  return `${choice.backgroundId}:${choice.type}`
+}
+
+export function deriveBackgroundPendingChoices(
+  char: CharacterData,
+  bgRow: BackgroundRow | null | undefined,
+): BackgroundPendingChoice[] {
+  if (!bgRow?.asiGrants) return []
+
+  const asiPool: string[] = JSON.parse(bgRow.asiGrants as string)
+  if (asiPool.length === 0) return []
+
+  const filled = (char.backgroundChoices ?? []).some((c) => c.backgroundId === bgRow.id)
+  if (filled) return []
+
+  return [{
+    backgroundId: bgRow.id,
+    backgroundName: bgRow.name,
+    type: "asi",
+    asiPool: asiPool as AttributeKey[],
+  }]
 }
 
 export function derivePendingChoices(

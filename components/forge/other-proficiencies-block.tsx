@@ -1,6 +1,7 @@
 "use client"
 
-import { RotateCcw, X, Plus, CircleDot, CheckCircle2, GripVertical } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { RotateCcw, X, Plus, CircleDot, CheckCircle2, GripVertical, Search, Loader2, Check, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import type { OtherProficiency, AttributeKey, AttributeData } from "@/lib/types/character"
@@ -9,6 +10,126 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import type { DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { searchOtherProficiencies } from "@/lib/actions/5e-data"
+import type { OtherProfResult } from "@/lib/actions/5e-data"
+
+// ─── Proficiency Picker ───────────────────────────────────────────────────────
+
+function ProficiencyPicker({
+  proficiencies,
+  system,
+  onPick,
+  onClose,
+}: {
+  proficiencies: OtherProficiency[]
+  system?: string
+  onPick: (result: OtherProfResult) => void
+  onClose: () => void
+}) {
+  const [query, setQuery] = useState("")
+  const [category, setCategory] = useState<OtherProficiency["category"] | "All">("All")
+  const [results, setResults] = useState<OtherProfResult[]>([])
+  const [loading, setLoading] = useState(true)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function runSearch(q: string, cat: OtherProficiency["category"] | "All") {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    setLoading(true)
+    timerRef.current = setTimeout(async () => {
+      const res = await searchOtherProficiencies({
+        name: q || undefined,
+        category: cat === "All" ? undefined : cat,
+        system,
+      })
+      setResults(res)
+      setLoading(false)
+    }, 250)
+  }
+
+  useEffect(() => {
+    runSearch("", "All")
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function handleQueryChange(q: string) {
+    setQuery(q)
+    runSearch(q, category)
+  }
+
+  function handleCategoryChange(cat: OtherProficiency["category"] | "All") {
+    setCategory(cat)
+    runSearch(query, cat)
+  }
+
+  return (
+    <div className="mt-1 rounded-md border border-border bg-muted/30 p-2 space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
+          <Input
+            autoFocus
+            value={query}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            placeholder="Search languages, tools…"
+            className="h-6 pl-6 text-xs"
+          />
+        </div>
+        <select
+          value={category}
+          onChange={(e) => handleCategoryChange(e.target.value as OtherProficiency["category"] | "All")}
+          className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-card-foreground focus:outline-none focus:border-ring"
+        >
+          <option value="All">All</option>
+          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        >
+          <X className="size-3" />
+        </button>
+      </div>
+
+      <div className="max-h-52 overflow-y-auto space-y-0.5">
+        {loading && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {!loading && results.length === 0 && (
+          <p className="py-3 text-center text-xs text-muted-foreground">No results</p>
+        )}
+        {!loading && results.map(r => {
+          const alreadyAdded = proficiencies.some(p => p.name === r.name && p.category === r.category)
+          return (
+            <div
+              key={`${r.category}:${r.name}`}
+              className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-accent/50"
+            >
+              <span className="min-w-0 flex-1 truncate text-xs font-medium">{r.name}</span>
+              <span className="shrink-0 text-[10px] text-muted-foreground">{r.category}</span>
+              <button
+                type="button"
+                onClick={() => { if (!alreadyAdded) onPick(r) }}
+                disabled={alreadyAdded}
+                className={cn(
+                  "flex size-5 shrink-0 items-center justify-center rounded-full transition-colors",
+                  alreadyAdded
+                    ? "text-muted-foreground/40 cursor-default"
+                    : "text-muted-foreground hover:bg-foreground/10 hover:text-foreground",
+                )}
+              >
+                {alreadyAdded ? <Check className="size-3" /> : <Plus className="size-3" />}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 const CATEGORIES: OtherProficiency["category"][] = ["Tool", "Language", "Vehicle", "Weapon", "Armor"]
 const ATTR_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
@@ -31,14 +152,27 @@ type OtherProficienciesBlockProps = {
   proficiencies: OtherProficiency[]
   attributes: Record<AttributeKey, AttributeData>
   proficiencyBonus: number
+  system?: string
   onChange: (list: OtherProficiency[]) => void
 }
 
-export function OtherProficienciesBlock({ proficiencies, attributes, proficiencyBonus, onChange }: OtherProficienciesBlockProps) {
+export function OtherProficienciesBlock({ proficiencies, attributes, proficiencyBonus, system, onChange }: OtherProficienciesBlockProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+  const [showSearch, setShowSearch] = useState(false)
 
   function add() {
     onChange([...proficiencies, { id: crypto.randomUUID(), name: "", category: "Tool", training: "Proficient", stat: null, override: null }])
+  }
+
+  function addFromSearch(result: OtherProfResult) {
+    onChange([...proficiencies, {
+      id: crypto.randomUUID(),
+      name: result.name,
+      category: result.category,
+      training: "Proficient",
+      stat: hasRoll(result.category) ? "dex" : null,
+      override: null,
+    }])
   }
 
   function remove(id: string) {
@@ -102,14 +236,38 @@ export function OtherProficienciesBlock({ proficiencies, attributes, proficiency
         </SortableContext>
       </DndContext>
 
-      <button
-        type="button"
-        onClick={add}
-        className="flex h-7 items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <Plus className="size-3.5" />
-        Add proficiency
-      </button>
+      {showSearch && (
+        <ProficiencyPicker
+          proficiencies={proficiencies}
+          system={system}
+          onPick={(result) => { addFromSearch(result) }}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={add}
+          className="flex h-7 items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <Plus className="size-3.5" />
+          Add proficiency
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowSearch((v) => !v)}
+          className={cn(
+            "flex h-7 items-center gap-1.5 text-xs transition-colors",
+            showSearch
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Search className="size-3.5" />
+          Find
+        </button>
+      </div>
     </div>
   )
 }
@@ -130,6 +288,7 @@ function SortableProfItem({ prof, attributes, proficiencyBonus, onUpdate, onRemo
   const roll = hasRoll(prof.category)
   const calc = calcModifier(prof, attributes, proficiencyBonus)
   const isOverridden = prof.override !== null
+  const isManaged = !!prof.sourceId
 
   return (
     <div
@@ -146,30 +305,42 @@ function SortableProfItem({ prof, attributes, proficiencyBonus, onUpdate, onRemo
         >
           <GripVertical className="size-3.5" />
         </button>
-        <Input
-          type="text"
-          value={prof.name}
-          placeholder="Name"
-          onChange={(e) => onUpdate({ name: e.target.value })}
-          className="h-7 min-w-0 flex-1 text-xs"
-        />
-        <button
-          type="button"
-          onClick={onRemove}
-          className="flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-        >
-          <X className="size-3" />
-        </button>
+        {isManaged ? (
+          <span className="min-w-0 flex-1 truncate px-2 text-xs text-card-foreground">{prof.name}</span>
+        ) : (
+          <Input
+            type="text"
+            value={prof.name}
+            placeholder="Name"
+            onChange={(e) => onUpdate({ name: e.target.value })}
+            className="h-7 min-w-0 flex-1 text-xs"
+          />
+        )}
+        {isManaged ? (
+          <Lock className="size-3 shrink-0 text-muted-foreground/50" />
+        ) : (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <X className="size-3" />
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-1.5">
-        <select
-          value={prof.category}
-          onChange={(e) => onCategoryChange(e.target.value as OtherProficiency["category"])}
-          className="h-6 min-w-0 flex-[2] rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
-        >
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+        {isManaged ? (
+          <span className="h-6 min-w-0 flex-[2] px-1.5 text-xs text-muted-foreground flex items-center">{prof.category}</span>
+        ) : (
+          <select
+            value={prof.category}
+            onChange={(e) => onCategoryChange(e.target.value as OtherProficiency["category"])}
+            className="h-6 min-w-0 flex-[2] rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
+          >
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        )}
 
         {roll && (
           <>

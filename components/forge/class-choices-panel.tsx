@@ -108,8 +108,8 @@ function AsiPicker({
             className={cn(
               "rounded-md border px-3 py-1 text-sm transition-colors",
               mode === m
-                ? "border-ring bg-accent text-accent-foreground"
-                : "border-input bg-background text-foreground hover:bg-accent/50",
+                ? "border-ring bg-accent text-card-foreground"
+                : "border-input bg-background text-card-foreground hover:bg-accent/50",
             )}
           >
             {m === "+2" ? "+2 one stat" : m === "+1+1" ? "+1 / +1 two stats" : "Choose feat"}
@@ -263,8 +263,8 @@ function SkillPicker({
               className={cn(
                 "rounded-md border px-2.5 py-1 text-sm transition-colors",
                 checked
-                  ? "border-ring bg-accent text-accent-foreground"
-                  : "border-input bg-background text-foreground hover:bg-accent/50",
+                  ? "border-ring bg-accent text-card-foreground"
+                  : "border-input bg-background text-card-foreground hover:bg-accent/50",
                 disabled && "cursor-not-allowed opacity-40",
               )}
             >
@@ -433,8 +433,8 @@ function EquipmentChoicePicker({
             className={cn(
               "rounded-md border px-2.5 py-1 text-sm transition-colors text-left",
               selectedIdx === i
-                ? "border-ring bg-accent text-accent-foreground"
-                : "border-input bg-background text-foreground hover:bg-accent/50",
+                ? "border-ring bg-accent text-card-foreground"
+                : "border-input bg-background text-card-foreground hover:bg-accent/50",
             )}
           >
             {opt.label}

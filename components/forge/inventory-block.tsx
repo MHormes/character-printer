@@ -115,8 +115,20 @@ function mapEquipmentCategory(eq: string): InventoryItem["category"] {
     lower.includes("gaming set")
   )
     return "Tool";
-  if (lower.includes("ammunition") || lower.includes("potion") || lower.includes("scroll")) return "Consumable";
-  if (lower.includes("wondrous") || lower.includes("ring") || lower.includes("rod") || lower.includes("staff") || lower.includes("wand")) return "Wondrous";
+  if (
+    lower.includes("ammunition") ||
+    lower.includes("potion") ||
+    lower.includes("scroll")
+  )
+    return "Consumable";
+  if (
+    lower.includes("wondrous") ||
+    lower.includes("ring") ||
+    lower.includes("rod") ||
+    lower.includes("staff") ||
+    lower.includes("wand")
+  )
+    return "Wondrous";
   return "Mundane";
 }
 
@@ -506,14 +518,21 @@ function SortableInventoryItem({
         isDragging && "opacity-50",
       )}
     >
-      <div className={cn("flex items-center gap-2 p-2", !item.equipped && "text-muted-foreground")}>
+      <div
+        className={cn(
+          "flex items-center gap-2 p-2",
+          !item.equipped && "text-muted-foreground",
+        )}
+      >
         <button
           type="button"
           {...listeners}
           {...attributes}
           className={cn(
             "shrink-0 cursor-grab active:cursor-grabbing touch-none transition-colors hover:text-foreground",
-            item.equipped ? "text-muted-foreground" : "text-muted-foreground/80",
+            item.equipped
+              ? "text-muted-foreground"
+              : "text-muted-foreground/80",
           )}
         >
           <GripVertical className="size-3.5" />
@@ -528,7 +547,7 @@ function SortableInventoryItem({
           )}
         >
           {item.equipped ? (
-            <CircleDot className="size-3.5" />
+            <Circle fill="black" className="size-3.5" />
           ) : (
             <Circle className="size-3.5" />
           )}
@@ -540,7 +559,9 @@ function SortableInventoryItem({
           onChange={(e) => onPatch({ name: e.target.value })}
           className={cn(
             "h-7 min-w-0 flex-[3] text-xs",
-            item.equipped ? "font-medium" : "border-input/70 bg-muted/20 text-muted-foreground",
+            item.equipped
+              ? "font-medium"
+              : "border-input/70 bg-muted/20 text-muted-foreground",
           )}
         />
         <input
@@ -600,7 +621,9 @@ function SortableInventoryItem({
           onClick={onToggle}
           className={cn(
             "flex size-5 shrink-0 items-center justify-center transition-colors hover:text-foreground",
-            item.equipped ? "text-muted-foreground" : "text-muted-foreground/80",
+            item.equipped
+              ? "text-muted-foreground"
+              : "text-muted-foreground/80",
           )}
         >
           {isExpanded ? (
@@ -619,7 +642,12 @@ function SortableInventoryItem({
       </div>
 
       {isExpanded && (
-        <div className={cn("border-t px-3 py-2 space-y-2", item.equipped ? "border-border" : "border-border/70")}>
+        <div
+          className={cn(
+            "border-t px-3 py-2 space-y-2",
+            item.equipped ? "border-border" : "border-border/70",
+          )}
+        >
           {/* Armor AC configuration — only for Armor category */}
           {item.category === "Armor" && (
             <div className="space-y-1.5 border-b border-border/60 pb-2">
@@ -634,7 +662,10 @@ function SortableInventoryItem({
                     placeholder="—"
                     onChange={(e) => {
                       const raw = e.target.value;
-                      if (raw === "") { onPatch({ acBase: null }); return; }
+                      if (raw === "") {
+                        onPatch({ acBase: null });
+                        return;
+                      }
                       const n = parseInt(raw, 10);
                       if (!isNaN(n)) onPatch({ acBase: n });
                     }}
@@ -660,7 +691,10 @@ function SortableInventoryItem({
                       placeholder="—"
                       onChange={(e) => {
                         const raw = e.target.value;
-                        if (raw === "") { onPatch({ acMaxDex: null }); return; }
+                        if (raw === "") {
+                          onPatch({ acMaxDex: null });
+                          return;
+                        }
                         const n = parseInt(raw, 10);
                         if (!isNaN(n)) onPatch({ acMaxDex: n });
                       }}
@@ -677,9 +711,8 @@ function SortableInventoryItem({
             <p className="text-xs text-muted-foreground/60">No modifiers.</p>
           )}
           {item.modifiers.map((mod, idx) => {
-            const availableTypes = mod.target === "combat.ac"
-              ? (["Bonus"] as const)
-              : MOD_TYPES;
+            const availableTypes =
+              mod.target === "combat.ac" ? (["Bonus"] as const) : MOD_TYPES;
             return (
               <div key={idx} className="flex items-center gap-1.5">
                 <select

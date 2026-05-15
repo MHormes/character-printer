@@ -11,7 +11,12 @@
       "Bash(Get-ChildItem *)",
       "Bash(grep -E '\\\\.tsx$')",
       "Bash(Select-Object Name)",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(npx drizzle-kit *)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npx repomix *)",
+      "Bash(xargs grep -l \"2014\\\\|2024\\\\|edition\")"
     ]
   }
 }

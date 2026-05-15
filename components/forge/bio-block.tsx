@@ -1,18 +1,36 @@
 "use client"
 
 import { TextField } from "./text-field"
+import { CharacterImageField } from "./character-image-field"
 import type { Bio, CharacterData } from "@/lib/types/character"
 
 type BioBlockProps = {
+  characterId: string
   bio: Bio
   identity: CharacterData["identity"]
+  portraitImage: CharacterData["portraitImage"]
   onBioChange: (field: keyof Bio, value: string) => void
   onIdentityChange: (field: keyof CharacterData["identity"], value: string) => void
+  onPortraitImageChange: (image: CharacterData["portraitImage"]) => void
 }
 
-export function BioBlock({ bio, identity, onBioChange, onIdentityChange }: BioBlockProps) {
+export function BioBlock({
+  characterId,
+  bio,
+  identity,
+  portraitImage,
+  onBioChange,
+  onIdentityChange,
+  onPortraitImageChange,
+}: BioBlockProps) {
   return (
     <div className="space-y-6">
+      <CharacterImageField
+        characterId={characterId}
+        image={portraitImage}
+        onChange={onPortraitImageChange}
+      />
+
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
         <TextField
           label="Age"

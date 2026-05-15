@@ -41,6 +41,9 @@ yarn-error.log*
 *.db-shm
 *.db-wal
 
+# Local development object storage
+.local-storage/
+
 # vercel
 .vercel
 

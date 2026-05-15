@@ -60,7 +60,7 @@ export function createDefaultCharacter(id: string, edition: CharacterData["editi
       skin: "",
       size: "",
       level: 1,
-      classes: [{ classId: null, name: "", subclass: "", level: 1, hitDie: "d8", ignoreAutomation: false }],
+      classes: [{ classId: null, name: "", subclass: "", subclassId: null, level: 1, hitDie: "d8", ignoreAutomation: false }],
     },
     characteristics: {
       personalityTraits: "",
@@ -74,6 +74,7 @@ export function createDefaultCharacter(id: string, edition: CharacterData["editi
       allies: "",
       organizations: "",
     },
+    portraitImage: null,
     attributes: Object.fromEntries(
       ATTRIBUTE_KEYS.map((k): [AttributeKey, AttributeData] => [k, { base: 10, stack: [], override: null }])
     ) as CharacterData["attributes"],

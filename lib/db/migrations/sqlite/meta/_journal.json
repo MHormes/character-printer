@@ -113,6 +113,13 @@
       "when": 1778846361492,
       "tag": "0015_public_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1747353600000,
+      "tag": "0016_subclass_features",
+      "breakpoints": true
     }
   ]
 }

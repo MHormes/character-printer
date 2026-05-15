@@ -346,6 +346,7 @@ export const sqliteClassFeatures = sqliteTable("class_features", {
   id: text("id").primaryKey(),          // "dnd5e:action-surge-1-use"
   system: text("system").notNull(),
   classId: text("class_id").notNull().references(() => sqliteClasses.id, { onDelete: "cascade" }),
+  subclassId: text("subclass_id").references(() => sqliteSubclasses.id, { onDelete: "cascade" }),
   level: integer("level").notNull(),    // character level when feature is gained
   name: text("name").notNull(),
   description: text("description").notNull().default(""),
@@ -357,6 +358,7 @@ export const pgClassFeatures = pgTable("class_features", {
   id: varchar("id", { length: 100 }).primaryKey(),
   system: varchar("system", { length: 50 }).notNull(),
   classId: varchar("class_id", { length: 100 }).notNull().references(() => pgClasses.id, { onDelete: "cascade" }),
+  subclassId: varchar("subclass_id", { length: 100 }).references(() => pgSubclasses.id, { onDelete: "cascade" }),
   level: pgInteger("level").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   description: varchar("description", { length: 10000 }).notNull().default(""),

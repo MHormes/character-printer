@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, InventoryItem } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, BackgroundChoiceMade, InventoryItem, OtherProficiency } from "@/lib/types/character"
 import type {
   RaceRow,
   SubraceRow,
@@ -333,6 +333,44 @@ export function applyClasses(
     skillProficiencies: next.srdGrants?.skillProficiencies ?? [],
   }
 
+  // ── Deterministic Grants (Armor / Weapon / Tool / Language) ──────────────
+  next.otherProficiencies = next.otherProficiencies.filter(
+    (p) => !p.sourceId?.startsWith("class:"),
+  )
+
+  const PROF_TYPE_TO_CATEGORY: Record<string, OtherProficiency["category"]> = {
+    Armor: "Armor",
+    Weapons: "Weapon",
+    Tools: "Tool",
+    Languages: "Language",
+  }
+
+  for (const cls of activeClasses) {
+    const classProfs = allProfRows.filter(
+      (p) =>
+        p.classId === cls.classId &&
+        p.profType !== "Saving Throws" &&
+        p.profType !== "Skills",
+    )
+    for (const prof of classProfs) {
+      const category = PROF_TYPE_TO_CATEGORY[prof.profType]
+      if (!category) continue
+      const already = next.otherProficiencies.some(
+        (p) => p.name === prof.name && p.category === category,
+      )
+      if (already) continue
+      next.otherProficiencies.push({
+        id: crypto.randomUUID(),
+        name: prof.name,
+        category,
+        training: "Proficient",
+        stat: null,
+        override: null,
+        sourceId: `class:${cls.classId}:prof`,
+      })
+    }
+  }
+
   // ── Choice-based grants ───────────────────────────────────────────────────
   // Prune stale choices (class removed or level dropped below atLevel)
   const levelByClassId = new Map(activeClasses.map((c) => [c.classId!, c.level]))
@@ -384,6 +422,100 @@ export function applyClasses(
     }
   }
 
+  // ── Subclass Feature Handling ────────────────────────────────────────────────
+  // Stored format: "classId|subclassId:maxLevel,..."
+  // Tracks what was last applied so we only add new features on level-up (same as base class logic).
+  const oldSubclassMap = new Map<string, { subclassId: string; maxLevel: number }>()
+  const storedSubclassKey = char.automationKeys?.srdSubclassKey ?? ""
+  if (storedSubclassKey) {
+    for (const entry of storedSubclassKey.split(",")) {
+      const pipeIdx = entry.indexOf("|")
+      if (pipeIdx === -1) continue
+      const cId = entry.slice(0, pipeIdx)
+      const rest = entry.slice(pipeIdx + 1)
+      const colonIdx = rest.lastIndexOf(":")
+      if (colonIdx === -1) continue
+      const scId = rest.slice(0, colonIdx)
+      const maxLevel = parseInt(rest.slice(colonIdx + 1), 10) || 0
+      if (cId) oldSubclassMap.set(cId, { subclassId: scId, maxLevel })
+    }
+  }
+
+  for (const cls of activeClasses) {
+    if (!cls.classId) continue
+    const currentSubclassId = cls.subclassId ?? ""
+    const old = oldSubclassMap.get(cls.classId)
+    const oldSubclassId = old?.subclassId ?? ""
+    const oldMaxLevel = old?.maxLevel ?? 0
+
+    if (currentSubclassId === "" && oldSubclassId === "") continue
+
+    if (currentSubclassId !== oldSubclassId) {
+      // Subclass changed — clear old subclass features and apply all new ones up to current level
+      next.features = next.features.filter(
+        (f) => !f.sourceId?.startsWith(`class:${cls.classId}:sc:`),
+      )
+      if (currentSubclassId) {
+        const scFeats = allFeatureRows.filter(
+          (f) => f.classId === cls.classId && f.subclassId === currentSubclassId && f.level <= cls.level,
+        )
+        for (const feat of scFeats) {
+          next.features.push({
+            id: crypto.randomUUID(),
+            name: feat.name,
+            source: cls.name,
+            sourceId: `class:${cls.classId}:sc:${currentSubclassId}:${feat.level}`,
+            description: feat.description ?? "",
+          } satisfies FeatureEntry)
+        }
+      }
+    } else if (currentSubclassId) {
+      if (cls.level > oldMaxLevel) {
+        // Leveled up — add only newly unlocked subclass features (same fire-once guarantee as base class)
+        const scFeats = allFeatureRows.filter(
+          (f) =>
+            f.classId === cls.classId &&
+            f.subclassId === currentSubclassId &&
+            f.level > oldMaxLevel &&
+            f.level <= cls.level,
+        )
+        for (const feat of scFeats) {
+          const exists = next.features.some(
+            (f) =>
+              f.sourceId === `class:${cls.classId}:sc:${currentSubclassId}:${feat.level}` &&
+              f.name === feat.name,
+          )
+          if (!exists) {
+            next.features.push({
+              id: crypto.randomUUID(),
+              name: feat.name,
+              source: cls.name,
+              sourceId: `class:${cls.classId}:sc:${currentSubclassId}:${feat.level}`,
+              description: feat.description ?? "",
+            } satisfies FeatureEntry)
+          }
+        }
+      } else if (cls.level < oldMaxLevel) {
+        // Leveled down — prune features beyond current level
+        next.features = next.features.filter((f) => {
+          if (!f.sourceId?.startsWith(`class:${cls.classId}:sc:${currentSubclassId}:`)) return true
+          const parts = f.sourceId.split(":")
+          const featLvl = parseInt(parts[parts.length - 1], 10)
+          return featLvl <= cls.level
+        })
+      }
+    }
+  }
+
+  // Persist current subclass state for next comparison
+  next.automationKeys = {
+    ...next.automationKeys,
+    srdSubclassKey: activeClasses
+      .filter((c) => c.classId)
+      .map((c) => `${c.classId}|${c.subclassId ?? ""}:${c.level}`)
+      .join(","),
+  }
+
   return next
 }
 
@@ -392,20 +524,69 @@ export function applyBackground(
   bgRow: BackgroundRow,
 ): CharacterData {
   const next = structuredClone(char)
+  const ATTR_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
 
+  // ── Clear old skill grants ────────────────────────────────────────────────
   const oldSkillGrants = next.srdGrants?.skillProficiencies ?? []
   for (const key of oldSkillGrants) {
     if (next.skills[key]) next.skills[key].state = "None"
   }
 
-  const skillGrants: string[] = bgRow.skillGrants ? JSON.parse(bgRow.skillGrants) : []
+  // ── Clear old background ASI modifiers ───────────────────────────────────
+  for (const key of ATTR_KEYS) {
+    next.attributes[key].stack = next.attributes[key].stack.filter(
+      (m) => !m.sourceId?.startsWith("background:"),
+    )
+  }
+
+  // ── Clear old background feat feature ────────────────────────────────────
+  next.features = next.features.filter((f) => !f.sourceId?.startsWith("background:"))
+
+  // ── Apply new skill grants ────────────────────────────────────────────────
+  const skillGrants: string[] = bgRow.skillGrants ? JSON.parse(bgRow.skillGrants as string) : []
   for (const key of skillGrants) {
     if (next.skills[key]) next.skills[key].state = "Proficient"
   }
 
+  // ── Apply background ASI choices (2024) ──────────────────────────────────
+  const newBgAsis: NonNullable<NonNullable<CharacterData["srdGrants"]>["backgroundAsiBonuses"]> = []
+  const bgChoices = (next.backgroundChoices ?? []).filter((c) => c.backgroundId === bgRow.id)
+  for (const choice of bgChoices) {
+    for (const imp of choice.improvements) {
+      if (!next.attributes[imp.attr]) continue
+      const sourceId = `background:${bgRow.id}:asi`
+      next.attributes[imp.attr].stack.push({
+        id: crypto.randomUUID(),
+        source: bgRow.name,
+        sourceId,
+        value: imp.bonus,
+        isActive: true,
+      })
+      newBgAsis.push({ abilityScore: imp.attr, bonus: imp.bonus, sourceId })
+    }
+  }
+
+  // ── Apply feat grant (2024) ───────────────────────────────────────────────
+  if (bgRow.featGrant) {
+    next.features.push({
+      id: crypto.randomUUID(),
+      name: bgRow.featGrant,
+      source: bgRow.name,
+      sourceId: `background:${bgRow.id}:feat`,
+      description: "",
+    } satisfies FeatureEntry)
+  }
+
+  // ── Prune stale background choices for other backgrounds ─────────────────
+  next.backgroundChoices = (next.backgroundChoices ?? []).filter(
+    (c) => c.backgroundId === bgRow.id,
+  )
+
   next.srdGrants = {
     saveProficiencies: next.srdGrants?.saveProficiencies ?? [],
     skillProficiencies: skillGrants,
+    raceAsiBonuses: next.srdGrants?.raceAsiBonuses ?? [],
+    backgroundAsiBonuses: newBgAsis,
   }
 
   return next
@@ -490,15 +671,27 @@ export function applyClassStartingEquipment(
 
 export function clearBackgroundAutomation(char: CharacterData): CharacterData {
   const next = structuredClone(char)
+  const ATTR_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
+
   const oldSkillGrants = next.srdGrants?.skillProficiencies ?? []
   for (const key of oldSkillGrants) {
     if (next.skills[key]) next.skills[key].state = "None"
   }
 
+  for (const key of ATTR_KEYS) {
+    next.attributes[key].stack = next.attributes[key].stack.filter(
+      (m) => !m.sourceId?.startsWith("background:"),
+    )
+  }
+
+  next.features = next.features.filter((f) => !f.sourceId?.startsWith("background:"))
+  next.backgroundChoices = []
+
   next.srdGrants = {
     saveProficiencies: next.srdGrants?.saveProficiencies ?? [],
     skillProficiencies: [],
     raceAsiBonuses: next.srdGrants?.raceAsiBonuses ?? [],
+    backgroundAsiBonuses: [],
   }
 
   return next

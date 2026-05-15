@@ -5,9 +5,14 @@ import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BackgroundRow } from "@/lib/actions/5e-data"
 
+const ATTR_LABEL: Record<string, string> = {
+  str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
+}
+
 type BackgroundFieldProps = {
   value: string
   ignoreAutomation: boolean
+  selectedBackground?: BackgroundRow
   onChange: (value: string) => void
   onIgnoreAutomationChange: (value: boolean) => void
   availableBackgrounds?: BackgroundRow[]
@@ -16,6 +21,7 @@ type BackgroundFieldProps = {
 export function BackgroundField({
   value,
   ignoreAutomation,
+  selectedBackground,
   onChange,
   onIgnoreAutomationChange,
   availableBackgrounds = [],
@@ -103,6 +109,26 @@ export function BackgroundField({
           </div>
         )}
       </div>
+
+      {/* 2024: ASI pool + feat grant display */}
+      {selectedBackground && !ignoreAutomation && (selectedBackground.asiGrants || selectedBackground.featGrant) && (
+        <div className="flex flex-wrap gap-1 pt-0.5">
+          {selectedBackground.asiGrants && (() => {
+            const pool: string[] = JSON.parse(selectedBackground.asiGrants as string)
+            if (pool.length === 0) return null
+            return (
+              <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                +2/+1: {pool.map((s) => ATTR_LABEL[s] ?? s.toUpperCase()).join(", ")}
+              </span>
+            )
+          })()}
+          {selectedBackground.featGrant && (
+            <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+              Feat: {selectedBackground.featGrant}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }

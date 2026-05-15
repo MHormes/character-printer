@@ -1,5 +1,7 @@
 import "server-only";
 
+export type StorageDriver = "s3" | "local";
+
 export type StorageConfig = {
   endpoint: string;
   publicEndpoint: string;
@@ -20,6 +22,13 @@ function booleanEnv(name: string, fallback: boolean): boolean {
   const value = process.env[name];
   if (value === undefined) return fallback;
   return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+}
+
+export function getStorageDriver(): StorageDriver {
+  const configured = process.env.STORAGE_DRIVER?.toLowerCase();
+  if (configured === "s3" || configured === "local") return configured;
+
+  return process.env.S3_ENDPOINT ? "s3" : "local";
 }
 
 export function getStorageConfig(): StorageConfig {

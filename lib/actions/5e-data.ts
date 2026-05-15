@@ -290,6 +290,88 @@ export async function getLanguages(system = "dnd5e"): Promise<LanguageRow[]> {
     .orderBy(asc(sqliteLanguages.name));
 }
 
+// ─── Other proficiency search ─────────────────────────────────────────────────
+
+export type OtherProfResult = {
+  name: string;
+  category: "Tool" | "Language" | "Vehicle" | "Weapon" | "Armor";
+};
+
+export async function searchOtherProficiencies(params: {
+  name?: string;
+  category?: "Tool" | "Language" | "Vehicle" | "Weapon" | "Armor";
+  system?: string;
+}): Promise<OtherProfResult[]> {
+  const system = params.system ?? "dnd5e";
+  const { name, category } = params;
+  const results: OtherProfResult[] = [];
+
+  if (!category || category === "Language") {
+    const rows = await anyDb
+      .select()
+      .from(sqliteLanguages)
+      .where(
+        and(
+          eq(sqliteLanguages.system, system),
+          name ? like(sqliteLanguages.name, `%${name}%`) : undefined,
+        ),
+      )
+      .orderBy(asc(sqliteLanguages.name))
+      .limit(30);
+    results.push(...rows.map((r: LanguageRow) => ({ name: r.name, category: "Language" as const })));
+  }
+
+  if (!category || category === "Tool") {
+    const rows = await anyDb
+      .select()
+      .from(sqliteItems)
+      .where(
+        and(
+          eq(sqliteItems.system, system),
+          eq(sqliteItems.equipmentCategory, "Tools"),
+          name ? like(sqliteItems.name, `%${name}%`) : undefined,
+        ),
+      )
+      .orderBy(asc(sqliteItems.name))
+      .limit(30);
+    results.push(...rows.map((r: ItemRow) => ({ name: r.name, category: "Tool" as const })));
+  }
+
+  if (!category || category === "Weapon") {
+    const rows = await anyDb
+      .select()
+      .from(sqliteItems)
+      .where(
+        and(
+          eq(sqliteItems.system, system),
+          eq(sqliteItems.equipmentCategory, "Weapon"),
+          name ? like(sqliteItems.name, `%${name}%`) : undefined,
+        ),
+      )
+      .orderBy(asc(sqliteItems.name))
+      .limit(30);
+    results.push(...rows.map((r: ItemRow) => ({ name: r.name, category: "Weapon" as const })));
+  }
+
+  if (!category || category === "Armor") {
+    const rows = await anyDb
+      .select()
+      .from(sqliteItems)
+      .where(
+        and(
+          eq(sqliteItems.system, system),
+          eq(sqliteItems.equipmentCategory, "Armor"),
+          name ? like(sqliteItems.name, `%${name}%`) : undefined,
+        ),
+      )
+      .orderBy(asc(sqliteItems.name))
+      .limit(30);
+    results.push(...rows.map((r: ItemRow) => ({ name: r.name, category: "Armor" as const })));
+  }
+
+  return results.slice(0, 60);
+}
+
 // ─── Subclasses ───────────────────────────────────────────────────────────────
 
 export async function getSubclasses(
