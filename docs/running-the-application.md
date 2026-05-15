@@ -15,7 +15,7 @@ Prerequisites:
 
 Steps:
 
-1. Create `.env.development` from `.env.example` and keep:
+1. Create `.env.local` from `.env.local.example` and keep:
 
    ```bash
    NODE_ENV=development
@@ -42,6 +42,8 @@ Steps:
    npm run db:seed
    ```
 
+   This runs the SQLite seeder in `lib/db/seed-srd-sqlite.ts`.
+
 5. Start the dev server:
 
    ```bash
@@ -59,6 +61,7 @@ Prerequisites:
 
 - Docker Desktop or a Docker-compatible CLI
 - `.env.development` present
+- `.env.development` configured for PostgreSQL and MinIO
 
 Run from Git Bash, WSL, Linux, or macOS:
 
@@ -125,5 +128,4 @@ Production notes:
 - If MinIO login fails, use `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` from
   the active env file.
 - If migrations fail, inspect app logs with `docker compose logs app`.
-- If native dev should keep SQLite, do not change `DB_DRIVER` in
-  `.env.development`; Docker overrides the app container to PostgreSQL.
+- Native dev reads `.env.local`; Docker local testing reads `.env.development`.

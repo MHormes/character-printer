@@ -28,7 +28,7 @@ import {
   sqliteRaceSkillChoices,
   sqliteClassStartingEquipment,
   sqliteClassStartingEquipmentOptions,
-} from "../lib/db/schema";
+} from "./schema";
 
 const SYSTEM = "dnd5e";
 const SOURCE = "srd";

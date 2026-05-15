@@ -34,6 +34,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/lib/db/bootstrap.mjs ./lib/db/bootstrap.mjs
+COPY --from=builder /app/lib/db/seed-srd-postgres.mjs ./lib/db/seed-srd-postgres.mjs
 COPY --from=builder /app/lib/db/migrations/pg ./lib/db/migrations/pg
 
 RUN chmod +x ./scripts/start.sh \

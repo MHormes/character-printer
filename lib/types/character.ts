@@ -231,6 +231,7 @@ export type SrdGrants = {
   saveProficiencies: string[];
   skillProficiencies: string[];
   raceAsiBonuses?: { abilityScore: AttributeKey; bonus: number; sourceId: string }[];
+  backgroundAsiBonuses?: { abilityScore: AttributeKey; bonus: number; sourceId: string }[];
 };
 
 export type Characteristics = {
@@ -285,6 +286,7 @@ export type CharacterData = {
   skillGlobalStack: ModifierEntry[];
   passivePerception: DerivedValueData;
   jackOfAllTrades: boolean;
+  jackOfAllTradesSaves?: boolean;
   otherProficiencies: OtherProficiency[];
   combat: CombatData;
   currency?: Currency;

@@ -221,6 +221,8 @@ export const sqliteBackgrounds = sqliteTable("backgrounds", {
   system: text("system").notNull(),
   name: text("name").notNull(),
   skillGrants: text("skill_grants"), // JSON: ["acrobatics","insight",...] camelCase keys
+  asiGrants: text("asi_grants"),     // JSON: [{"stat":"str","bonus":2},...] — 2024 backgrounds only
+  featGrant: text("feat_grant"),     // feat name granted at creation — 2024 backgrounds only
   source: text("source").notNull().default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
@@ -230,6 +232,8 @@ export const pgBackgrounds = pgTable("backgrounds", {
   system: varchar("system", { length: 50 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   skillGrants: jsonb("skill_grants"), // string[]
+  asiGrants: jsonb("asi_grants"),     // {stat: string, bonus: number}[] — 2024 backgrounds only
+  featGrant: varchar("feat_grant", { length: 255 }), // feat name — 2024 backgrounds only
   source: varchar("source", { length: 50 }).notNull().default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
