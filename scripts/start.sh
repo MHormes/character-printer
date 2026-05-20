@@ -12,7 +12,7 @@ pool.query('select 1').then(() => pool.end()).then(() => process.exit(0)).catch(
   sleep 1
 done
 
-echo "Waiting for MinIO..."
+echo "Waiting for AIStor..."
 until node -e "
 fetch(process.env.S3_ENDPOINT + '/minio/health/live').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1));
 "; do

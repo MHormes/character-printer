@@ -53,7 +53,7 @@ Steps:
 
 6. Open `http://localhost:3000`.
 
-Character image uploads work in this native local mode without MinIO. Uploaded
+Character image uploads work in this native local mode without AIStor. Uploaded
 files are stored under `.local-storage/`, which is ignored by git. The
 character JSON stores the same durable object key shape used by S3, so switching
 to Docker/production storage does not require a schema change.
@@ -63,13 +63,14 @@ needed for local storage.
 ## 2. Local Docker Compose
 
 Use this to test the deployment-like stack locally. Docker runs the app,
-PostgreSQL, MinIO, and the MinIO bucket initializer.
+PostgreSQL, AIStor, and the AIStor bucket initializer.
 
 Prerequisites:
 
 - Docker Desktop or a Docker-compatible CLI
 - `.env.development` present
-- `.env.development` configured for PostgreSQL and MinIO
+- `.env.development` configured for PostgreSQL and AIStor
+- `minio.license` present at project root (free license: https://min.io/signup)
 
 Run from Git Bash, WSL, Linux, or macOS:
 
@@ -79,10 +80,10 @@ Run from Git Bash, WSL, Linux, or macOS:
 
 The setup script will:
 
-- Create named Docker volumes for PostgreSQL and MinIO if missing.
+- Create named Docker volumes for PostgreSQL and AIStor if missing.
 - Stop existing containers for the selected profile.
-- Build and start the app, PostgreSQL, MinIO, and bucket initializer.
-- Let the app container wait for PostgreSQL and MinIO.
+- Build and start the app, PostgreSQL, AIStor, and bucket initializer.
+- Let the app container wait for PostgreSQL and AIStor.
 - Apply PostgreSQL migrations.
 - Seed SRD data on first run if the content tables are empty.
 - Start the Next standalone server.
@@ -93,22 +94,21 @@ What runs:
 | --- | --- | --- |
 | `character_printer_app` | Next standalone app | `3000` |
 | `character_printer_postgres` | PostgreSQL 17 | `5432` |
-| `character_printer_minio` | S3-compatible object storage | `9000`, `9001` |
-| `character_printer_minio_init` | One-shot bucket setup | none |
+| `character_printer_aistor` | S3-compatible object storage | `9000`, `9001` |
 
 Useful URLs:
 
 - App: `http://localhost:3000`
-- MinIO console: `http://localhost:9001`
-- MinIO API: `http://localhost:9000`
+- AIStor console: `http://localhost:9001`
+- AIStor API: `http://localhost:9000`
 
-The default local bucket is `character-images`. The MinIO username and password
+The default local bucket is `character-images`. The AIStor username and password
 come from `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`.
 
-Docker and production use `STORAGE_DRIVER=s3` with MinIO/S3. Native development
-can use `STORAGE_DRIVER=local` when MinIO is not running.
+Docker and production use `STORAGE_DRIVER=s3` with AIStor or another S3-compatible service. Native development
+can use `STORAGE_DRIVER=local` when AIStor is not running.
 Image uploads and previews still go through the app server first, which avoids
-direct browser-to-MinIO CORS requirements.
+direct browser-to-AIStor CORS requirements.
 
 ## 3. Production Docker Profile
 
@@ -127,7 +127,7 @@ Production notes:
 - Set `NEXTAUTH_URL` to the public application URL.
 - Set `S3_PUBLIC_ENDPOINT` to the public storage endpoint if images will be
   accessed directly later.
-- Consider removing host port exposure for PostgreSQL and MinIO when deploying
+- Consider removing host port exposure for PostgreSQL and AIStor when deploying
   behind a reverse proxy or private Docker network.
 - Pin exact image tags once the deployment target is fixed.
 
@@ -135,10 +135,17 @@ Production notes:
 
 - To reset local Docker data, stop the stack and remove the selected profile's
   volumes, for example `character_printer_development_postgres_data` and
-  `character_printer_development_minio_data`.
+  `character_printer_development_aistor_data`.
 - If startup fails during seeding, confirm the app container has outbound
   network access to `raw.githubusercontent.com`.
-- If MinIO login fails, use `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` from
+- If AIStor login fails, use `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` from
   the active env file.
+- If AIStor fails to start, confirm `minio.license` exists at the project root.
 - If migrations fail, inspect app logs with `docker compose logs app`.
 - Native dev reads `.env.local`; Docker local testing reads `.env.development`.
+
+## Backups
+
+Run `./scripts/backup.sh` (production only). Exports all database tables to CSV
+and mirrors the AIStor bucket to `backups/<timestamp>/`. Retains the 3 most recent
+backups and prunes older ones automatically.
