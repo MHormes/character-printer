@@ -3,8 +3,9 @@ FROM node:20-bookworm-slim AS deps
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN corepack enable && corepack prepare pnpm@11 --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 FROM node:20-bookworm-slim AS builder
 
@@ -17,7 +18,8 @@ ENV NEXTAUTH_URL=http://localhost:3000
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build:container
+RUN corepack enable && corepack prepare pnpm@11 --activate
+RUN pnpm run build:container
 
 FROM node:20-bookworm-slim AS runner
 
