@@ -48,6 +48,7 @@ import { CharacterNameWidget } from "@/components/canvas/widgets/character-name-
 import { CharacterInfoDetailedWidget } from "@/components/canvas/widgets/character-info-detailed-widget";
 import { CharacterInfoCompactWidget } from "@/components/canvas/widgets/character-info-compact-widget";
 import { CharacterAppearanceWidget } from "@/components/canvas/widgets/character-appearance-widget";
+import { CharacterPortraitWidget } from "@/components/canvas/widgets/character-portrait-widget";
 import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget";
 import { CharacteristicsWidget } from "@/components/canvas/widgets/characteristics-widget";
 import { CharacteristicCardWidget, characteristicCardSvgH, CHAR_CARD_SOURCES } from "@/components/canvas/widgets/characteristic-card-widget";
@@ -97,6 +98,7 @@ function WidgetContent({ type, spellId, featureId, statId, textSource }: { type:
   if (type === "CharacterInfoDetailed") return <CharacterInfoDetailedWidget />;
   if (type === "CharacterInfoCompact") return <CharacterInfoCompactWidget />;
   if (type === "CharacterAppearance") return <CharacterAppearanceWidget />;
+  if (type === "CharacterPortrait") return <CharacterPortraitWidget />;
   if (type === "SpellCard") return <SpellCardWidget spellId={spellId} />;
   if (type === "StatBox") return <StatBoxWidget statId={statId} />;
   if (type === "Characteristics") return <CharacteristicsWidget />;

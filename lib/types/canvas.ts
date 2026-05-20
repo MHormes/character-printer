@@ -14,7 +14,7 @@ export type WidgetType =
   | "SpellLevel0" | "SpellLevel1" | "SpellLevel2" | "SpellLevel3" | "SpellLevel4"
   | "SpellLevel5" | "SpellLevel6" | "SpellLevel7" | "SpellLevel8" | "SpellLevel9"
   | "FullPageSpellSheet"
-  | "CharacterName" | "CharacterInfoDetailed" | "CharacterInfoCompact" | "CharacterAppearance"
+  | "CharacterName" | "CharacterInfoDetailed" | "CharacterInfoCompact" | "CharacterAppearance" | "CharacterPortrait"
   | "SpellCard"
   | "StatBox"
   | "TemplatePage1"

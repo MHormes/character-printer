@@ -449,6 +449,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       h: 3,
     },
     { type: "CharacterAppearance" as const, label: "Appearance", w: 17, h: 3 },
+    { type: "CharacterPortrait" as const, label: "Portrait", w: 5, h: 7 },
     {
       type: "Characteristics" as const,
       label: "Characteristics",
