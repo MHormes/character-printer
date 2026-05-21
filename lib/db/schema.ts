@@ -223,6 +223,8 @@ export const sqliteBackgrounds = sqliteTable("backgrounds", {
   skillGrants: text("skill_grants"), // JSON: ["acrobatics","insight",...] camelCase keys
   asiGrants: text("asi_grants"),     // JSON: [{"stat":"str","bonus":2},...] — 2024 backgrounds only
   featGrant: text("feat_grant"),     // feat name granted at creation — 2024 backgrounds only
+  featuresJson: text("features_json"), // JSON: [{name, description}] — languages, tool profs, equipment choices
+  fixedEquipmentJson: text("fixed_equipment_json"), // JSON: [{name, quantity}] — auto-added to inventory
   source: text("source").notNull().default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
@@ -234,6 +236,8 @@ export const pgBackgrounds = pgTable("backgrounds", {
   skillGrants: jsonb("skill_grants"), // string[]
   asiGrants: jsonb("asi_grants"),     // {stat: string, bonus: number}[] — 2024 backgrounds only
   featGrant: varchar("feat_grant", { length: 255 }), // feat name — 2024 backgrounds only
+  featuresJson: jsonb("features_json"), // {name: string, description: string}[]
+  fixedEquipmentJson: jsonb("fixed_equipment_json"), // {name: string, quantity: number}[]
   source: varchar("source", { length: 50 }).notNull().default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });

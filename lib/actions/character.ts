@@ -5,7 +5,7 @@ import { sqliteCharacters, sqliteClasses } from "@/lib/db/schema"
 import { normalizeCanvasPages } from "@/lib/canvas/page-utils"
 import { createDefaultCharacter } from "@/lib/character/defaults"
 import type { CharacterData, AttributeKey, Edition } from "@/lib/types/character"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { randomUUID } from "crypto"
 
 const anyDb = db as any
@@ -126,14 +126,20 @@ export async function saveCharacter(id: string, data: CharacterData, autoSave?: 
 
 export async function loadCharacter(id: string): Promise<{ data: CharacterData; autoSave: boolean } | null> {
   const rows = await anyDb
-    .select({ data: sqliteCharacters.data, autoSave: sqliteCharacters.autoSave })
+    .select({ rawData: sql<string>`${sqliteCharacters.data}`, autoSave: sqliteCharacters.autoSave })
     .from(sqliteCharacters)
     .where(eq(sqliteCharacters.id, id))
     .limit(1)
 
   if (!rows[0]) return null
+  let parsed: CharacterData
+  try {
+    parsed = JSON.parse(rows[0].rawData) as CharacterData
+  } catch {
+    parsed = {} as CharacterData
+  }
   return {
-    data: await hydrateCharacter(id, rows[0].data as CharacterData),
+    data: await hydrateCharacter(id, parsed),
     autoSave: rows[0].autoSave,
   }
 }
@@ -155,13 +161,18 @@ export async function listAllCharacters(): Promise<CharacterSummary[]> {
       id: sqliteCharacters.id,
       name: sqliteCharacters.name,
       updatedAt: sqliteCharacters.updatedAt,
-      data: sqliteCharacters.data,
+      rawData: sql<string>`${sqliteCharacters.data}`,
     })
     .from(sqliteCharacters)
     .orderBy(sqliteCharacters.updatedAt)
 
   return rows.map((row: any) => {
-    const data = row.data as Partial<CharacterData>
+    let data: Partial<CharacterData> = {}
+    try {
+      data = JSON.parse(row.rawData) as Partial<CharacterData>
+    } catch {
+      // corrupted row — skip parsing, return defaults
+    }
     const srdKey = data.automationKeys?.srdClassKey ?? data.identity?.classes?.[0]?.classId
     const system = srdKey ? (srdKey.split(":")[0] ?? "dnd5e") : "dnd5e"
     const classLabels =

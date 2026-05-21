@@ -120,6 +120,13 @@
       "when": 1747353600000,
       "tag": "0016_subclass_features",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1748390400000,
+      "tag": "0017_background_features_equipment",
+      "breakpoints": true
     }
   ]
 }

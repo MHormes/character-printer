@@ -122,11 +122,12 @@ function coerceValue(col: string, val: string, jsonCols: string[]): unknown {
   if (val === NULL_SENTINEL || val === undefined) return null;
   if (val === "true") return true;
   if (val === "false") return false;
-  const unescaped = unescapeNewlines(val);
   if (jsonCols.includes(col)) {
-    try { return JSON.parse(unescaped); } catch { return unescaped; }
+    // Parse raw JSON without unescaping first — JSON handles its own \n sequences.
+    // Applying unescapeNewlines before JSON.parse corrupts JSON string values.
+    try { return JSON.parse(val); } catch { return val; }
   }
-  return unescaped;
+  return unescapeNewlines(val);
 }
 
 // ─── Chunk helper ─────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ import { useCharacterStore } from "@/lib/store/character-store";
 import { DndFrame } from "./dnd-frame";
 import type { ActionEntry } from "@/lib/types/character";
 
-// viewBox width 176 — matches w=12 palette columns
+// viewBox width 176 — matches w=9 palette columns
 const C1 = 82;
 const C2 = 106;
 const RIGHT = 173;

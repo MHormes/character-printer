@@ -78,7 +78,7 @@ function TrackerCard({
 
       {/* "Total" label */}
       <text
-        x={ox + 45}
+        x={ox + 35}
         y={oy + 10}
         dominantBaseline="middle"
         fontSize="5"

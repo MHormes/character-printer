@@ -118,22 +118,192 @@ function kebabToCamel(s: string): string {
 
 type SpellSlotProgression = "none" | "full" | "half";
 
+type BgFeature = { name: string; description: string };
+type BgEquipItem = { name: string; quantity: number };
+type PhbBackground = {
+  index: string;
+  name: string;
+  skills: string[];
+  features: BgFeature[];
+  fixedEquipment: BgEquipItem[];
+};
+
 // Backgrounds are PHB content — SRD JSON only has Acolyte, so we maintain
-// the full list here with hardcoded skill grants (camelCase skill keys).
-const PHB_BACKGROUNDS: { index: string; name: string; skills: string[] }[] = [
-  { index: "acolyte",       name: "Acolyte",      skills: ["insight", "religion"] },
-  { index: "charlatan",     name: "Charlatan",     skills: ["deception", "sleightOfHand"] },
-  { index: "criminal",      name: "Criminal",      skills: ["deception", "stealth"] },
-  { index: "entertainer",   name: "Entertainer",   skills: ["acrobatics", "performance"] },
-  { index: "folk-hero",     name: "Folk Hero",     skills: ["animalHandling", "survival"] },
-  { index: "guild-artisan", name: "Guild Artisan", skills: ["insight", "persuasion"] },
-  { index: "hermit",        name: "Hermit",        skills: ["medicine", "religion"] },
-  { index: "noble",         name: "Noble",         skills: ["history", "persuasion"] },
-  { index: "outlander",     name: "Outlander",     skills: ["athletics", "survival"] },
-  { index: "sage",          name: "Sage",          skills: ["arcana", "history"] },
-  { index: "sailor",        name: "Sailor",        skills: ["athletics", "perception"] },
-  { index: "soldier",       name: "Soldier",       skills: ["athletics", "intimidation"] },
-  { index: "urchin",        name: "Urchin",        skills: ["sleightOfHand", "stealth"] },
+// the full list here with hardcoded skill grants, features, and starting equipment.
+const PHB_BACKGROUNDS: PhbBackground[] = [
+  {
+    index: "acolyte", name: "Acolyte", skills: ["insight", "religion"],
+    features: [
+      { name: "Languages", description: "You can speak, read, and write 2 additional languages of your choice." },
+    ],
+    fixedEquipment: [
+      { name: "Holy symbol", quantity: 1 },
+      { name: "Prayer book", quantity: 1 },
+      { name: "Stick of incense", quantity: 5 },
+      { name: "Vestments", quantity: 1 },
+      { name: "Common clothes", quantity: 1 },
+      { name: "Belt pouch (15 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "charlatan", name: "Charlatan", skills: ["deception", "sleightOfHand"],
+    features: [
+      { name: "Tool Proficiencies", description: "Disguise kit, Forgery kit." },
+      { name: "Equipment — Tools of the Con", description: "Add one of the following to your inventory: ten stoppered bottles of colored liquid, a set of weighted dice, a deck of marked cards, or a signet ring of an imaginary duke." },
+    ],
+    fixedEquipment: [
+      { name: "Fine clothes", quantity: 1 },
+      { name: "Disguise kit", quantity: 1 },
+      { name: "Belt pouch (15 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "criminal", name: "Criminal", skills: ["deception", "stealth"],
+    features: [
+      { name: "Tool Proficiencies", description: "One type of gaming set, Thieves' tools." },
+      { name: "Equipment — Gaming Set", description: "Add one gaming set of your choice (e.g. dice set, playing card set) to your inventory." },
+    ],
+    fixedEquipment: [
+      { name: "Crowbar", quantity: 1 },
+      { name: "Dark common clothes with hood", quantity: 1 },
+      { name: "Belt pouch (15 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "entertainer", name: "Entertainer", skills: ["acrobatics", "performance"],
+    features: [
+      { name: "Tool Proficiencies", description: "Disguise kit, one type of musical instrument." },
+      { name: "Equipment — Musical Instrument", description: "Add one musical instrument of your choice to your inventory." },
+    ],
+    fixedEquipment: [
+      { name: "Admirer's token", quantity: 1 },
+      { name: "Costume clothes", quantity: 1 },
+      { name: "Belt pouch (15 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "folk-hero", name: "Folk Hero", skills: ["animalHandling", "survival"],
+    features: [
+      { name: "Tool Proficiencies", description: "One type of artisan's tools, Vehicles (land)." },
+      { name: "Equipment — Artisan's Tools", description: "Add one set of artisan's tools of your choice to your inventory." },
+    ],
+    fixedEquipment: [
+      { name: "Shovel", quantity: 1 },
+      { name: "Iron pot", quantity: 1 },
+      { name: "Common clothes", quantity: 1 },
+      { name: "Belt pouch (10 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "guild-artisan", name: "Guild Artisan", skills: ["insight", "persuasion"],
+    features: [
+      { name: "Tool Proficiencies", description: "One type of artisan's tools." },
+      { name: "Languages", description: "You can speak, read, and write 1 additional language of your choice." },
+      { name: "Equipment — Artisan's Tools", description: "Add one set of artisan's tools of your choice to your inventory." },
+    ],
+    fixedEquipment: [
+      { name: "Letter of introduction from guild", quantity: 1 },
+      { name: "Traveler's clothes", quantity: 1 },
+      { name: "Belt pouch (15 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "hermit", name: "Hermit", skills: ["medicine", "religion"],
+    features: [
+      { name: "Tool Proficiencies", description: "Herbalism kit." },
+      { name: "Languages", description: "You can speak, read, and write 1 additional language of your choice." },
+    ],
+    fixedEquipment: [
+      { name: "Scroll case with notes", quantity: 1 },
+      { name: "Winter blanket", quantity: 1 },
+      { name: "Common clothes", quantity: 1 },
+      { name: "Herbalism kit", quantity: 1 },
+      { name: "Belt pouch (5 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "noble", name: "Noble", skills: ["history", "persuasion"],
+    features: [
+      { name: "Tool Proficiencies", description: "One type of gaming set." },
+      { name: "Languages", description: "You can speak, read, and write 1 additional language of your choice." },
+      { name: "Equipment — Gaming Set", description: "Add one gaming set of your choice to your inventory." },
+    ],
+    fixedEquipment: [
+      { name: "Fine clothes", quantity: 1 },
+      { name: "Signet ring", quantity: 1 },
+      { name: "Scroll of pedigree", quantity: 1 },
+      { name: "Belt pouch (25 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "outlander", name: "Outlander", skills: ["athletics", "survival"],
+    features: [
+      { name: "Tool Proficiencies", description: "One type of musical instrument." },
+      { name: "Languages", description: "You can speak, read, and write 1 additional language of your choice." },
+      { name: "Equipment — Musical Instrument", description: "Add one musical instrument of your choice to your inventory." },
+    ],
+    fixedEquipment: [
+      { name: "Staff", quantity: 1 },
+      { name: "Hunting trap", quantity: 1 },
+      { name: "Trophy from an animal you killed", quantity: 1 },
+      { name: "Traveler's clothes", quantity: 1 },
+      { name: "Belt pouch (10 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "sage", name: "Sage", skills: ["arcana", "history"],
+    features: [
+      { name: "Languages", description: "You can speak, read, and write 2 additional languages of your choice." },
+    ],
+    fixedEquipment: [
+      { name: "Bottle of black ink", quantity: 1 },
+      { name: "Quill", quantity: 1 },
+      { name: "Small knife", quantity: 1 },
+      { name: "Letter from dead colleague", quantity: 1 },
+      { name: "Common clothes", quantity: 1 },
+      { name: "Belt pouch (10 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "sailor", name: "Sailor", skills: ["athletics", "perception"],
+    features: [
+      { name: "Tool Proficiencies", description: "Navigator's tools, Vehicles (water)." },
+    ],
+    fixedEquipment: [
+      { name: "Belaying pin (club)", quantity: 1 },
+      { name: "Silk rope (50 feet)", quantity: 1 },
+      { name: "Lucky charm", quantity: 1 },
+      { name: "Common clothes", quantity: 1 },
+      { name: "Belt pouch (10 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "soldier", name: "Soldier", skills: ["athletics", "intimidation"],
+    features: [
+      { name: "Tool Proficiencies", description: "One type of gaming set, Vehicles (land)." },
+      { name: "Equipment — Gaming Set", description: "Add one gaming set of your choice to your inventory." },
+    ],
+    fixedEquipment: [
+      { name: "Insignia of rank", quantity: 1 },
+      { name: "Trophy from fallen enemy", quantity: 1 },
+      { name: "Common clothes", quantity: 1 },
+      { name: "Belt pouch (10 gp)", quantity: 1 },
+    ],
+  },
+  {
+    index: "urchin", name: "Urchin", skills: ["sleightOfHand", "stealth"],
+    features: [
+      { name: "Tool Proficiencies", description: "Disguise kit, Thieves' tools." },
+    ],
+    fixedEquipment: [
+      { name: "Small knife", quantity: 1 },
+      { name: "Map of the city you grew up in", quantity: 1 },
+      { name: "Pet mouse", quantity: 1 },
+      { name: "Token of remembrance from parents", quantity: 1 },
+      { name: "Common clothes", quantity: 1 },
+      { name: "Belt pouch (10 gp)", quantity: 1 },
+    ],
+  },
 ];
 
 type Raw5eRace = {
@@ -599,6 +769,8 @@ async function main() {
     system: SYSTEM,
     name: b.name,
     skillGrants: JSON.stringify(b.skills),
+    featuresJson: JSON.stringify(b.features),
+    fixedEquipmentJson: JSON.stringify(b.fixedEquipment),
     source: SOURCE,
     userId: null as string | null,
   }));

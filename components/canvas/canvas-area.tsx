@@ -390,13 +390,13 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
   const attacksH = Math.max(
     2,
     Math.round(
-      (attacksSvgH(actionsCount) * 12 * rows * 210) / (cols * 297 * 176),
+      (attacksSvgH(actionsCount) * 9 * rows * 210) / (cols * 297 * 176),
     ),
   );
   const slimAttacksH = Math.max(
     2,
     Math.round(
-      (slimAttacksSvgH(actionsCount) * 12 * rows * 210) / (cols * 297 * 176),
+      (slimAttacksSvgH(actionsCount) * 9 * rows * 210) / (cols * 297 * 176),
     ),
   );
   const equipmentH = Math.max(
@@ -496,11 +496,11 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     { type: "HitDice" as const, label: "Hit Dice", w: 4, h: 4 },
     { type: "DeathSaves" as const, label: "Death Saves", w: 4, h: 4 },
     // Actions & inventory
-    { type: "Attacks" as const, label: "Attacks", w: 12, h: attacksH },
+    { type: "Attacks" as const, label: "Attacks", w: 9, h: attacksH },
     {
       type: "SlimAttacks" as const,
       label: "Slim Attacks",
-      w: 12,
+      w: 9,
       h: slimAttacksH,
     },
     { type: "Equipment" as const, label: "Equipment", w: 9, h: equipmentH },

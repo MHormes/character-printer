@@ -539,7 +539,7 @@ export function applyBackground(
     )
   }
 
-  // ── Clear old background feat feature ────────────────────────────────────
+  // ── Clear old background features ────────────────────────────────────────
   next.features = next.features.filter((f) => !f.sourceId?.startsWith("background:"))
 
   // ── Apply new skill grants ────────────────────────────────────────────────
@@ -577,6 +577,43 @@ export function applyBackground(
     } satisfies FeatureEntry)
   }
 
+  // ── Apply feature entries (languages, tool profs, equipment choices) ──────
+  const featureEntries: { name: string; description: string }[] =
+    bgRow.featuresJson ? JSON.parse(bgRow.featuresJson as string) : []
+  for (const entry of featureEntries) {
+    next.features.push({
+      id: crypto.randomUUID(),
+      name: entry.name,
+      source: bgRow.name,
+      sourceId: `background:${bgRow.id}`,
+      description: entry.description,
+    } satisfies FeatureEntry)
+  }
+
+  // ── Apply fixed starting equipment (only on background change) ────────────
+  const prevBgEquipKey = next.automationKeys?.srdBackgroundKey
+  const bgEquipSourceId = `bg-start:${bgRow.id}`
+  if (prevBgEquipKey !== bgRow.id) {
+    // Remove equipment from the previous background
+    next.inventory = next.inventory.filter((item) => !item.sourceId?.startsWith("bg-start:"))
+
+    // Add fixed equipment for new background
+    const fixedEquip: { name: string; quantity: number }[] =
+      bgRow.fixedEquipmentJson ? JSON.parse(bgRow.fixedEquipmentJson as string) : []
+    for (const item of fixedEquip) {
+      next.inventory.push({
+        id: crypto.randomUUID(),
+        name: item.name,
+        quantity: item.quantity,
+        weight: 0,
+        category: "Mundane",
+        equipped: false,
+        modifiers: [],
+        sourceId: bgEquipSourceId,
+      })
+    }
+  }
+
   // ── Prune stale background choices for other backgrounds ─────────────────
   next.backgroundChoices = (next.backgroundChoices ?? []).filter(
     (c) => c.backgroundId === bgRow.id,
@@ -587,6 +624,11 @@ export function applyBackground(
     skillProficiencies: skillGrants,
     raceAsiBonuses: next.srdGrants?.raceAsiBonuses ?? [],
     backgroundAsiBonuses: newBgAsis,
+  }
+
+  next.automationKeys = {
+    ...next.automationKeys,
+    srdBackgroundKey: bgRow.id,
   }
 
   return next
@@ -685,6 +727,7 @@ export function clearBackgroundAutomation(char: CharacterData): CharacterData {
   }
 
   next.features = next.features.filter((f) => !f.sourceId?.startsWith("background:"))
+  next.inventory = next.inventory.filter((item) => !item.sourceId?.startsWith("bg-start:"))
   next.backgroundChoices = []
 
   next.srdGrants = {
@@ -692,6 +735,11 @@ export function clearBackgroundAutomation(char: CharacterData): CharacterData {
     skillProficiencies: [],
     raceAsiBonuses: next.srdGrants?.raceAsiBonuses ?? [],
     backgroundAsiBonuses: [],
+  }
+
+  next.automationKeys = {
+    ...next.automationKeys,
+    srdBackgroundKey: undefined,
   }
 
   return next
