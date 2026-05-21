@@ -19,6 +19,12 @@ if [ ! -f "minio.license" ]; then
   exit 1
 fi
 
+if [ "$PROFILE" = "development" ]; then
+  COMPOSE_FILE="docker-compose-dev.yml"
+else
+  COMPOSE_FILE="docker-compose.yml"
+fi
+
 export APP_ENV_FILE="$ENV_FILE"
 export COMPOSE_PROJECT_NAME="character-printer-$PROFILE"
 export POSTGRES_VOLUME_NAME="character_printer_${PROFILE}_postgres_data"
@@ -34,10 +40,10 @@ docker volume create "$POSTGRES_VOLUME_NAME" >/dev/null
 docker volume create "$AISTOR_VOLUME_NAME" >/dev/null
 
 echo "Stopping existing containers..."
-docker compose --env-file "$ENV_FILE" down
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down
 
 echo "Building and starting containers..."
-docker compose --env-file "$ENV_FILE" up -d --build
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 
 echo "Waiting for AIStor (10s)..."
 sleep 10
