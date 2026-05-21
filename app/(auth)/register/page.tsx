@@ -45,7 +45,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Form */}
-      <form className="w-full px-8 pb-8 flex flex-col gap-5">
+      <form className="w-full px-8 pb-8 flex flex-col gap-5" suppressHydrationWarning>
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor="username"

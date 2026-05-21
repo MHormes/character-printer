@@ -4,8 +4,8 @@
  * Safe to re-run — deletes and reinserts all system=dnd5e/source=srd rows.
  */
 
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/libsql";
+import { createClient } from "@libsql/client";
 import { eq } from "drizzle-orm";
 import {
   sqliteSpells,
@@ -429,7 +429,7 @@ async function main() {
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) throw new Error("DATABASE_URL not set");
 
-  const sqlite = new Database(dbUrl);
+  const sqlite = createClient({ url: dbUrl.startsWith("file:") ? dbUrl : `file:${dbUrl}` });
   const db = drizzle(sqlite);
 
   console.log("Fetching 5e SRD data...");
