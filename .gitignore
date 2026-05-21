@@ -44,6 +44,10 @@ yarn-error.log*
 # Local development object storage
 .local-storage/
 
+# Restore staging — populated via SCP from a backup, mounted into container, never committed
+/database/data/
+/database/storage/
+
 # vercel
 .vercel
 

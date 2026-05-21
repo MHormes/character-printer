@@ -11,6 +11,8 @@ coverage
 *.db
 *.db-shm
 *.db-wal
+database/data
+database/storage
 *.tsbuildinfo
 npm-debug.log*
 yarn-debug.log*

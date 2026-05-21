@@ -28,14 +28,22 @@ echo "Starting backup to $BACKUP_DIR..."
 
 # --- 1. Export database tables to CSV ---
 echo "Exporting database tables to CSV..."
-TABLES=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
-  "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name != '__drizzle_migrations';")
 
-for TABLE in $TABLES; do
-  echo "   -> Exporting $TABLE..."
-  docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" \
-    -c "COPY $TABLE TO STDOUT WITH (FORMAT CSV, HEADER);" > "$BACKUP_DIR/csv/$TABLE.csv"
-done
+if [ "${DB_DRIVER:-sqlite}" = "postgres" ]; then
+  # PostgreSQL: use native COPY command via psql in container
+  TABLES=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
+    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name != '__drizzle_migrations';")
+
+  for TABLE in $TABLES; do
+    echo "   -> Exporting $TABLE..."
+    docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" \
+      -c "COPY $TABLE TO STDOUT WITH (FORMAT CSV, HEADER);" > "$BACKUP_DIR/csv/$TABLE.csv"
+  done
+else
+  # SQLite: use Node export script
+  echo "   SQLite detected — exporting via tsx..."
+  cd "$BASE_DIR/.." && pnpm tsx lib/db/export-csv.ts --output "$BACKUP_DIR/csv"
+fi
 
 # --- 2. Mirror AIStor bucket ---
 echo "Mirroring AIStor bucket ($S3_BUCKET_NAME)..."
