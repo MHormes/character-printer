@@ -48,6 +48,8 @@ yarn-error.log*
 /database/data/
 /database/storage/
 
+/backups/*
+
 # vercel
 .vercel
 

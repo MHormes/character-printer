@@ -1,7 +1,8 @@
 #!/bin/bash
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="$BASE_DIR/../.env.production"
+PROFILE="${1:-production}"
+ENV_FILE="$BASE_DIR/../.env.$PROFILE"
 
 if [ -f "$ENV_FILE" ]; then
   export $(grep -v '^#' "$ENV_FILE" | xargs)

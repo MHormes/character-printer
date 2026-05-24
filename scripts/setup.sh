@@ -58,8 +58,8 @@ SECRET_KEY="${S3_SECRET_ACCESS_KEY:-character-printer-secret}"
 docker exec "$AISTOR_CONTAINER" sh -c "
   mc alias set local http://localhost:9000 '${ACCESS_KEY}' '${SECRET_KEY}' && \
   mc mb --ignore-existing local/'${S3_BUCKET_NAME}' && \
-  printf '[{\"AllowedOrigins\":[\"${APP_URL}\"],\"AllowedMethods\":[\"GET\",\"PUT\",\"HEAD\"],\"AllowedHeaders\":[\"*\"],\"ExposeHeaders\":[\"ETag\"],\"MaxAgeSeconds\":3000}]' > /tmp/cors.json && \
-  mc cors set local/'${S3_BUCKET_NAME}' /tmp/cors.json && \
+  printf '<?xml version="1.0" encoding="UTF-8"?><CORSConfiguration><CORSRule><AllowedOrigin>%s</AllowedOrigin><AllowedMethod>GET</AllowedMethod><AllowedMethod>PUT</AllowedMethod><AllowedMethod>HEAD</AllowedMethod><AllowedHeader>*</AllowedHeader><ExposeHeader>ETag</ExposeHeader><MaxAgeSeconds>3000</MaxAgeSeconds></CORSRule></CORSConfiguration>' "${APP_URL}" > /tmp/cors.xml && \
+  mc cors set local/'${S3_BUCKET_NAME}' /tmp/cors.xml && \
   mc anonymous set none local/'${S3_BUCKET_NAME}'
 "
 

@@ -10,6 +10,16 @@ import { randomUUID } from "crypto"
 
 const anyDb = db as any
 
+// Drizzle returns timestamps as raw strings when using SQLite schema over PostgreSQL.
+// SQLite's integer({ mode: "timestamp" }) mapper expects numbers, not strings → NaN.
+function toDate(v: unknown): Date | null {
+  if (!v) return null
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v
+  if (typeof v === "number") return new Date(v * 1000)
+  if (typeof v === "string") return new Date(v.replace(" ", "T"))
+  return null
+}
+
 async function hydrateCharacter(id: string, data: CharacterData): Promise<CharacterData> {
   const defaults = createDefaultCharacter(id)
   const dbClasses = await anyDb
@@ -119,7 +129,7 @@ export async function saveCharacter(id: string, data: CharacterData, autoSave?: 
       name: data.identity.name,
       data,
       ...(autoSave !== undefined ? { autoSave } : {}),
-      updatedAt: new Date(),
+      updatedAt: sql`CURRENT_TIMESTAMP`,
     })
     .where(eq(sqliteCharacters.id, id))
 }
@@ -134,7 +144,7 @@ export async function loadCharacter(id: string): Promise<{ data: CharacterData; 
   if (!rows[0]) return null
   let parsed: CharacterData
   try {
-    parsed = JSON.parse(rows[0].rawData) as CharacterData
+    parsed = (typeof rows[0].rawData === "string" ? JSON.parse(rows[0].rawData) : rows[0].rawData) as CharacterData
   } catch {
     parsed = {} as CharacterData
   }
@@ -169,7 +179,7 @@ export async function listAllCharacters(): Promise<CharacterSummary[]> {
   return rows.map((row: any) => {
     let data: Partial<CharacterData> = {}
     try {
-      data = JSON.parse(row.rawData) as Partial<CharacterData>
+      data = (typeof row.rawData === "string" ? JSON.parse(row.rawData) : row.rawData) as Partial<CharacterData>
     } catch {
       // corrupted row — skip parsing, return defaults
     }
@@ -182,7 +192,7 @@ export async function listAllCharacters(): Promise<CharacterSummary[]> {
     return {
       id: row.id,
       name: row.name,
-      updatedAt: row.updatedAt,
+      updatedAt: toDate(row.updatedAt),
       system,
       edition: (data.edition ?? "2014") as Edition,
       race: data.identity?.race ?? "",
