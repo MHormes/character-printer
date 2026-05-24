@@ -12,7 +12,7 @@ const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "ima
 const maxImageBytes = 5 * 1024 * 1024;
 
 function characterImagePrefix(characterId: string) {
-  return `characters/${characterId}/images/`;
+  return `characters/${characterId}/`;
 }
 
 function assertCharacterImageKey(characterId: string, key: string) {

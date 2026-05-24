@@ -1,6 +1,5 @@
 "use server"
 
-import { randomUUID } from "crypto"
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { eq } from "drizzle-orm"
 import { db } from "@/lib/db/client"
@@ -31,7 +30,7 @@ export type CharacterImageUpload = {
 }
 
 function characterImagePrefix(characterId: string) {
-  return `characters/${characterId}/images/`
+  return `characters/${characterId}/`
 }
 
 function assertValidCharacterImageInput(input: CharacterImageUploadInput) {
@@ -70,7 +69,6 @@ export async function createCharacterImageUpload(
 
   const key = characterImageKey({
     characterId,
-    fileId: randomUUID(),
     filename: input.filename,
   })
   const imageUrl = characterImageUrl(characterId, key)

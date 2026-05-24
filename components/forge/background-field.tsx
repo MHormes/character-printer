@@ -114,7 +114,7 @@ export function BackgroundField({
       {selectedBackground && !ignoreAutomation && (selectedBackground.asiGrants || selectedBackground.featGrant) && (
         <div className="flex flex-wrap gap-1 pt-0.5">
           {selectedBackground.asiGrants && (() => {
-            const pool: string[] = JSON.parse(selectedBackground.asiGrants as string)
+            const pool: string[] = typeof selectedBackground.asiGrants === "string" ? JSON.parse(selectedBackground.asiGrants) : selectedBackground.asiGrants as unknown as string[]
             if (pool.length === 0) return null
             return (
               <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">

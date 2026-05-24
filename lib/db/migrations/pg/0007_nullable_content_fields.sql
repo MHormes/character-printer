@@ -1,0 +1,38 @@
+ALTER TABLE subclasses
+  ALTER COLUMN description DROP NOT NULL,
+  ALTER COLUMN source DROP NOT NULL;
+
+ALTER TABLE class_features
+  ALTER COLUMN description DROP NOT NULL,
+  ALTER COLUMN source DROP NOT NULL;
+
+ALTER TABLE race_traits
+  ALTER COLUMN description DROP NOT NULL,
+  ALTER COLUMN source DROP NOT NULL;
+
+ALTER TABLE feats
+  ALTER COLUMN description DROP NOT NULL,
+  ALTER COLUMN source DROP NOT NULL;
+
+ALTER TABLE classes
+  ALTER COLUMN hit_die DROP NOT NULL,
+  ALTER COLUMN spell_slot_progression DROP NOT NULL,
+  ALTER COLUMN source DROP NOT NULL;
+
+ALTER TABLE races
+  ALTER COLUMN source DROP NOT NULL;
+
+ALTER TABLE subraces
+  ALTER COLUMN source DROP NOT NULL;
+
+ALTER TABLE backgrounds
+  ALTER COLUMN source DROP NOT NULL;
+
+ALTER TABLE languages
+  ALTER COLUMN source DROP NOT NULL;
+
+ALTER TABLE class_proficiencies
+  ALTER COLUMN source DROP NOT NULL;
+
+ALTER TABLE items
+  ALTER COLUMN source DROP NOT NULL;

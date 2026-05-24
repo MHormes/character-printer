@@ -1,0 +1,1 @@
+ALTER TABLE spells ALTER COLUMN upcast_desc DROP NOT NULL;

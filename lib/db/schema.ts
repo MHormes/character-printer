@@ -112,7 +112,7 @@ export const sqliteSpells = sqliteTable("spells", {
   ritual: integer("ritual", { mode: "boolean" }).notNull().default(false),
   concentration: integer("concentration", { mode: "boolean" }).notNull().default(false),
   description: text("description").notNull().default(""),
-  upcastDesc: text("upcast_desc").notNull().default(""),
+  upcastDesc: text("upcast_desc").default(""),
   damageDiceCount: integer("damage_dice_count"),
   damageDieType: text("damage_die_type"),    // "d4" | "d6" | "d8" | "d10" | "d12"
   damageTypeName: text("damage_type_name"),  // "Fire" | "Healing" | etc.
@@ -127,24 +127,24 @@ export const pgSpells = pgTable("spells", {
   system: varchar("system", { length: 50 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   level: pgInteger("level").notNull(),
-  school: varchar("school", { length: 100 }).notNull().default(""),
-  castingTime: varchar("casting_time", { length: 100 }).notNull().default(""),
-  range: varchar("range", { length: 100 }).notNull().default(""),
-  duration: varchar("duration", { length: 100 }).notNull().default(""),
+  school: varchar("school", { length: 100 }).default(""),
+  castingTime: varchar("casting_time", { length: 100 }).default(""),
+  range: varchar("range", { length: 100 }).default(""),
+  duration: varchar("duration", { length: 100 }).default(""),
   verbal: boolean("verbal").notNull().default(false),
   somatic: boolean("somatic").notNull().default(false),
   material: boolean("material").notNull().default(false),
-  materialDesc: varchar("material_desc", { length: 500 }).notNull().default(""),
+  materialDesc: varchar("material_desc", { length: 500 }).default(""),
   ritual: boolean("ritual").notNull().default(false),
   concentration: boolean("concentration").notNull().default(false),
-  description: varchar("description", { length: 10000 }).notNull().default(""),
-  upcastDesc: varchar("upcast_desc", { length: 5000 }).notNull().default(""),
+  description: varchar("description", { length: 10000 }).default(""),
+  upcastDesc: varchar("upcast_desc", { length: 5000 }).default(""),
   damageDiceCount: pgInteger("damage_dice_count"),
   damageDieType: varchar("damage_die_type", { length: 10 }),
   damageTypeName: varchar("damage_type_name", { length: 100 }),
   attackType: varchar("attack_type", { length: 20 }),
   dcSaveStat: varchar("dc_save_stat", { length: 10 }),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
 
@@ -165,10 +165,10 @@ export const pgClasses = pgTable("classes", {
   id: varchar("id", { length: 100 }).primaryKey(),
   system: varchar("system", { length: 50 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  hitDie: varchar("hit_die", { length: 10 }).notNull().default("d8"),
+  hitDie: varchar("hit_die", { length: 10 }).default("d8"),
   spellcastingStat: varchar("spellcasting_stat", { length: 10 }),
-  spellSlotProgression: varchar("spell_slot_progression", { length: 20 }).notNull().default("none"),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  spellSlotProgression: varchar("spell_slot_progression", { length: 20 }).default("none"),
+  source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
 
@@ -238,7 +238,7 @@ export const pgBackgrounds = pgTable("backgrounds", {
   featGrant: varchar("feat_grant", { length: 255 }), // feat name — 2024 backgrounds only
   featuresJson: jsonb("features_json"), // {name: string, description: string}[]
   fixedEquipmentJson: jsonb("fixed_equipment_json"), // {name: string, quantity: number}[]
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
 
@@ -258,7 +258,7 @@ export const pgRaces = pgTable("races", {
   system: varchar("system", { length: 50 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   speed: pgInteger("speed"),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
 
@@ -278,7 +278,7 @@ export const pgSubraces = pgTable("subraces", {
   system: varchar("system", { length: 50 }).notNull(),
   raceId: varchar("race_id", { length: 100 }).notNull().references(() => pgRaces.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
 
@@ -340,7 +340,7 @@ export const pgItems = pgTable("items", {
   acMaxDex: pgInteger("ac_max_dex"),
   stealthDisadvantage: boolean("stealth_disadvantage").default(false),
   strMinimum: pgInteger("str_minimum"),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
 
@@ -365,8 +365,8 @@ export const pgClassFeatures = pgTable("class_features", {
   subclassId: varchar("subclass_id", { length: 100 }).references(() => pgSubclasses.id, { onDelete: "cascade" }),
   level: pgInteger("level").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  description: varchar("description", { length: 10000 }).notNull().default(""),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  description: varchar("description", { length: 10000 }).default(""),
+  source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
 
@@ -388,8 +388,8 @@ export const pgRaceTraits = pgTable("race_traits", {
   raceId: varchar("race_id", { length: 100 }).references(() => pgRaces.id, { onDelete: "cascade" }),
   subraceId: varchar("subrace_id", { length: 100 }).references(() => pgSubraces.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
-  description: varchar("description", { length: 10000 }).notNull().default(""),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  description: varchar("description", { length: 10000 }).default(""),
+  source: varchar("source", { length: 50 }).default("srd"),
 });
 
 // ─── Game content: class proficiencies ───────────────────────────────────────
@@ -409,7 +409,7 @@ export const pgClassProficiencies = pgTable("class_proficiencies", {
   classId: varchar("class_id", { length: 100 }).notNull().references(() => pgClasses.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   profType: varchar("prof_type", { length: 50 }).notNull(),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  source: varchar("source", { length: 50 }).default("srd"),
 });
 
 // ─── Game content: class skill choices ────────────────────────────────────────
@@ -443,7 +443,7 @@ export const pgLanguages = pgTable("languages", {
   id: varchar("id", { length: 100 }).primaryKey(),
   system: varchar("system", { length: 50 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  source: varchar("source", { length: 50 }).default("srd"),
 });
 
 // ─── Game content: subclasses ─────────────────────────────────────────────────
@@ -465,8 +465,8 @@ export const pgSubclasses = pgTable("subclasses", {
   classId: varchar("class_id", { length: 100 }).notNull().references(() => pgClasses.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   subclassFlavor: varchar("subclass_flavor", { length: 100 }),
-  description: varchar("description", { length: 10000 }).notNull().default(""),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  description: varchar("description", { length: 10000 }).default(""),
+  source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
 
@@ -541,8 +541,8 @@ export const pgFeats = pgTable("feats", {
   id: varchar("id", { length: 100 }).primaryKey(),
   system: varchar("system", { length: 50 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  description: varchar("description", { length: 10000 }).notNull().default(""),
-  source: varchar("source", { length: 50 }).notNull().default("srd"),
+  description: varchar("description", { length: 10000 }).default(""),
+  source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
 

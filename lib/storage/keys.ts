@@ -9,13 +9,7 @@ export function safeStorageFilename(filename: string): string {
 
 export function characterImageKey(params: {
   characterId: string;
-  fileId: string;
   filename: string;
 }): string {
-  return [
-    "characters",
-    params.characterId,
-    "images",
-    `${params.fileId}-${safeStorageFilename(params.filename)}`,
-  ].join("/");
+  return ["characters", params.characterId, safeStorageFilename(params.filename)].join("/");
 }

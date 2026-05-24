@@ -437,7 +437,7 @@ function spellRowToEntry(row: SpellRow): SpellEntry {
     saveStat: row.dcSaveStat as AttributeKey | null,
     damageStack: [],
     description: row.description,
-    upcastDescription: row.upcastDesc,
+    upcastDescription: row.upcastDesc ?? "",
     components: {
       verbal: row.verbal,
       somatic: row.somatic,

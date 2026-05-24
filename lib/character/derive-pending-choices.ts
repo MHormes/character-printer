@@ -77,7 +77,7 @@ export function deriveBackgroundPendingChoices(
 ): BackgroundPendingChoice[] {
   if (!bgRow?.asiGrants) return []
 
-  const asiPool: string[] = JSON.parse(bgRow.asiGrants as string)
+  const asiPool: string[] = typeof bgRow.asiGrants === "string" ? JSON.parse(bgRow.asiGrants) : bgRow.asiGrants as unknown as string[]
   if (asiPool.length === 0) return []
 
   const filled = (char.backgroundChoices ?? []).some((c) => c.backgroundId === bgRow.id)

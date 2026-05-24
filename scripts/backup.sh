@@ -38,7 +38,7 @@ if [ "${DB_DRIVER:-sqlite}" = "postgres" ]; then
   for TABLE in $TABLES; do
     echo "   -> Exporting $TABLE..."
     docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" \
-      -c "COPY $TABLE TO STDOUT WITH (FORMAT CSV, HEADER);" > "$BACKUP_DIR/csv/$TABLE.csv"
+      -c "COPY $TABLE TO STDOUT WITH (FORMAT CSV, HEADER, NULL '\\N');" > "$BACKUP_DIR/csv/$TABLE.csv"
   done
 else
   # SQLite: use Node export script

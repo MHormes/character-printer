@@ -543,7 +543,7 @@ export function applyBackground(
   next.features = next.features.filter((f) => !f.sourceId?.startsWith("background:"))
 
   // ── Apply new skill grants ────────────────────────────────────────────────
-  const skillGrants: string[] = bgRow.skillGrants ? JSON.parse(bgRow.skillGrants as string) : []
+  const skillGrants: string[] = bgRow.skillGrants ? (typeof bgRow.skillGrants === "string" ? JSON.parse(bgRow.skillGrants) : bgRow.skillGrants as unknown as string[]) : []
   for (const key of skillGrants) {
     if (next.skills[key]) next.skills[key].state = "Proficient"
   }
@@ -579,7 +579,7 @@ export function applyBackground(
 
   // ── Apply feature entries (languages, tool profs, equipment choices) ──────
   const featureEntries: { name: string; description: string }[] =
-    bgRow.featuresJson ? JSON.parse(bgRow.featuresJson as string) : []
+    bgRow.featuresJson ? (typeof bgRow.featuresJson === "string" ? JSON.parse(bgRow.featuresJson) : bgRow.featuresJson as unknown as { name: string; description: string }[]) : []
   for (const entry of featureEntries) {
     next.features.push({
       id: crypto.randomUUID(),
@@ -599,7 +599,7 @@ export function applyBackground(
 
     // Add fixed equipment for new background
     const fixedEquip: { name: string; quantity: number }[] =
-      bgRow.fixedEquipmentJson ? JSON.parse(bgRow.fixedEquipmentJson as string) : []
+      bgRow.fixedEquipmentJson ? (typeof bgRow.fixedEquipmentJson === "string" ? JSON.parse(bgRow.fixedEquipmentJson) : bgRow.fixedEquipmentJson as unknown as { name: string; quantity: number }[]) : []
     for (const item of fixedEquip) {
       next.inventory.push({
         id: crypto.randomUUID(),

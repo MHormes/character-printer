@@ -329,7 +329,7 @@ export function SpellsBlock({
       saveStat: (spell.dcSaveStat as AttributeKey) ?? null,
       damageStack,
       description: spell.description,
-      upcastDescription: spell.upcastDesc,
+      upcastDescription: spell.upcastDesc ?? "",
       components: {
         verbal: spell.verbal,
         somatic: spell.somatic,
