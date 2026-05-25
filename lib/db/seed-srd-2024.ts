@@ -7,8 +7,8 @@
  * progressions are hardcoded from the 2024 SRD (Creative Commons).
  */
 
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/libsql";
+import { createClient } from "@libsql/client";
 import { eq, inArray } from "drizzle-orm";
 import {
   sqliteSpells,
@@ -654,7 +654,7 @@ async function main() {
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) throw new Error("DATABASE_URL not set");
 
-  const sqlite = new Database(dbUrl);
+  const sqlite = createClient({ url: dbUrl.startsWith("file:") ? dbUrl : `file:${dbUrl}` });
   const db = drizzle(sqlite);
 
   console.log("Fetching D&D 2024 SRD data...");
@@ -717,7 +717,7 @@ async function main() {
   db.delete(sqliteSubraces).where(eq(sqliteSubraces.system, SYSTEM)).run();
   db.delete(sqliteRaces).where(eq(sqliteRaces.system, SYSTEM)).run();
   // class_spell_slots cascade-delete with classes, but delete explicitly to be safe
-  const existingClassIds2024 = db.select({ id: sqliteClasses.id }).from(sqliteClasses).where(eq(sqliteClasses.system, SYSTEM)).all().map(r => r.id);
+  const existingClassIds2024 = (await db.select({ id: sqliteClasses.id }).from(sqliteClasses).where(eq(sqliteClasses.system, SYSTEM)).all()).map(r => r.id);
   if (existingClassIds2024.length > 0) {
     db.delete(sqliteClassSpellSlots).where(inArray(sqliteClassSpellSlots.classId, existingClassIds2024)).run();
   }
