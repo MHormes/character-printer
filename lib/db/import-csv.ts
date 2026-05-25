@@ -8,7 +8,6 @@ import { createClient } from "@libsql/client";
 import { Pool } from "pg";
 import * as fs from "fs";
 import * as path from "path";
-import * as readline from "readline";
 
 // ─── Tables with composite PKs (no single `id` column) ───────────────────────
 
@@ -51,62 +50,71 @@ const TABLES = [
   "canvas_templates",
 ];
 
-// ─── CSV parser ───────────────────────────────────────────────────────────────
+// ─── CSV parser (RFC 4180 — handles embedded newlines in quoted fields) ───────
 
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
+function parseCSVContent(content: string): string[][] {
+  const rows: string[][] = [];
+  const row: string[] = [];
+  let field = "";
+  let inQuote = false;
   let i = 0;
-  while (i < line.length) {
-    if (line[i] === '"') {
-      let val = "";
-      i++; // skip opening quote
-      while (i < line.length) {
-        if (line[i] === '"' && line[i + 1] === '"') {
-          val += '"';
-          i += 2;
-        } else if (line[i] === '"') {
-          i++; // skip closing quote
-          break;
-        } else {
-          val += line[i++];
-        }
+
+  while (i < content.length) {
+    const ch = content[i];
+
+    if (inQuote) {
+      if (ch === '"' && content[i + 1] === '"') {
+        field += '"';
+        i += 2;
+      } else if (ch === '"') {
+        inQuote = false;
+        i++;
+      } else {
+        field += ch;
+        i++;
       }
-      result.push(val);
-      if (line[i] === ",") i++;
+    } else if (ch === '"') {
+      inQuote = true;
+      i++;
+    } else if (ch === ',') {
+      row.push(field);
+      field = "";
+      i++;
+    } else if (ch === '\r' && content[i + 1] === '\n') {
+      row.push(field);
+      if (row.some(v => v !== "")) rows.push([...row]);
+      row.length = 0;
+      field = "";
+      i += 2;
+    } else if (ch === '\n') {
+      row.push(field);
+      if (row.some(v => v !== "")) rows.push([...row]);
+      row.length = 0;
+      field = "";
+      i++;
     } else {
-      const end = line.indexOf(",", i);
-      if (end === -1) {
-        result.push(line.slice(i));
-        break;
-      }
-      result.push(line.slice(i, end));
-      i = end + 1;
+      field += ch;
+      i++;
     }
   }
-  return result;
+
+  if (field || row.length > 0) {
+    row.push(field);
+    if (row.some(v => v !== "")) rows.push([...row]);
+  }
+
+  return rows;
 }
 
 async function readCsv(filePath: string): Promise<Record<string, string>[]> {
-  return new Promise((resolve, reject) => {
-    const rows: Record<string, string>[] = [];
-    let headers: string[] = [];
-
-    const rl = readline.createInterface({ input: fs.createReadStream(filePath) });
-
-    rl.on("line", line => {
-      if (!line.trim()) return;
-      if (headers.length === 0) {
-        headers = parseCSVLine(line);
-      } else {
-        const vals = parseCSVLine(line);
-        const row: Record<string, string> = {};
-        headers.forEach((h, i) => { row[h] = vals[i] ?? ""; });
-        rows.push(row);
-      }
-    });
-
-    rl.on("close", () => resolve(rows));
-    rl.on("error", reject);
+  const content = await fs.promises.readFile(filePath, "utf8");
+  const allRows = parseCSVContent(content);
+  if (allRows.length < 2) return [];
+  const headers = allRows[0];
+  return allRows.slice(1).map(vals => {
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => { row[h] = vals[i] ?? ""; });
+    return row;
   });
 }
 

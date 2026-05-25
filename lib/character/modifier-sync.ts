@@ -75,7 +75,7 @@ export function syncInventoryToStacks(
 
   // Armor formula sync: equipped armor with acBase drives Formula mode
   const equippedArmors = inventory
-    .filter((item) => item.equipped && (item.acBase ?? null) !== null)
+    .filter((item) => item.equipped && (item.acBase ?? null) !== null && item.acSetsFormula !== false)
     .sort((a, b) => (b.acBase ?? 0) - (a.acBase ?? 0))
   const armorItem = equippedArmors[0] ?? null
 

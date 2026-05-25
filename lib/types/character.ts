@@ -93,6 +93,7 @@ export type InventoryItem = {
   equipped: boolean;
   modifiers: { id: string; target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[];
   // Armor data — populated when item is imported from SRD
+  acSetsFormula?: boolean | null;   // true = drives AC formula; false = bonus-only (shield); undefined = legacy (treated as true)
   acBase?: number | null;           // armor AC base (e.g. 12 for studded leather); drives formula when equipped
   acDexBonus?: boolean | null;      // true = light/medium (add DEX), false = heavy
   acMaxDex?: number | null;         // DEX cap for medium armor

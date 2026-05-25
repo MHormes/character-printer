@@ -151,9 +151,10 @@ function buildInventoryItem(item: ItemRow): InventoryItem {
           },
         ]
       : [],
-    acBase: item.acBase ?? null,
-    acDexBonus: item.acDexBonus ?? null,
-    acMaxDex: item.acMaxDex ?? null,
+    acSetsFormula: isShield ? false : (item.acBase != null ? true : null),
+    acBase: isShield ? null : (item.acBase ?? null),
+    acDexBonus: isShield ? null : (item.acDexBonus ?? null),
+    acMaxDex: isShield ? null : (item.acMaxDex ?? null),
     stealthDisadvantage: item.stealthDisadvantage ?? null,
     strMinimum: item.strMinimum ?? null,
   };
@@ -649,60 +650,76 @@ function SortableInventoryItem({
           )}
         >
           {/* Armor AC configuration — only for Armor category */}
-          {item.category === "Armor" && (
+          {item.category === "Armor" && item.acSetsFormula !== false && (
             <div className="space-y-1.5 border-b border-border/60 pb-2">
-              <p className="text-xs text-muted-foreground">Armor AC</p>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">Base</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={item.acBase ?? ""}
-                    placeholder="—"
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      if (raw === "") {
-                        onPatch({ acBase: null });
-                        return;
-                      }
-                      const n = parseInt(raw, 10);
-                      if (!isNaN(n)) onPatch({ acBase: n });
-                    }}
-                    className="h-6 w-12 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
-                  />
-                </div>
-                <label className="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground">
-                  <input
-                    type="checkbox"
-                    checked={item.acDexBonus ?? true}
-                    onChange={(e) => onPatch({ acDexBonus: e.target.checked })}
-                    className="size-3"
-                  />
-                  + DEX
-                </label>
-                {(item.acDexBonus ?? true) && (
+              <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={item.acSetsFormula === true}
+                  onChange={(e) => {
+                    if (!e.target.checked) {
+                      onPatch({ acSetsFormula: false, acBase: null, acDexBonus: null, acMaxDex: null });
+                    } else {
+                      onPatch({ acSetsFormula: true });
+                    }
+                  }}
+                  className="size-3"
+                />
+                Sets armor class formula
+              </label>
+              {item.acSetsFormula === true && (
+                <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">max</span>
+                    <span className="text-xs text-muted-foreground">Base</span>
                     <input
                       type="text"
                       inputMode="numeric"
-                      value={item.acMaxDex ?? ""}
+                      value={item.acBase ?? ""}
                       placeholder="—"
                       onChange={(e) => {
                         const raw = e.target.value;
                         if (raw === "") {
-                          onPatch({ acMaxDex: null });
+                          onPatch({ acBase: null });
                           return;
                         }
                         const n = parseInt(raw, 10);
-                        if (!isNaN(n)) onPatch({ acMaxDex: n });
+                        if (!isNaN(n)) onPatch({ acBase: n });
                       }}
-                      className="h-6 w-10 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
+                      className="h-6 w-12 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
                     />
                   </div>
-                )}
-              </div>
+                  <label className="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={item.acDexBonus ?? true}
+                      onChange={(e) => onPatch({ acDexBonus: e.target.checked })}
+                      className="size-3"
+                    />
+                    + DEX
+                  </label>
+                  {(item.acDexBonus ?? true) && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">max</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={item.acMaxDex ?? ""}
+                        placeholder="—"
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw === "") {
+                            onPatch({ acMaxDex: null });
+                            return;
+                          }
+                          const n = parseInt(raw, 10);
+                          if (!isNaN(n)) onPatch({ acMaxDex: n });
+                        }}
+                        className="h-6 w-10 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

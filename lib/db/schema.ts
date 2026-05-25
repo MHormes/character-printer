@@ -101,24 +101,24 @@ export const sqliteSpells = sqliteTable("spells", {
   system: text("system").notNull(), // "dnd5e" | "dnd5_5e"
   name: text("name").notNull(),
   level: integer("level").notNull(),
-  school: text("school").notNull().default(""),
-  castingTime: text("casting_time").notNull().default(""),
-  range: text("range").notNull().default(""),
-  duration: text("duration").notNull().default(""),
+  school: text("school").default(""),
+  castingTime: text("casting_time").default(""),
+  range: text("range").default(""),
+  duration: text("duration").default(""),
   verbal: integer("verbal", { mode: "boolean" }).notNull().default(false),
   somatic: integer("somatic", { mode: "boolean" }).notNull().default(false),
   material: integer("material", { mode: "boolean" }).notNull().default(false),
-  materialDesc: text("material_desc").notNull().default(""),
+  materialDesc: text("material_desc").default(""),
   ritual: integer("ritual", { mode: "boolean" }).notNull().default(false),
   concentration: integer("concentration", { mode: "boolean" }).notNull().default(false),
-  description: text("description").notNull().default(""),
+  description: text("description").default(""),
   upcastDesc: text("upcast_desc").default(""),
   damageDiceCount: integer("damage_dice_count"),
   damageDieType: text("damage_die_type"),    // "d4" | "d6" | "d8" | "d10" | "d12"
   damageTypeName: text("damage_type_name"),  // "Fire" | "Healing" | etc.
   attackType: text("attack_type"),           // "RANGED" | "MELEE" | null
   dcSaveStat: text("dc_save_stat"),          // "str" | "dex" | "con" | "int" | "wis" | "cha" | null
-  source: text("source").notNull().default("srd"), // "srd" | "homebrew"
+  source: text("source").default("srd"), // "srd" | "homebrew"
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
 
@@ -154,10 +154,10 @@ export const sqliteClasses = sqliteTable("classes", {
   id: text("id").primaryKey(), // "dnd5e:wizard"
   system: text("system").notNull(),
   name: text("name").notNull(),
-  hitDie: text("hit_die").notNull().default("d8"), // "d6" | "d8" | "d10" | "d12"
+  hitDie: text("hit_die").default("d8"), // "d6" | "d8" | "d10" | "d12"
   spellcastingStat: text("spellcasting_stat"), // "int" | "wis" | "cha" | null
-  spellSlotProgression: text("spell_slot_progression").notNull().default("none"),
-  source: text("source").notNull().default("srd"),
+  spellSlotProgression: text("spell_slot_progression").default("none"),
+  source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
 
@@ -225,7 +225,7 @@ export const sqliteBackgrounds = sqliteTable("backgrounds", {
   featGrant: text("feat_grant"),     // feat name granted at creation — 2024 backgrounds only
   featuresJson: text("features_json"), // JSON: [{name, description}] — languages, tool profs, equipment choices
   fixedEquipmentJson: text("fixed_equipment_json"), // JSON: [{name, quantity}] — auto-added to inventory
-  source: text("source").notNull().default("srd"),
+  source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
 
@@ -249,7 +249,7 @@ export const sqliteRaces = sqliteTable("races", {
   system: text("system").notNull(),
   name: text("name").notNull(),
   speed: integer("speed"),               // walking speed in feet (30, 25, etc.)
-  source: text("source").notNull().default("srd"),
+  source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
 
@@ -269,7 +269,7 @@ export const sqliteSubraces = sqliteTable("subraces", {
   system: text("system").notNull(),
   raceId: text("race_id").notNull().references(() => sqliteRaces.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  source: text("source").notNull().default("srd"),
+  source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
 
@@ -311,7 +311,7 @@ export const sqliteItems = sqliteTable("items", {
   acMaxDex: integer("ac_max_dex"),
   stealthDisadvantage: integer("stealth_disadvantage", { mode: "boolean" }).default(false),
   strMinimum: integer("str_minimum"),
-  source: text("source").notNull().default("srd"),
+  source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
 
@@ -353,8 +353,8 @@ export const sqliteClassFeatures = sqliteTable("class_features", {
   subclassId: text("subclass_id").references(() => sqliteSubclasses.id, { onDelete: "cascade" }),
   level: integer("level").notNull(),    // character level when feature is gained
   name: text("name").notNull(),
-  description: text("description").notNull().default(""),
-  source: text("source").notNull().default("srd"),
+  description: text("description").default(""),
+  source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
 
@@ -378,8 +378,8 @@ export const sqliteRaceTraits = sqliteTable("race_traits", {
   raceId: text("race_id").references(() => sqliteRaces.id, { onDelete: "cascade" }),
   subraceId: text("subrace_id").references(() => sqliteSubraces.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  description: text("description").notNull().default(""),
-  source: text("source").notNull().default("srd"),
+  description: text("description").default(""),
+  source: text("source").default("srd"),
 });
 
 export const pgRaceTraits = pgTable("race_traits", {
@@ -400,7 +400,7 @@ export const sqliteClassProficiencies = sqliteTable("class_proficiencies", {
   classId: text("class_id").notNull().references(() => sqliteClasses.id, { onDelete: "cascade" }),
   name: text("name").notNull(),         // "Longswords"
   profType: text("prof_type").notNull(), // "Weapons" | "Armor" | "Tools" | "Skills" | "Saving Throws"
-  source: text("source").notNull().default("srd"),
+  source: text("source").default("srd"),
 });
 
 export const pgClassProficiencies = pgTable("class_proficiencies", {
@@ -436,7 +436,7 @@ export const sqliteLanguages = sqliteTable("languages", {
   id: text("id").primaryKey(),          // "dnd5e:common"
   system: text("system").notNull(),
   name: text("name").notNull(),
-  source: text("source").notNull().default("srd"),
+  source: text("source").default("srd"),
 });
 
 export const pgLanguages = pgTable("languages", {
@@ -454,8 +454,8 @@ export const sqliteSubclasses = sqliteTable("subclasses", {
   classId: text("class_id").notNull().references(() => sqliteClasses.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   subclassFlavor: text("subclass_flavor"), // e.g. "Primal Path", "Arcane Tradition"
-  description: text("description").notNull().default(""),
-  source: text("source").notNull().default("srd"),
+  description: text("description").default(""),
+  source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
 
@@ -532,8 +532,8 @@ export const sqliteFeats = sqliteTable("feats", {
   id: text("id").primaryKey(),          // "dnd5e:grappler"
   system: text("system").notNull(),
   name: text("name").notNull(),
-  description: text("description").notNull().default(""),
-  source: text("source").notNull().default("srd"),
+  description: text("description").default(""),
+  source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
 

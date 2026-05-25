@@ -14,7 +14,7 @@
     "db:migrate:prod": "dotenv -e .env.production -- drizzle-kit migrate",
     "db:studio:dev": "dotenv -e .env.local -- drizzle-kit studio",
     "db:studio:prod": "dotenv -e .env.production -- drizzle-kit studio",
-    "db:seed": "dotenv -e .env.local -- tsx lib/db/seed-srd-sqlite.ts && dotenv -e .env.local -- tsx lib/db/seed-srd-2024.ts",
+    "db:seed": "dotenv -e .env.local -- tsx lib/db/seed-srd-sqlite.ts && dotenv -e .env.local -- tsx lib/db/seed-srd-2024.ts && dotenv -e .env.local -- tsx lib/db/import-csv.ts",
     "db:export": "dotenv -e .env.local -- tsx lib/db/export-csv.ts",
     "db:import": "dotenv -e .env.local -- tsx lib/db/import-csv.ts",
     "db:export:prod": "dotenv -e .env.production -- tsx lib/db/export-csv.ts",
