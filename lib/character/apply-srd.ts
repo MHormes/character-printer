@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, BackgroundChoiceMade, InventoryItem, OtherProficiency } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, BackgroundChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, DieType } from "@/lib/types/character"
 import type {
   RaceRow,
   SubraceRow,
@@ -690,16 +690,58 @@ export function applyClassStartingEquipment(
       )
       if (alreadyPresent) continue
 
+      const isShield = row.armorCategory === "Shield"
+      const isWeapon = row.equipmentCategory === "Weapon"
+
       next.inventory.push({
         id: crypto.randomUUID(),
         name: row.itemName,
         quantity: row.quantity,
-        weight: row.weight ?? 0,
+        weight: row.itemWeight ?? row.weight ?? 0,
         category: equipCategoryToInventoryCategory(row.equipmentCategory),
-        equipped: false,
-        modifiers: [],
+        equipped: true,
+        modifiers: isShield
+          ? [{ id: crypto.randomUUID(), target: "combat.ac" as ModifierTarget, value: 2, type: "Bonus" as const }]
+          : row.modifiersJson
+            ? (JSON.parse(row.modifiersJson) as { target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[]).map(
+                (m) => ({ ...m, id: crypto.randomUUID() }),
+              )
+            : [],
         sourceId,
+        acSetsFormula: isShield ? false : (row.acBase != null ? true : null),
+        acBase: isShield ? null : (row.acBase ?? null),
+        acDexBonus: isShield ? null : (row.acDexBonus ?? null),
+        acMaxDex: row.acMaxDex ?? null,
+        stealthDisadvantage: row.stealthDisadvantage ?? null,
+        strMinimum: row.strMinimum ?? null,
       })
+
+      if (isWeapon && row.damageDiceCount && row.damageDieType) {
+        const props: string[] = row.properties ? JSON.parse(row.properties) : []
+        const isFinesse = props.includes("Finesse")
+        const isRanged = row.weaponRange === "Ranged"
+        const primaryDmg: DamageEntry = {
+          diceCount: row.damageDiceCount,
+          dieType: row.damageDieType as DieType,
+          stat: isFinesse || isRanged ? "dex" : "str",
+          flatBonus: 0,
+          type: row.damageType ?? "Bludgeoning",
+          active: true,
+        }
+        const dmgStack: DamageEntry[] = [primaryDmg]
+        const action: ActionEntry = {
+          id: crypto.randomUUID(),
+          name: row.itemName,
+          mode: "Attack",
+          attackStat: isRanged ? "dex" : "str",
+          attackProficient: true,
+          attackBonus: 0,
+          fixedDC: null,
+          damageStack: dmgStack,
+          notes: "",
+        }
+        next.actions.push(action)
+      }
     }
   }
 

@@ -856,6 +856,18 @@ async function main() {
   const armors = itemRows.filter((i) => i.armorCategory !== null).length;
   console.log(`  ${itemRows.length} items | ${weapons} weapons | ${armors} armor pieces`);
 
+  const MAGIC_ITEM_MODIFIERS: Record<string, string> = {
+    "belt-of-giant-strength-hill":  JSON.stringify([{ target: "attr.str", value: 21, type: "Set To" }]),
+    "belt-of-giant-strength-stone": JSON.stringify([{ target: "attr.str", value: 23, type: "Set To" }]),
+    "belt-of-giant-strength-frost": JSON.stringify([{ target: "attr.str", value: 23, type: "Set To" }]),
+    "belt-of-giant-strength-fire":  JSON.stringify([{ target: "attr.str", value: 25, type: "Set To" }]),
+    "belt-of-giant-strength-cloud": JSON.stringify([{ target: "attr.str", value: 27, type: "Set To" }]),
+    "belt-of-giant-strength-storm": JSON.stringify([{ target: "attr.str", value: 29, type: "Set To" }]),
+    "amulet-of-health":             JSON.stringify([{ target: "attr.con", value: 19, type: "Set To" }]),
+    "gauntlets-of-ogre-power":      JSON.stringify([{ target: "attr.str", value: 19, type: "Set To" }]),
+    "headband-of-intellect":        JSON.stringify([{ target: "attr.int", value: 19, type: "Set To" }]),
+  };
+
   console.log("Inserting magic items...");
   const magicItemRows = rawMagicItems.map((m) => ({
     id: `${SYSTEM}:magic:${m.index}`,
@@ -882,6 +894,7 @@ async function main() {
     acMaxDex: null as number | null,
     stealthDisadvantage: null as boolean | null,
     strMinimum: null as number | null,
+    modifiersJson: MAGIC_ITEM_MODIFIERS[m.index] ?? null as string | null,
     source: SOURCE,
     userId: null as string | null,
   }));

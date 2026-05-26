@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
 import { ChevronDown, ChevronUp } from "lucide-react"
-import type { ClassChoiceMade, AttributeKey, InventoryItem } from "@/lib/types/character"
+import type { ClassChoiceMade, AttributeKey, InventoryItem, ModifierTarget } from "@/lib/types/character"
 import { getClassPendingChoiceKey, getEquipmentPendingChoiceKey, type PendingChoice, type EquipmentPendingChoice, type StartingEquipAlternative } from "@/lib/character/derive-pending-choices"
 import { searchItems, type FeatRow, type ItemRow } from "@/lib/actions/5e-data"
 
@@ -294,20 +294,28 @@ function buildInventoryItem(
   sourceId: string,
   srdRow?: ItemRow | null,
 ): InventoryItem {
+  const isShield = srdRow?.armorCategory === "Shield"
   return {
     id: crypto.randomUUID(),
     name,
     quantity,
     weight: srdRow?.weight ?? 0,
-    category: srdRow
-      ? equipCategoryToInventoryCategory(srdRow.equipmentCategory)
-      : "Mundane",
+    category: srdRow ? equipCategoryToInventoryCategory(srdRow.equipmentCategory) : "Mundane",
     equipped: true,
-    modifiers: [],
+    modifiers: isShield
+      ? [{ id: crypto.randomUUID(), target: "combat.ac" as ModifierTarget, value: 2, type: "Bonus" as const }]
+      : srdRow?.modifiersJson
+        ? (JSON.parse(srdRow.modifiersJson) as { target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[]).map(
+            (m) => ({ ...m, id: crypto.randomUUID() }),
+          )
+        : [],
     sourceId,
-    ...(srdRow?.acMaxDex !== undefined && { acMaxDex: srdRow.acMaxDex }),
-    ...(srdRow?.stealthDisadvantage !== undefined && { stealthDisadvantage: srdRow.stealthDisadvantage }),
-    ...(srdRow?.strMinimum !== undefined && { strMinimum: srdRow.strMinimum }),
+    acSetsFormula: isShield ? false : (srdRow?.acBase != null ? true : null),
+    acBase: isShield ? null : (srdRow?.acBase ?? null),
+    acDexBonus: isShield ? null : (srdRow?.acDexBonus ?? null),
+    acMaxDex: srdRow?.acMaxDex ?? null,
+    stealthDisadvantage: srdRow?.stealthDisadvantage ?? null,
+    strMinimum: srdRow?.strMinimum ?? null,
   }
 }
 

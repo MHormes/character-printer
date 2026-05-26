@@ -141,7 +141,7 @@ function buildInventoryItem(item: ItemRow): InventoryItem {
     name: item.name,
     weight: item.weight ?? 0,
     category: mapEquipmentCategory(item.equipmentCategory),
-    equipped: isWeapon || isShield,
+    equipped: true,
     modifiers: isShield
       ? [
           {
@@ -151,7 +151,11 @@ function buildInventoryItem(item: ItemRow): InventoryItem {
             type: "Bonus" as const,
           },
         ]
-      : [],
+      : item.modifiersJson
+        ? (JSON.parse(item.modifiersJson) as { target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[]).map(
+            (m) => ({ ...m, id: crypto.randomUUID() }),
+          )
+        : [],
     acSetsFormula: isShield ? false : (item.acBase != null ? true : null),
     acBase: isShield ? null : (item.acBase ?? null),
     acDexBonus: isShield ? null : (item.acDexBonus ?? null),

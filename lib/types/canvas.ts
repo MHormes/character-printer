@@ -23,6 +23,7 @@ export type WidgetType =
   | "TemplateFeatures"
   | "Characteristics" | "CharacteristicCard"
   | "BioText" | "FullPageBio" | "TemplateBio"
+  | "TrackerCard"
 export type Rotation = 0 | 90 | 180 | 270
 export type PrintState = "Calculated" | "Blank"
 
@@ -39,6 +40,7 @@ export type CanvasWidget = {
   spellId?: string
   featureId?: string
   statId?: string
+  trackerId?: string
   textSource?: string // for GenericText: traits, ideals, bonds, flaws, appearance, backstory, allies, organizations
 }
 

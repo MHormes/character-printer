@@ -23,7 +23,9 @@ import {
   sqliteClassStartingEquipment,
   sqliteClassStartingEquipmentOptions,
 } from "@/lib/db/schema";
-import { eq, and, like, asc } from "drizzle-orm";
+import { eq, and, like, ilike, asc } from "drizzle-orm";
+
+const likeCI = process.env.DB_DRIVER === "postgres" ? ilike : like;
 
 // Cast once — db is a union of SQLite/PG clients, TS can't call both signatures
 const anyDb = db as any;
@@ -31,7 +33,24 @@ const anyDb = db as any;
 export type RaceAbilityBonusRow = typeof sqliteRaceAbilityBonuses.$inferSelect;
 export type RaceAbilityBonusOptionRow = typeof sqliteRaceAbilityBonusOptions.$inferSelect;
 export type RaceSkillChoiceRow = typeof sqliteRaceSkillChoices.$inferSelect;
-export type ClassStartingEquipmentRow = typeof sqliteClassStartingEquipment.$inferSelect;
+export type ClassStartingEquipmentRow = typeof sqliteClassStartingEquipment.$inferSelect & {
+  armorCategory: string | null;
+  acBase: number | null;
+  acDexBonus: boolean | null;
+  acMaxDex: number | null;
+  stealthDisadvantage: boolean | null;
+  strMinimum: number | null;
+  weaponCategory: string | null;
+  weaponRange: string | null;
+  damageDiceCount: number | null;
+  damageDieType: string | null;
+  damageType: string | null;
+  properties: string | null;
+  rangeNormal: number | null;
+  rangeLong: number | null;
+  itemWeight: number | null;
+  modifiersJson: string | null;
+};
 export type ClassStartingEquipmentOptionRow = typeof sqliteClassStartingEquipmentOptions.$inferSelect;
 export type ClassRow = typeof sqliteClasses.$inferSelect;
 export type ClassSkillChoiceRow = typeof sqliteClassSkillChoices.$inferSelect;
@@ -215,7 +234,7 @@ export async function searchItems(params: ItemSearchParams): Promise<ItemRow[]> 
     .where(
       and(
         eq(sqliteItems.system, system),
-        params.name ? like(sqliteItems.name, `%${params.name}%`) : undefined,
+        params.name ? likeCI(sqliteItems.name, `%${params.name}%`) : undefined,
       ),
     )
     .orderBy(asc(sqliteItems.name))
@@ -313,7 +332,7 @@ export async function searchOtherProficiencies(params: {
       .where(
         and(
           eq(sqliteLanguages.system, system),
-          name ? like(sqliteLanguages.name, `%${name}%`) : undefined,
+          name ? likeCI(sqliteLanguages.name, `%${name}%`) : undefined,
         ),
       )
       .orderBy(asc(sqliteLanguages.name))
@@ -329,7 +348,7 @@ export async function searchOtherProficiencies(params: {
         and(
           eq(sqliteItems.system, system),
           eq(sqliteItems.equipmentCategory, "Tools"),
-          name ? like(sqliteItems.name, `%${name}%`) : undefined,
+          name ? likeCI(sqliteItems.name, `%${name}%`) : undefined,
         ),
       )
       .orderBy(asc(sqliteItems.name))
@@ -345,7 +364,7 @@ export async function searchOtherProficiencies(params: {
         and(
           eq(sqliteItems.system, system),
           eq(sqliteItems.equipmentCategory, "Weapon"),
-          name ? like(sqliteItems.name, `%${name}%`) : undefined,
+          name ? likeCI(sqliteItems.name, `%${name}%`) : undefined,
         ),
       )
       .orderBy(asc(sqliteItems.name))
@@ -361,7 +380,7 @@ export async function searchOtherProficiencies(params: {
         and(
           eq(sqliteItems.system, system),
           eq(sqliteItems.equipmentCategory, "Armor"),
-          name ? like(sqliteItems.name, `%${name}%`) : undefined,
+          name ? likeCI(sqliteItems.name, `%${name}%`) : undefined,
         ),
       )
       .orderBy(asc(sqliteItems.name))
@@ -401,7 +420,7 @@ export async function searchFeats(
     .where(
       and(
         eq(sqliteFeats.system, system),
-        name ? like(sqliteFeats.name, `%${name}%`) : undefined,
+        name ? likeCI(sqliteFeats.name, `%${name}%`) : undefined,
       ),
     )
     .orderBy(asc(sqliteFeats.name))
@@ -427,19 +446,19 @@ export async function searchSrdFeatures(
     anyDb
       .select()
       .from(sqliteFeats)
-      .where(and(eq(sqliteFeats.system, system), nameFilter ? like(sqliteFeats.name, nameFilter) : undefined))
+      .where(and(eq(sqliteFeats.system, system), nameFilter ? likeCI(sqliteFeats.name, nameFilter) : undefined))
       .orderBy(asc(sqliteFeats.name))
       .limit(20),
     anyDb
       .select()
       .from(sqliteClassFeatures)
-      .where(and(eq(sqliteClassFeatures.system, system), nameFilter ? like(sqliteClassFeatures.name, nameFilter) : undefined))
+      .where(and(eq(sqliteClassFeatures.system, system), nameFilter ? likeCI(sqliteClassFeatures.name, nameFilter) : undefined))
       .orderBy(asc(sqliteClassFeatures.name))
       .limit(20),
     anyDb
       .select()
       .from(sqliteRaceTraits)
-      .where(and(eq(sqliteRaceTraits.system, system), nameFilter ? like(sqliteRaceTraits.name, nameFilter) : undefined))
+      .where(and(eq(sqliteRaceTraits.system, system), nameFilter ? likeCI(sqliteRaceTraits.name, nameFilter) : undefined))
       .orderBy(asc(sqliteRaceTraits.name))
       .limit(20),
   ])
@@ -528,11 +547,38 @@ export async function getAllRaceSkillChoices(system = "dnd5e"): Promise<RaceSkil
 // ─── Class starting equipment ─────────────────────────────────────────────────
 
 export async function getAllClassStartingEquipment(system = "dnd5e"): Promise<ClassStartingEquipmentRow[]> {
-  return anyDb
-    .select()
+  const rows = await anyDb
+    .select({
+      id: sqliteClassStartingEquipment.id,
+      system: sqliteClassStartingEquipment.system,
+      classId: sqliteClassStartingEquipment.classId,
+      itemId: sqliteClassStartingEquipment.itemId,
+      itemName: sqliteClassStartingEquipment.itemName,
+      quantity: sqliteClassStartingEquipment.quantity,
+      equipmentCategory: sqliteClassStartingEquipment.equipmentCategory,
+      weight: sqliteClassStartingEquipment.weight,
+      armorCategory: sqliteItems.armorCategory,
+      acBase: sqliteItems.acBase,
+      acDexBonus: sqliteItems.acDexBonus,
+      acMaxDex: sqliteItems.acMaxDex,
+      stealthDisadvantage: sqliteItems.stealthDisadvantage,
+      strMinimum: sqliteItems.strMinimum,
+      weaponCategory: sqliteItems.weaponCategory,
+      weaponRange: sqliteItems.weaponRange,
+      damageDiceCount: sqliteItems.damageDiceCount,
+      damageDieType: sqliteItems.damageDieType,
+      damageType: sqliteItems.damageType,
+      properties: sqliteItems.properties,
+      rangeNormal: sqliteItems.rangeNormal,
+      rangeLong: sqliteItems.rangeLong,
+      itemWeight: sqliteItems.weight,
+      modifiersJson: sqliteItems.modifiersJson,
+    })
     .from(sqliteClassStartingEquipment)
+    .leftJoin(sqliteItems, eq(sqliteClassStartingEquipment.itemId, sqliteItems.id))
     .where(eq(sqliteClassStartingEquipment.system, system))
     .orderBy(asc(sqliteClassStartingEquipment.classId));
+  return rows as ClassStartingEquipmentRow[];
 }
 
 export async function getAllClassStartingEquipmentOptions(system = "dnd5e"): Promise<ClassStartingEquipmentOptionRow[]> {
@@ -567,7 +613,7 @@ export async function searchSpells(
             : undefined,
           params.school ? eq(sqliteSpells.school, params.school) : undefined,
           params.name
-            ? like(sqliteSpells.name, `%${params.name}%`)
+            ? likeCI(sqliteSpells.name, `%${params.name}%`)
             : undefined,
         ),
       )
@@ -586,7 +632,7 @@ export async function searchSpells(
           ? eq(sqliteSpells.level, params.level)
           : undefined,
         params.school ? eq(sqliteSpells.school, params.school) : undefined,
-        params.name ? like(sqliteSpells.name, `%${params.name}%`) : undefined,
+        params.name ? likeCI(sqliteSpells.name, `%${params.name}%`) : undefined,
       ),
     )
     .orderBy(asc(sqliteSpells.level), asc(sqliteSpells.name))

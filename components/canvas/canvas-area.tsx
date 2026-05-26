@@ -506,6 +506,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     { type: "Equipment" as const, label: "Equipment", w: 9, h: equipmentH },
     // Trackers & features
     { type: "Trackers" as const, label: "Trackers", w: 6, h: trackersH },
+    { type: "TrackerCard" as const, label: "Tracker Card", w: 3, h: 3 },
     { type: "Features" as const, label: "Features", w: 6, h: featuresH },
     { type: "FeatureCard" as const, label: "Feature Card", w: 9, h: 5 },
 

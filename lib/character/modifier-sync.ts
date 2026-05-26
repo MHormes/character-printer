@@ -82,7 +82,7 @@ export function syncInventoryToStacks(
   if (armorItem) {
     c.combat.ac.mode           = "Formula"
     c.combat.ac.base           = armorItem.acBase!
-    c.combat.ac.statA          = armorItem.acDexBonus ? "dex" : null
+    c.combat.ac.statA          = armorItem.acDexBonus !== false ? "dex" : null
     c.combat.ac.statB          = null
     c.combat.ac.armorSourceId  = armorItem.id
     c.combat.ac.armorSourceName = armorItem.name || "(unnamed armor)"

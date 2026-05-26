@@ -36,7 +36,8 @@ import { CharacterInfoDetailedWidget } from "@/components/canvas/widgets/charact
 import { CharacterInfoCompactWidget } from "@/components/canvas/widgets/character-info-compact-widget";
 import { CharacterAppearanceWidget } from "@/components/canvas/widgets/character-appearance-widget";
 import { CharacterPortraitWidget } from "@/components/canvas/widgets/character-portrait-widget";
-import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget";
+import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget"
+import { SingleTrackerWidget } from "@/components/canvas/widgets/single-tracker-widget";
 import { CharacteristicsWidget } from "@/components/canvas/widgets/characteristics-widget";
 import { CharacteristicCardWidget } from "@/components/canvas/widgets/characteristic-card-widget";
 import { BioTextWidget } from "@/components/canvas/widgets/bio-text-widget";
@@ -84,6 +85,7 @@ function WidgetPreviewContent({ type }: { type: WidgetType }) {
   if (type === "CharacterPortrait")     return <CharacterPortraitWidget />;
   if (type === "SpellCard")             return <SpellCardWidget />;
   if (type === "StatBox")               return <StatBoxWidget />;
+  if (type === "TrackerCard")           return <SingleTrackerWidget />;
   if (type === "Characteristics")       return <CharacteristicsWidget />;
   if (type === "CharacteristicCard")    return <CharacteristicCardWidget />;
   if (type === "BioText")               return <BioTextWidget />;

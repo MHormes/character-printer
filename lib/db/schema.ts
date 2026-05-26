@@ -16,6 +16,7 @@ import {
   boolean,
   primaryKey as pgPrimaryKey,
   uniqueIndex as pgUniqueIndex,
+  text as pgText,
 } from "drizzle-orm/pg-core";
 
 // ─── SQLite schema (development) ─────────────────────────────────────────────
@@ -311,6 +312,7 @@ export const sqliteItems = sqliteTable("items", {
   acMaxDex: integer("ac_max_dex"),
   stealthDisadvantage: integer("stealth_disadvantage", { mode: "boolean" }).default(false),
   strMinimum: integer("str_minimum"),
+  modifiersJson: text("modifiers_json"),
   source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
@@ -340,6 +342,7 @@ export const pgItems = pgTable("items", {
   acMaxDex: pgInteger("ac_max_dex"),
   stealthDisadvantage: boolean("stealth_disadvantage").default(false),
   strMinimum: pgInteger("str_minimum"),
+  modifiersJson: pgText("modifiers_json"),
   source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });

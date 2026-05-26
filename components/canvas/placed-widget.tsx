@@ -49,13 +49,14 @@ import { CharacterInfoDetailedWidget } from "@/components/canvas/widgets/charact
 import { CharacterInfoCompactWidget } from "@/components/canvas/widgets/character-info-compact-widget";
 import { CharacterAppearanceWidget } from "@/components/canvas/widgets/character-appearance-widget";
 import { CharacterPortraitWidget } from "@/components/canvas/widgets/character-portrait-widget";
-import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget";
+import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget"
+import { SingleTrackerWidget } from "@/components/canvas/widgets/single-tracker-widget";
 import { CharacteristicsWidget } from "@/components/canvas/widgets/characteristics-widget";
 import { CharacteristicCardWidget, characteristicCardSvgH, CHAR_CARD_SOURCES } from "@/components/canvas/widgets/characteristic-card-widget";
 import { BioTextWidget, bioTextSvgH, BIO_SOURCES } from "@/components/canvas/widgets/bio-text-widget";
 import { FullPageBioWidget } from "@/components/canvas/widgets/full-page-bio-widget";
 
-function WidgetContent({ type, spellId, featureId, statId, textSource }: { type: WidgetType; spellId?: string; featureId?: string; statId?: string; textSource?: string }) {
+function WidgetContent({ type, spellId, featureId, statId, trackerId, textSource }: { type: WidgetType; spellId?: string; featureId?: string; statId?: string; trackerId?: string; textSource?: string }) {
   if (type === "CoreStats") return <CoreStatsWidget />;
   if (type === "Inspiration") return <InspirationWidget />;
   if (type === "Proficiency") return <ProficiencyWidget />;
@@ -101,6 +102,7 @@ function WidgetContent({ type, spellId, featureId, statId, textSource }: { type:
   if (type === "CharacterPortrait") return <CharacterPortraitWidget />;
   if (type === "SpellCard") return <SpellCardWidget spellId={spellId} />;
   if (type === "StatBox") return <StatBoxWidget statId={statId} />;
+  if (type === "TrackerCard") return <SingleTrackerWidget trackerId={trackerId} />;
   if (type === "Characteristics") return <CharacteristicsWidget />;
   if (type === "CharacteristicCard") return <CharacteristicCardWidget source={textSource} />;
   if (type === "BioText") return <BioTextWidget source={textSource} />;
@@ -143,6 +145,7 @@ export function PlacedWidget({
   const charSpells = character?.spells.list ?? [];
   const features = useCharacterStore((s) => s.character?.features ?? []);
   const statBoxes = useCharacterStore((s) => s.character?.statBoxes ?? []);
+  const trackers = useCharacterStore((s) => s.character?.trackers ?? []);
 
   const [spellSearch, setSpellSearch] = useState("");
   const [spellResults, setSpellResults] = useState<SpellRow[]>([]);
@@ -198,11 +201,11 @@ export function PlacedWidget({
       widget.type === "FullPageSpellSheet" ||
       widget.type === "FullPageBio"
     ) {
-      return <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} textSource={widget.textSource} />;
+      return <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} trackerId={widget.trackerId} textSource={widget.textSource} />;
     }
     return (
       <div style={posStyle} className="overflow-hidden">
-        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} textSource={widget.textSource} />
+        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} trackerId={widget.trackerId} textSource={widget.textSource} />
       </div>
     );
   }
@@ -226,7 +229,7 @@ export function PlacedWidget({
           !widget.locked && "cursor-grab active:cursor-grabbing",
         )}
       >
-        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} textSource={widget.textSource} />
+        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} trackerId={widget.trackerId} textSource={widget.textSource} />
         {widget.locked && (
           <Lock className="absolute left-1 top-1 size-3 text-muted-foreground" />
         )}
@@ -262,7 +265,7 @@ export function PlacedWidget({
               <Trash2 className="size-3" />
             </button>
           )}
-          {(widget.type === "SpellCard" || widget.type === "FeatureCard" || widget.type === "StatBox" || widget.type === "BioText" || widget.type === "CharacteristicCard") && (
+          {(widget.type === "SpellCard" || widget.type === "FeatureCard" || widget.type === "StatBox" || widget.type === "BioText" || widget.type === "CharacteristicCard" || widget.type === "TrackerCard") && (
             <button
               type="button"
               onClick={(e) => {
@@ -270,7 +273,7 @@ export function PlacedWidget({
                 setPickerOpen((v) => { if (v) setSpellSearch(""); return !v; });
               }}
               className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-              title={widget.type === "SpellCard" ? "Choose spell" : widget.type === "StatBox" ? "Choose stat" : widget.type === "BioText" ? "Choose bio field" : widget.type === "CharacteristicCard" ? "Choose characteristic" : "Choose feature"}
+              title={widget.type === "SpellCard" ? "Choose spell" : widget.type === "StatBox" ? "Choose stat" : widget.type === "BioText" ? "Choose bio field" : widget.type === "CharacteristicCard" ? "Choose characteristic" : widget.type === "TrackerCard" ? "Choose tracker" : "Choose feature"}
             >
               <Settings className="size-3" />
             </button>
@@ -421,6 +424,39 @@ export function PlacedWidget({
               >
                 <span className="text-xs font-medium text-foreground">{stat.title || "Untitled"}</span>
                 <span className="text-xs text-muted-foreground">{stat.value}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pickerOpen && widget.type === "TrackerCard" && (
+        <div
+          ref={pickerRef}
+          className="absolute left-0 z-50 w-48 rounded border border-border bg-card shadow-md"
+          style={{ top: "calc(100% + 2px)" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="max-h-64 overflow-y-auto py-1">
+            {trackers.length === 0 && (
+              <p className="px-3 py-2 text-xs text-muted-foreground">No trackers defined</p>
+            )}
+            {trackers.map((tracker) => (
+              <button
+                key={tracker.id}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateWidgetData(widget.id, { trackerId: tracker.id });
+                  setPickerOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between px-3 py-1.5 text-left transition-colors hover:bg-accent",
+                  widget.trackerId === tracker.id && "bg-accent"
+                )}
+              >
+                <span className="text-xs font-medium text-foreground">{tracker.name}</span>
+                <span className="text-[10px] text-muted-foreground">{tracker.reset}</span>
               </button>
             ))}
           </div>
