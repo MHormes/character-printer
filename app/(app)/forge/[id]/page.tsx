@@ -88,6 +88,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ToggleButton } from "@/components/ui/toggle-button";
 import Link from "next/link";
 import type {
   AttributeKey,
@@ -934,17 +935,12 @@ export default function ForgePage({
 
     const visible = manualUiPrefs.sections[section];
     return (
-      <Button
-        type="button"
-        size="xs"
-        variant={visible ? "secondary" : "outline"}
-        className={
-          !visible ? "text-card-foreground hover:text-card-foreground" : ""
-        }
+      <ToggleButton
+        isActive={visible}
         onClick={() => setManualSection(section, !visible)}
       >
         {visible ? "Hide manual" : "Show manual"}
-      </Button>
+      </ToggleButton>
     );
   }
 
@@ -1003,27 +999,18 @@ export default function ForgePage({
           )}
         </span>
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            size="xs"
-            variant={manualControlsEnabled ? "outline" : "secondary"}
-            className={
-              manualControlsEnabled
-                ? "text-card-foreground hover:text-card-foreground"
-                : ""
-            }
+          <ToggleButton
+            isActive={manualControlsEnabled}
             onClick={toggleManualControls}
           >
             {manualControlsEnabled ? "Manual on" : "Manual off"}
-          </Button>
-          <Button
-            type="button"
-            size="xs"
-            variant={autoSave ? "secondary" : "ghost"}
+          </ToggleButton>
+          <ToggleButton
+            isActive={autoSave}
             onClick={() => handleToggleAutoSave(!autoSave)}
           >
             Auto-save {autoSave ? "on" : "off"}
-          </Button>
+          </ToggleButton>
         </div>
       </div>
 

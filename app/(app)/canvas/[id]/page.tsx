@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { buttonVariants, Button } from "@/components/ui/button";
+import { ToggleButton } from "@/components/ui/toggle-button";
 import { Input } from "@/components/ui/input";
 import { CanvasArea } from "@/components/canvas/canvas-area";
 import { useCanvasStore } from "@/lib/store/canvas-store";
@@ -320,15 +321,12 @@ export default function CanvasPage({
           )}
         </span>
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            size="xs"
-            variant={autoSave ? "outline" : "secondary"}
-            className={autoSave ? "text-card-foreground hover:text-card-foreground" : ""}
+          <ToggleButton
+            isActive={autoSave}
             onClick={() => handleToggleAutoSave(!autoSave)}
           >
             Auto-save {autoSave ? "on" : "off"}
-          </Button>
+          </ToggleButton>
           <div className="h-4 w-px bg-border" />
           {showTemplateForm ? (
             <div className="flex items-center gap-2">
@@ -376,16 +374,13 @@ export default function CanvasPage({
           )}
           <div className="h-4 w-px bg-border" />
           <div className="relative">
-            <Button
-              type="button"
-              size="xs"
-              variant={showGridConfig ? "secondary" : "outline"}
-              className={!showGridConfig ? "text-card-foreground hover:text-card-foreground" : ""}
+            <ToggleButton
+              isActive={showGridConfig}
               onClick={() => setShowGridConfig((v) => !v)}
             >
               <Grid3x3 className="size-3.5" />
               Grid
-            </Button>
+            </ToggleButton>
             {showGridConfig && (
               <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 flex min-w-64 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-md">
                 <span className="text-xs text-muted-foreground">Columns</span>
