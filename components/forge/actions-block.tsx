@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { ChevronDown, ChevronRight, GripVertical, X, Plus, CircleDot, Circle, RotateCcw } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import type { ActionEntry, ActionMode, DieType, DamageEntry, AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
 import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack } from "@/lib/character/calculations"
@@ -100,14 +101,14 @@ export function ActionsBlock({
       <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-card p-3">
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Casting stat</span>
-          <select
+          <Select
+            selectSize="sm"
             value={castingStat ?? ""}
             onChange={(e) => onCastingStatChange(e.target.value ? e.target.value as AttributeKey : null)}
-            className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
           >
             <option value="">—</option>
             {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
-          </select>
+          </Select>
         </div>
         <div className="flex items-center gap-1.5 text-xs">
           <span className="text-muted-foreground">Spell DC</span>
@@ -270,14 +271,14 @@ function SortableActionItem({
               )}
               {action.mode === "Attack" && (
                 <div className="flex items-center gap-2">
-                  <select
+                  <Select
+                    selectSize="sm"
                     value={action.attackStat ?? ""}
                     onChange={(e) => onPatch({ attackStat: e.target.value ? e.target.value as AttributeKey : null })}
-                    className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
                   >
                     <option value="">—</option>
                     {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
-                  </select>
+                  </Select>
                   <button type="button"
                     onClick={() => onPatch({ attackProficient: !action.attackProficient })}
                     className={cn(
@@ -329,15 +330,13 @@ function SortableActionItem({
                     }}
                     className="h-6 w-8 rounded-md border border-input bg-background text-center text-xs placeholder:text-card-foreground/40 focus:outline-none focus:border-ring"
                   />
-                  <select value={dmg.dieType} onChange={(e) => patchDmg({ dieType: e.target.value as DieType })}
-                    className="h-6 rounded-md border border-input bg-background px-1 text-xs text-foreground focus:outline-none focus:border-ring">
+                  <Select selectSize="sm" className="px-1" value={dmg.dieType} onChange={(e) => patchDmg({ dieType: e.target.value as DieType })}>
                     {DIE_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                  <select value={dmg.stat ?? ""} onChange={(e) => patchDmg({ stat: e.target.value ? e.target.value as AttributeKey : null })}
-                    className="h-6 rounded-md border border-input bg-background px-1 text-xs text-foreground focus:outline-none focus:border-ring">
+                  </Select>
+                  <Select selectSize="sm" className="px-1" value={dmg.stat ?? ""} onChange={(e) => patchDmg({ stat: e.target.value ? e.target.value as AttributeKey : null })}>
                     <option value="">—</option>
                     {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
-                  </select>
+                  </Select>
                   <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
                     <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
                     <input

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { ChevronDown, ChevronRight, GripVertical, X, Plus, CircleDot, Circle, RotateCcw } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import type { TrackerEntry, TrackerBaseSource, AttributeKey, AttributeData } from "@/lib/types/character"
 import { resolveTrackerBase } from "@/lib/character/calculations"
@@ -123,21 +124,22 @@ function SortableTrackerItem({
         <div className="space-y-2 border-t border-border p-3">
           <div className="flex items-center gap-2">
             <span className="w-16 shrink-0 text-xs text-muted-foreground">Resets on</span>
-            <select
+            <Select
+              selectSize="sm"
+              className="flex-1"
               value={tracker.reset}
               onChange={e => onPatch({ reset: e.target.value as TrackerEntry["reset"] })}
-              className="h-6 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
             >
               {RESET_CONDITIONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            </Select>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="w-16 shrink-0 text-xs text-muted-foreground">Base</span>
-            <select
+            <Select
+              selectSize="sm"
               value={sourceToValue(tracker.baseSource)}
               onChange={e => onPatch({ baseSource: valueToSource(e.target.value), override: null })}
-              className="h-6 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
             >
               <option value="fixed">Fixed</option>
               <optgroup label="Attribute modifier">
@@ -153,7 +155,7 @@ function SortableTrackerItem({
               <optgroup label="Other">
                 <option value="prof_bonus">Proficiency bonus</option>
               </optgroup>
-            </select>
+            </Select>
             {isFixed ? (
               <input type="number" value={tracker.base} min={0}
                 onChange={e => onPatch({ base: parseInt(e.target.value) || 0, override: null })}

@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Select } from "@/components/ui/select"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import type { ClassChoiceMade, AttributeKey, InventoryItem } from "@/lib/types/character"
 import { getClassPendingChoiceKey, getEquipmentPendingChoiceKey, type PendingChoice, type EquipmentPendingChoice, type StartingEquipAlternative } from "@/lib/character/derive-pending-choices"
@@ -101,58 +101,52 @@ function AsiPicker({
 
       <div className="flex gap-2">
         {(["+2", "+1+1", "feat"] as AsiMode[]).map((m) => (
-          <button
+          <Button
             key={m}
             type="button"
+            variant="outline"
+            size="sm"
+            aria-pressed={mode === m}
             onClick={() => setMode(m)}
-            className={cn(
-              "rounded-md border px-3 py-1 text-sm transition-colors",
-              mode === m
-                ? "border-ring bg-accent text-card-foreground"
-                : "border-input bg-background text-card-foreground hover:bg-accent/50",
-            )}
           >
             {m === "+2" ? "+2 one stat" : m === "+1+1" ? "+1 / +1 two stats" : "Choose feat"}
-          </button>
+          </Button>
         ))}
       </div>
 
       {mode === "+2" && (
         <div className="flex items-center gap-2">
-          <select
+          <Select
             value={stat1}
             onChange={(e) => setStat1(e.target.value as AttributeKey)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground shadow-sm focus:outline-none"
           >
             {ATTR_KEYS.map((k) => (
               <option key={k} value={k}>{ATTR_LABELS[k]}</option>
             ))}
-          </select>
+          </Select>
           <span className="text-sm font-semibold">+2</span>
         </div>
       )}
 
       {mode === "+1+1" && (
         <div className="flex items-center gap-2">
-          <select
+          <Select
             value={stat1}
             onChange={(e) => setStat1(e.target.value as AttributeKey)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground shadow-sm focus:outline-none"
           >
             {ATTR_KEYS.map((k) => (
               <option key={k} value={k}>{ATTR_LABELS[k]}</option>
             ))}
-          </select>
+          </Select>
           <span className="text-sm font-semibold">+1</span>
-          <select
+          <Select
             value={stat2}
             onChange={(e) => setStat2(e.target.value as AttributeKey)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground shadow-sm focus:outline-none"
           >
             {ATTR_KEYS.map((k) => (
               <option key={k} value={k} disabled={k === stat1}>{ATTR_LABELS[k]}</option>
             ))}
-          </select>
+          </Select>
           <span className="text-sm font-semibold">+1</span>
           {stat1 === stat2 && (
             <span className="text-xs text-destructive">Pick two different stats</span>
@@ -199,6 +193,7 @@ function AsiPicker({
       <Button
         type="button"
         size="sm"
+        contrast
         disabled={!canConfirm}
         onClick={confirm}
       >
@@ -255,27 +250,24 @@ function SkillPicker({
           const checked = selected.includes(key)
           const disabled = !checked && selected.length >= skillsNeeded
           return (
-            <button
+            <Button
               key={key}
               type="button"
+              variant="outline"
+              size="sm"
               disabled={disabled}
+              aria-pressed={checked}
               onClick={() => toggle(key)}
-              className={cn(
-                "rounded-md border px-2.5 py-1 text-sm transition-colors",
-                checked
-                  ? "border-ring bg-accent text-card-foreground"
-                  : "border-input bg-background text-card-foreground hover:bg-accent/50",
-                disabled && "cursor-not-allowed opacity-40",
-              )}
             >
               {SKILL_LABELS[key] ?? key}
-            </button>
+            </Button>
           )
         })}
       </div>
       <Button
         type="button"
         size="sm"
+        contrast
         disabled={selected.length !== skillsNeeded}
         onClick={confirm}
       >
@@ -426,19 +418,17 @@ function EquipmentChoicePicker({
 
       <div className="flex flex-wrap gap-2">
         {choice.options.map((opt, i) => (
-          <button
+          <Button
             key={i}
             type="button"
+            variant="outline"
+            size="sm"
+            aria-pressed={selectedIdx === i}
             onClick={() => setSelectedIdx(i === selectedIdx ? null : i)}
-            className={cn(
-              "rounded-md border px-2.5 py-1 text-sm transition-colors text-left",
-              selectedIdx === i
-                ? "border-ring bg-accent text-card-foreground"
-                : "border-input bg-background text-card-foreground hover:bg-accent/50",
-            )}
+            className="justify-start"
           >
             {opt.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -479,7 +469,7 @@ function EquipmentChoicePicker({
         </div>
       )}
 
-      <Button type="button" size="sm" disabled={!canConfirm} onClick={confirm}>
+      <Button type="button" size="sm" contrast disabled={!canConfirm} onClick={confirm}>
         Take this equipment
       </Button>
     </div>

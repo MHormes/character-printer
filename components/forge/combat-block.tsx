@@ -12,6 +12,7 @@ import {
   Lock,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type {
   CombatData,
@@ -330,7 +331,9 @@ export function CombatBlock({
                     )}
                   </div>
                 ) : (
-                  <select
+                  <Select
+                    selectSize="sm"
+                    className="min-w-0 flex-1"
                     value={data.ac[key] ?? ""}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -339,7 +342,6 @@ export function CombatBlock({
                         [key]: val === "" ? null : (val as AttributeKey),
                       });
                     }}
-                    className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
                   >
                     <option value="">—</option>
                     {ATTR_KEYS.map((k) => (
@@ -347,7 +349,7 @@ export function CombatBlock({
                         {ATTR_ABBR[k]} ({sign(resolveAttributeMod(attributes[k]))})
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 )}
               </div>
             ))}

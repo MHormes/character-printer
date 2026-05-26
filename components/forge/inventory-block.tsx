@@ -13,6 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { InventoryItem, ModifierTarget } from "@/lib/types/character";
 import {
@@ -230,17 +231,17 @@ function ItemPicker({
             className="h-6 pl-6 text-xs"
           />
         </div>
-        <select
+        <Select
+          selectSize="sm"
           value={categoryFilter}
           onChange={(e) => handleCategoryChange(e.target.value)}
-          className="h-6 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:border-ring"
         >
           {ITEM_CATEGORY_FILTERS.map((f) => (
             <option key={f.value} value={f.value}>
               {f.label}
             </option>
           ))}
-        </select>
+        </Select>
         <button
           type="button"
           onClick={onClose}
@@ -599,24 +600,23 @@ function SortableInventoryItem({
               : "border-input/70 bg-muted/20 text-muted-foreground",
           )}
         />
-        <select
+        <Select
+          selectSize="sm"
+          className={cn(
+            "h-7 min-w-[7rem] flex-[2]",
+            item.equipped ? "" : "border-input/70 bg-muted/20 text-muted-foreground",
+          )}
           value={item.category}
           onChange={(e) =>
             onPatch({ category: e.target.value as InventoryItem["category"] })
           }
-          className={cn(
-            "h-7 min-w-[7rem] flex-[2] rounded-md border px-1.5 text-xs focus:outline-none focus:border-ring",
-            item.equipped
-              ? "border-input bg-background text-foreground"
-              : "border-input/70 bg-muted/20 text-muted-foreground",
-          )}
         >
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
           ))}
-        </select>
+        </Select>
         <button
           type="button"
           onClick={onToggle}
@@ -732,36 +732,37 @@ function SortableInventoryItem({
               mod.target === "combat.ac" ? (["Bonus"] as const) : MOD_TYPES;
             return (
               <div key={idx} className="flex items-center gap-1.5">
-                <select
+                <Select
+                  selectSize="sm"
+                  className="min-w-0 flex-1"
                   value={mod.target}
                   onChange={(e) =>
                     patchModifier(idx, {
                       target: e.target.value as ModifierTarget,
                     })
                   }
-                  className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
                 >
                   {MODIFIER_TARGETS.map((t) => (
                     <option key={t.key} value={t.key}>
                       {t.label}
                     </option>
                   ))}
-                </select>
-                <select
+                </Select>
+                <Select
+                  selectSize="sm"
                   value={mod.type}
                   onChange={(e) =>
                     patchModifier(idx, {
                       type: e.target.value as "Bonus" | "Set To",
                     })
                   }
-                  className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
                 >
                   {availableTypes.map((t) => (
                     <option key={t} value={t}>
                       {t}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <div className="flex h-6 w-16 items-center rounded-md border border-input bg-background focus-within:border-ring">
                   <span className="select-none pl-2 text-xs text-muted-foreground">
                     {mod.type === "Set To" ? "=" : "+"}

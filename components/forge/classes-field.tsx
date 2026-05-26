@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
 import { IntegerField } from "@/components/forge/integer-field"
 import { Button } from "@/components/ui/button"
 import { X, Plus, ChevronDown } from "lucide-react"
@@ -254,15 +255,14 @@ export function ClassesField({
               </div>
             </div>
 
-            <select
+            <Select
               value={cls.hitDie ?? "d8"}
               onChange={(e) => update(i, "hitDie", e.target.value)}
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm text-card-foreground shadow-sm focus:outline-none focus:border-ring"
             >
               {HIT_DICE.map((d) => (
                 <option key={d} value={d}>{d}</option>
               ))}
-            </select>
+            </Select>
 
             <IntegerField
               label=""

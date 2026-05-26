@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle, Search, Loader2, Lock } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
 import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack, sumStack } from "@/lib/character/calculations"
@@ -122,16 +123,16 @@ function SpellPicker({
           />
         </div>
         {availableClasses.length > 0 && (
-          <select
+          <Select
+            selectSize="sm"
             value={classFilter}
             onChange={(e) => handleClassChange(e.target.value)}
-            className="h-6 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:border-ring"
           >
             <option value="">All classes</option>
             {availableClasses.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
-          </select>
+          </Select>
         )}
         <button
           type="button"
@@ -693,11 +694,10 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">School</span>
-              <select value={spell.school} onChange={e => onPatch({ school: e.target.value })}
-                className="h-6 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring">
+              <Select selectSize="sm" className="flex-1" value={spell.school} onChange={e => onPatch({ school: e.target.value })}>
                 <option value="">—</option>
                 {SCHOOLS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              </Select>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">Cast</span>
@@ -746,14 +746,14 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
               {spell.mode === "Spell" && (
                 <div className="flex items-center gap-2">
                   <span className="font-semibold tabular-nums text-xs">{sign(resolvedAttack())}</span>
-                  <select
+                  <Select
+                    selectSize="sm"
                     value={spell.castingStat ?? ""}
                     onChange={e => onPatch({ castingStat: e.target.value ? (e.target.value as AttributeKey) : null })}
-                    className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
                   >
                     <option value="">— default stat</option>
                     {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
-                  </select>
+                  </Select>
                 </div>
               )}
 
@@ -786,22 +786,22 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
                       </button>
                     )}
                   </div>
-                  <select
+                  <Select
+                    selectSize="sm"
                     value={spell.saveStat ?? ""}
                     onChange={e => onPatch({ saveStat: e.target.value ? (e.target.value as AttributeKey) : null })}
-                    className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
                   >
                     <option value="">— save</option>
                     {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]} save</option>)}
-                  </select>
-                  <select
+                  </Select>
+                  <Select
+                    selectSize="sm"
                     value={spell.castingStat ?? ""}
                     onChange={e => onPatch({ castingStat: e.target.value ? (e.target.value as AttributeKey) : null })}
-                    className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
                   >
                     <option value="">— default stat</option>
                     {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
-                  </select>
+                  </Select>
                 </div>
               )}
             </div>
@@ -847,15 +847,13 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
                   }}
                   className="h-6 w-8 rounded-md border border-input bg-background text-center text-xs placeholder:text-card-foreground/40 focus:outline-none focus:border-ring"
                 />
-                <select value={dmg.dieType} onChange={e => onPatchDmg(idx, { dieType: e.target.value as DieType })}
-                  className="h-6 rounded-md border border-input bg-background px-1 text-xs text-foreground focus:outline-none focus:border-ring">
+                <Select selectSize="sm" className="px-1" value={dmg.dieType} onChange={e => onPatchDmg(idx, { dieType: e.target.value as DieType })}>
                   {DIE_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-                <select value={dmg.stat ?? ""} onChange={e => onPatchDmg(idx, { stat: e.target.value ? (e.target.value as AttributeKey) : null })}
-                  className="h-6 rounded-md border border-input bg-background px-1 text-xs text-foreground focus:outline-none focus:border-ring">
+                </Select>
+                <Select selectSize="sm" className="px-1" value={dmg.stat ?? ""} onChange={e => onPatchDmg(idx, { stat: e.target.value ? (e.target.value as AttributeKey) : null })}>
                   <option value="">—</option>
                   {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
-                </select>
+                </Select>
                 <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
                   <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
                   <input

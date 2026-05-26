@@ -21,8 +21,8 @@ export function ToggleButton({
       className={cn(
         "border border-border",
         isActive
-          ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-          : "text-foreground hover:bg-muted",
+          ? "bg-secondary text-secondary-foreground hover:bg-secondary/90 hover:text-secondary-foreground"
+          : "text-foreground hover:bg-muted hover:text-secondary-foreground",
         className
       )}
       {...props}

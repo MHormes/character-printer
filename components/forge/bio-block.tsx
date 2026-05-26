@@ -1,6 +1,7 @@
 "use client"
 
 import { TextField } from "./text-field"
+import { Select } from "@/components/ui/select"
 import { CharacterImageField } from "./character-image-field"
 import type { Bio, CharacterData } from "@/lib/types/character"
 
@@ -78,10 +79,10 @@ export function BioBlock({
           <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Size
           </label>
-          <select
+          <Select
+            className="w-full"
             value={identity.size ?? ""}
             onChange={(e) => onIdentityChange("size", e.target.value)}
-            className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-card-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <option value="">—</option>
             <option value="Tiny">Tiny</option>
@@ -90,7 +91,7 @@ export function BioBlock({
             <option value="Large">Large</option>
             <option value="Huge">Huge</option>
             <option value="Gargantuan">Gargantuan</option>
-          </select>
+          </Select>
         </div>
       </div>
 

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import type { RaceChoiceMade, AttributeKey } from "@/lib/types/character"
@@ -70,27 +69,24 @@ function RaceAsiPicker({
           const checked = selected.includes(abilityScore)
           const disabled = !checked && selected.length >= asiChooseCount
           return (
-            <button
+            <Button
               key={abilityScore}
               type="button"
+              variant="outline"
+              size="sm"
               disabled={disabled}
+              aria-pressed={checked}
               onClick={() => toggle(abilityScore)}
-              className={cn(
-                "rounded-md border px-2.5 py-1 text-sm transition-colors",
-                checked
-                  ? "border-ring bg-accent text-accent-foreground"
-                  : "border-input bg-background text-foreground hover:bg-accent/50",
-                disabled && "cursor-not-allowed opacity-40",
-              )}
             >
               {ATTR_LABELS[abilityScore]} +{bonus}
-            </button>
+            </Button>
           )
         })}
       </div>
       <Button
         type="button"
         size="sm"
+        contrast
         disabled={selected.length !== asiChooseCount}
         onClick={confirm}
       >
@@ -146,27 +142,24 @@ function RaceSkillPicker({
           const checked = selected.includes(key)
           const disabled = !checked && selected.length >= skillsNeeded
           return (
-            <button
+            <Button
               key={key}
               type="button"
+              variant="outline"
+              size="sm"
               disabled={disabled}
+              aria-pressed={checked}
               onClick={() => toggle(key)}
-              className={cn(
-                "rounded-md border px-2.5 py-1 text-sm transition-colors",
-                checked
-                  ? "border-ring bg-accent text-accent-foreground"
-                  : "border-input bg-background text-foreground hover:bg-accent/50",
-                disabled && "cursor-not-allowed opacity-40",
-              )}
             >
               {SKILL_LABELS[key] ?? key}
-            </button>
+            </Button>
           )
         })}
       </div>
       <Button
         type="button"
         size="sm"
+        contrast
         disabled={selected.length !== skillsNeeded}
         onClick={confirm}
       >

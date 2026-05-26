@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { RotateCcw, X, Plus, CircleDot, CheckCircle2, GripVertical, Search, Loader2, Check, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
 import type { OtherProficiency, AttributeKey, AttributeData } from "@/lib/types/character"
 import { resolveAttributeMod } from "@/lib/character/calculations"
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
@@ -75,14 +76,14 @@ function ProficiencyPicker({
             className="h-6 pl-6 text-xs"
           />
         </div>
-        <select
+        <Select
+          selectSize="sm"
           value={category}
           onChange={(e) => handleCategoryChange(e.target.value as OtherProficiency["category"] | "All")}
-          className="h-6 rounded-md border border-input bg-background px-1.5 text-xs text-card-foreground focus:outline-none focus:border-ring"
         >
           <option value="All">All</option>
           {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+        </Select>
         <button
           type="button"
           onClick={onClose}
@@ -333,13 +334,14 @@ function SortableProfItem({ prof, attributes, proficiencyBonus, onUpdate, onRemo
         {isManaged ? (
           <span className="h-6 min-w-0 flex-[2] px-1.5 text-xs text-muted-foreground flex items-center">{prof.category}</span>
         ) : (
-          <select
+          <Select
+            selectSize="sm"
+            className="min-w-0 flex-[2]"
             value={prof.category}
             onChange={(e) => onCategoryChange(e.target.value as OtherProficiency["category"])}
-            className="h-6 min-w-0 flex-[2] rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
           >
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          </Select>
         )}
 
         {roll && (
@@ -356,14 +358,15 @@ function SortableProfItem({ prof, attributes, proficiencyBonus, onUpdate, onRemo
               {prof.training === "Proficient" ? <CircleDot className="size-3.5" /> : <CheckCircle2 className="size-3.5" />}
             </button>
 
-            <select
+            <Select
+              selectSize="sm"
+              className="min-w-0 flex-1"
               value={prof.stat ?? ""}
               onChange={(e) => onUpdate({ stat: e.target.value === "" ? null : e.target.value as AttributeKey })}
-              className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-1.5 text-xs text-foreground focus:outline-none focus:border-ring"
             >
               <option value="">—</option>
               {ATTR_KEYS.map(k => <option key={k} value={k}>{ATTR_ABBR[k]}</option>)}
-            </select>
+            </Select>
 
             <div className="relative min-w-[3rem] flex-1">
               <input

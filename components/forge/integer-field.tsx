@@ -50,8 +50,8 @@ export function IntegerField({
           onClick={() => onChange(clamp(value - 1))}
           disabled={min !== undefined && value <= min}
           className={cn(
-            "flex shrink-0 items-center justify-center text-muted-foreground transition-colors",
-            "hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
+            "flex shrink-0 items-center justify-center text-card-foreground/60",
+            "disabled:pointer-events-none disabled:opacity-40",
             compact ? "h-full w-8 text-lg" : "h-full w-7 text-sm"
           )}
         >
@@ -76,8 +76,8 @@ export function IntegerField({
           onClick={() => onChange(clamp(value + 1))}
           disabled={max !== undefined && value >= max}
           className={cn(
-            "flex shrink-0 items-center justify-center text-muted-foreground transition-colors",
-            "hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
+            "flex shrink-0 items-center justify-center text-card-foreground/60",
+            "disabled:pointer-events-none disabled:opacity-40",
             compact ? "h-full w-8 text-lg" : "h-full w-7 text-sm"
           )}
         >
