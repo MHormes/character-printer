@@ -1,46 +1,56 @@
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
-import { redirect } from "next/navigation"
-import { revalidatePath } from "next/cache"
-import Link from "next/link"
-import { listAllCharacters, createCharacter, deleteCharacter } from "@/lib/actions/character"
-import { getOrCreateStubUser } from "@/lib/actions/user"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Pencil, Trash2, Scroll } from "lucide-react"
-import { NewCharacterDialog } from "@/components/characters/new-character-dialog"
-import type { Edition } from "@/lib/types/character"
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import Link from "next/link";
+import {
+  listAllCharacters,
+  createCharacter,
+  deleteCharacter,
+} from "@/lib/actions/character";
+import { auth } from "@/lib/auth";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Pencil, Trash2, Scroll } from "lucide-react";
+import { NewCharacterDialog } from "@/components/characters/new-character-dialog";
+import { LogoutButton } from "@/components/auth/logout-button";
+import type { Edition } from "@/lib/types/character";
 
 const EDITION_LABELS: Record<Edition, string> = {
   "2014": "D&D 5e 2014",
   "2024": "D&D 5e 2024",
-}
+};
 
 function formatDate(date: Date | null) {
-  if (!date) return "—"
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(date)
+  if (!date) return "—";
+  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(date);
 }
 
 async function createAction(formData: FormData) {
-  "use server"
-  const edition = (formData.get("edition") as Edition) || "2014"
-  const user = await getOrCreateStubUser()
-  const { id } = await createCharacter(user.id, edition)
-  redirect(`/forge/${id}`)
+  "use server";
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const edition = (formData.get("edition") as Edition) || "2014";
+  const { id } = await createCharacter(session.user.id, edition);
+  redirect(`/forge/${id}`);
 }
 
 async function deleteAction(formData: FormData) {
-  "use server"
-  const id = formData.get("id") as string
-  await deleteCharacter(id)
-  revalidatePath("/characters")
+  "use server";
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const charId = formData.get("id") as string;
+  await deleteCharacter(charId, session.user.id);
+  revalidatePath("/characters");
 }
 
 export default async function CharactersPage() {
-  const characters = await listAllCharacters()
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+
+  const characters = await listAllCharacters(session.user.id);
 
   return (
     <div className="min-h-screen bg-background">
-
       {/* Top bar */}
       <header className="flex items-center justify-between bg-primary px-8 py-4">
         <Link
@@ -49,11 +59,14 @@ export default async function CharactersPage() {
         >
           Character Printer
         </Link>
-        <NewCharacterDialog createAction={createAction} size="sm" />
+        <div className="flex items-center gap-2">
+          <NewCharacterDialog createAction={createAction} size="sm" />
+
+          <LogoutButton variant="secondary" />
+        </div>
       </header>
 
       <main className="px-8 py-10 max-w-screen-2xl mx-auto">
-
         {/* Page heading */}
         <div className="mb-10">
           <h1 className="font-cinzel text-5xl md:text-6xl font-black tracking-tight text-foreground mb-4">
@@ -62,7 +75,8 @@ export default async function CharactersPage() {
           <div className="flex items-center gap-3">
             <div className="h-px w-10 bg-border" />
             <span className="font-cinzel text-[10px] tracking-[0.3em] uppercase text-muted-foreground">
-              {characters.length} {characters.length === 1 ? "character" : "characters"}
+              {characters.length}{" "}
+              {characters.length === 1 ? "character" : "characters"}
             </span>
             <div className="h-px flex-1 bg-border" />
           </div>
@@ -99,7 +113,10 @@ export default async function CharactersPage() {
                   <div className="flex items-center gap-1.5">
                     <Link
                       href={`/forge/${char.id}`}
-                      className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+                      className={buttonVariants({
+                        variant: "ghost",
+                        size: "icon-sm",
+                      })}
                     >
                       <Pencil className="size-3.5 text-primary-foreground/70" />
                     </Link>
@@ -117,12 +134,16 @@ export default async function CharactersPage() {
                   <div className="space-y-1 min-w-0">
                     <p className="font-cinzel font-bold text-base leading-tight truncate text-foreground">
                       {char.name || (
-                        <span className="font-normal italic text-muted-foreground">Unnamed</span>
+                        <span className="font-normal italic text-muted-foreground">
+                          Unnamed
+                        </span>
                       )}
                     </p>
                     {(char.race || char.classLabels) && (
                       <p className="font-garamond italic text-sm text-muted-foreground truncate">
-                        {[char.race, char.classLabels, `Lv ${char.level}`].filter(Boolean).join(" · ")}
+                        {[char.race, char.classLabels, `Lv ${char.level}`]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
                     )}
                   </div>
@@ -140,5 +161,5 @@ export default async function CharactersPage() {
         )}
       </main>
     </div>
-  )
+  );
 }

@@ -148,6 +148,20 @@
       "when": 1748563200000,
       "tag": "0020_fix_boolean_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1779877700152,
+      "tag": "0021_previous_pixie",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1779877732470,
+      "tag": "0022_small_dark_beast",
+      "breakpoints": true
     }
   ]
 }

@@ -1,12 +1,5 @@
-import { redirect } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import Link from "next/link"
-
-async function loginAction() {
-  "use server"
-  redirect("/characters")
-}
+import { Suspense } from "react"
+import { LoginForm } from "@/components/auth/login-form"
 
 const D20Mini = () => (
   <svg
@@ -50,57 +43,9 @@ export default function LoginPage() {
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      {/* Form */}
-      <form action={loginAction} className="w-full px-8 pb-8 flex flex-col gap-5" suppressHydrationWarning>
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="username"
-            className="font-cinzel text-[10px] tracking-[0.3em] uppercase text-muted-foreground"
-          >
-            Username
-          </label>
-          <Input
-            id="username"
-            name="username"
-            type="text"
-            placeholder="Your name, adventurer"
-            autoComplete="username"
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="password"
-            className="font-cinzel text-[10px] tracking-[0.3em] uppercase text-muted-foreground"
-          >
-            Password
-          </label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            placeholder="••••••••"
-            autoComplete="current-password"
-          />
-        </div>
-
-        <Button type="submit" className="w-full mt-1" size="lg">
-          Enter the Forge
-        </Button>
-      </form>
-
-      {/* Footer */}
-      <div className="w-full border-t border-border px-8 py-4 text-center">
-        <p className="font-garamond text-sm text-muted-foreground">
-          No account?{" "}
-          <Link
-            href="/register"
-            className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors"
-          >
-            Create one
-          </Link>
-        </p>
-      </div>
+      <Suspense>
+        <LoginForm />
+      </Suspense>
     </div>
   )
 }

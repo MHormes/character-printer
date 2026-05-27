@@ -5,8 +5,10 @@ import { sqliteCharacters, sqliteClasses } from "@/lib/db/schema"
 import { normalizeCanvasPages } from "@/lib/canvas/page-utils"
 import { createDefaultCharacter } from "@/lib/character/defaults"
 import type { CharacterData, AttributeKey, Edition } from "@/lib/types/character"
-import { eq, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { randomUUID } from "crypto"
+import { auth } from "@/lib/auth"
+import { redirect } from "next/navigation"
 
 const anyDb = db as any
 
@@ -123,6 +125,14 @@ export async function createCharacter(userId: string, edition: Edition = "2014")
 }
 
 export async function saveCharacter(id: string, data: CharacterData, autoSave?: boolean): Promise<void> {
+  const session = await auth()
+  if (!session?.user?.id) redirect("/login")
+  const owned = await anyDb
+    .select({ id: sqliteCharacters.id })
+    .from(sqliteCharacters)
+    .where(and(eq(sqliteCharacters.id, id), eq(sqliteCharacters.userId, session.user.id)))
+    .limit(1)
+  if (!owned[0]) return
   await anyDb
     .update(sqliteCharacters)
     .set({
@@ -135,10 +145,12 @@ export async function saveCharacter(id: string, data: CharacterData, autoSave?: 
 }
 
 export async function loadCharacter(id: string): Promise<{ data: CharacterData; autoSave: boolean } | null> {
+  const session = await auth()
+  if (!session?.user?.id) redirect("/login")
   const rows = await anyDb
     .select({ rawData: sql<string>`${sqliteCharacters.data}`, autoSave: sqliteCharacters.autoSave })
     .from(sqliteCharacters)
-    .where(eq(sqliteCharacters.id, id))
+    .where(and(eq(sqliteCharacters.id, id), eq(sqliteCharacters.userId, session.user.id)))
     .limit(1)
 
   if (!rows[0]) return null
@@ -165,7 +177,7 @@ export type CharacterSummary = {
   level: number
 }
 
-export async function listAllCharacters(): Promise<CharacterSummary[]> {
+export async function listAllCharacters(userId: string): Promise<CharacterSummary[]> {
   const rows = await anyDb
     .select({
       id: sqliteCharacters.id,
@@ -175,6 +187,7 @@ export async function listAllCharacters(): Promise<CharacterSummary[]> {
       rawData: sql<string>`${sqliteCharacters.data}`,
     })
     .from(sqliteCharacters)
+    .where(eq(sqliteCharacters.userId, userId))
 
   return rows
     .map((row: any) => {
@@ -206,6 +219,7 @@ export async function listAllCharacters(): Promise<CharacterSummary[]> {
     )
 }
 
-export async function deleteCharacter(id: string): Promise<void> {
-  await anyDb.delete(sqliteCharacters).where(eq(sqliteCharacters.id, id))
+export async function deleteCharacter(id: string, userId: string): Promise<void> {
+  await anyDb.delete(sqliteCharacters).where(and(eq(sqliteCharacters.id, id), eq(sqliteCharacters.userId, userId)))
 }
+

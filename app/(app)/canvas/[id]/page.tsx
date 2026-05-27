@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -26,7 +27,6 @@ import {
   deleteCanvasTemplate,
   listCanvasTemplates,
 } from "@/lib/actions/canvas-template";
-import { getOrCreateStubUser } from "@/lib/actions/user";
 import { stripWidgetIds } from "@/lib/canvas/page-utils";
 import type { CanvasTemplate } from "@/lib/types/canvas";
 
@@ -48,7 +48,8 @@ export default function CanvasPage({
   );
   const [pdfStatus, setPdfStatus] = useState<"idle" | "exporting">("idle");
   const [templateError, setTemplateError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { data: session } = useSession();
+  const userId = session?.user?.id ?? null;
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cols = useCanvasStore((s) => s.cols);
@@ -65,20 +66,18 @@ export default function CanvasPage({
   const rows = Math.ceil((cols * 297) / 210);
 
   useEffect(() => {
+    if (!userId) return;
     clearCharacter();
-    Promise.all([loadCharacter(id), getOrCreateStubUser()]).then(
-      async ([res, user]) => {
-        setUserId(user.id);
-        const userTemplates = await listCanvasTemplates(user.id);
+    Promise.all([loadCharacter(id), listCanvasTemplates(userId)]).then(
+      ([res, userTemplates]) => {
         setTemplates(userTemplates);
-
         if (res) {
           setCharacter(res.data, res.autoSave);
           setCanvasData(res.data.canvas.pages);
         }
       },
     );
-  }, [id, clearCharacter, setCharacter, setCanvasData]);
+  }, [id, userId, clearCharacter, setCharacter, setCanvasData]);
 
   // Auto-save on canvas change with 1.5s debounce
   useEffect(() => {
@@ -212,7 +211,7 @@ export default function CanvasPage({
         // Ensure the node is visible and has dimensions
         const width = pageNode.offsetWidth || 794; // fallback to ~210mm at 96dpi
         const height = pageNode.offsetHeight || 1123; // fallback to ~297mm at 96dpi
-        
+
         const imageData = await toJpeg(pageNode, {
           backgroundColor: "#ffffff",
           cacheBust: true,
@@ -221,14 +220,23 @@ export default function CanvasPage({
           width: width,
           height: height,
         });
-        
+
         const pageHeight = (height * 210) / width;
 
         if (index > 0) {
           pdf.addPage("a4", "portrait");
         }
 
-        pdf.addImage(imageData, "JPEG", 0, 0, 210, pageHeight, undefined, "FAST");
+        pdf.addImage(
+          imageData,
+          "JPEG",
+          0,
+          0,
+          210,
+          pageHeight,
+          undefined,
+          "FAST",
+        );
       }
 
       const baseName = character?.identity.name?.trim() || "character-sheet";
@@ -268,7 +276,6 @@ export default function CanvasPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-
       {/* Primary nav bar */}
       <header className="flex shrink-0 items-center justify-between bg-primary px-8 py-3">
         <div className="flex items-center gap-4">

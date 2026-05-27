@@ -25,6 +25,9 @@ export const sqliteUsers = sqliteTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name"),
+  username: text("username").notNull().default("").unique(),
+  passwordHash: text("password_hash").notNull().default(""),
+  role: text("role").notNull().default("user"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -68,6 +71,9 @@ export const pgUsers = pgTable("users", {
   id: varchar("id", { length: 36 }).primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }),
+  username: varchar("username", { length: 100 }).notNull().default("").unique(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull().default(""),
+  role: varchar("role", { length: 20 }).notNull().default("user"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
