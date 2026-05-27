@@ -129,7 +129,7 @@ export async function saveCharacter(id: string, data: CharacterData, autoSave?: 
       name: data.identity.name,
       data,
       ...(autoSave !== undefined ? { autoSave } : {}),
-      updatedAt: sql`CURRENT_TIMESTAMP`,
+      updatedAt: new Date(),
     })
     .where(eq(sqliteCharacters.id, id))
 }
@@ -171,35 +171,39 @@ export async function listAllCharacters(): Promise<CharacterSummary[]> {
       id: sqliteCharacters.id,
       name: sqliteCharacters.name,
       updatedAt: sqliteCharacters.updatedAt,
+      createdAt: sqliteCharacters.createdAt,
       rawData: sql<string>`${sqliteCharacters.data}`,
     })
     .from(sqliteCharacters)
-    .orderBy(sqliteCharacters.updatedAt)
 
-  return rows.map((row: any) => {
-    let data: Partial<CharacterData> = {}
-    try {
-      data = (typeof row.rawData === "string" ? JSON.parse(row.rawData) : row.rawData) as Partial<CharacterData>
-    } catch {
-      // corrupted row — skip parsing, return defaults
-    }
-    const srdKey = data.automationKeys?.srdClassKey ?? data.identity?.classes?.[0]?.classId
-    const system = srdKey ? (srdKey.split(":")[0] ?? "dnd5e") : "dnd5e"
-    const classLabels =
-      data.identity?.classLabels ||
-      data.identity?.classes?.filter((c) => c.name).map((c) => c.name).join(" / ") ||
-      ""
-    return {
-      id: row.id,
-      name: row.name,
-      updatedAt: toDate(row.updatedAt),
-      system,
-      edition: (data.edition ?? "2014") as Edition,
-      race: data.identity?.race ?? "",
-      classLabels,
-      level: data.identity?.level ?? 1,
-    }
-  })
+  return rows
+    .map((row: any) => {
+      let data: Partial<CharacterData> = {}
+      try {
+        data = (typeof row.rawData === "string" ? JSON.parse(row.rawData) : row.rawData) as Partial<CharacterData>
+      } catch {
+        // corrupted row — skip parsing, return defaults
+      }
+      const srdKey = data.automationKeys?.srdClassKey ?? data.identity?.classes?.[0]?.classId
+      const system = srdKey ? (srdKey.split(":")[0] ?? "dnd5e") : "dnd5e"
+      const classLabels =
+        data.identity?.classLabels ||
+        data.identity?.classes?.filter((c) => c.name).map((c) => c.name).join(" / ") ||
+        ""
+      return {
+        id: row.id,
+        name: row.name,
+        updatedAt: toDate(row.updatedAt) ?? toDate(row.createdAt),
+        system,
+        edition: (data.edition ?? "2014") as Edition,
+        race: data.identity?.race ?? "",
+        classLabels,
+        level: data.identity?.level ?? 1,
+      }
+    })
+    .sort((a: CharacterSummary, b: CharacterSummary) =>
+      (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0),
+    )
 }
 
 export async function deleteCharacter(id: string): Promise<void> {

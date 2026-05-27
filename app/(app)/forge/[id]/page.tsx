@@ -64,6 +64,7 @@ import { InventoryBlock } from "@/components/forge/inventory-block";
 import { ActionsBlock } from "@/components/forge/actions-block";
 import { FeaturesBlock } from "@/components/forge/features-block";
 import { TrackersBlock } from "@/components/forge/trackers-block";
+import { DynamicValueInput } from "@/components/forge/dynamic-value-input";
 import { StatBoxesBlock } from "@/components/forge/stat-boxes-block";
 import { SpellsBlock } from "@/components/forge/spells-block";
 import { CharacteristicsBlock } from "@/components/forge/characteristics-block";
@@ -104,7 +105,7 @@ import type {
   Bio,
 } from "@/lib/types/character";
 
-import { resolvePb, resolveAttributeMod } from "@/lib/character/calculations";
+import { resolvePb, resolveAttributeMod, materializeDynamicModifiers } from "@/lib/character/calculations";
 import { getRuleSet } from "@/lib/rules";
 import { RuleSetProvider } from "@/lib/rules/rule-context";
 import {
@@ -355,7 +356,9 @@ export default function ForgePage({
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus("saving");
     saveTimer.current = setTimeout(async () => {
-      await saveCharacter(id, character, autoSave);
+      const saveData = structuredClone(character);
+      materializeDynamicModifiers(saveData);
+      await saveCharacter(id, saveData, autoSave);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     }, 1500);
@@ -368,16 +371,19 @@ export default function ForgePage({
     if (!character) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus("saving");
-    await saveCharacter(id, character, autoSave);
+    const saveData = structuredClone(character);
+    materializeDynamicModifiers(saveData);
+    await saveCharacter(id, saveData, autoSave);
     setSaveStatus("saved");
     setTimeout(() => setSaveStatus("idle"), 2000);
   }
 
   async function handleToggleAutoSave(checked: boolean) {
     setAutoSave(checked);
-    // Persist immediately when toggling
     if (character) {
-      await saveCharacter(id, character, checked);
+      const saveData = structuredClone(character);
+      materializeDynamicModifiers(saveData);
+      await saveCharacter(id, saveData, checked);
     }
   }
 
@@ -1198,6 +1204,9 @@ export default function ForgePage({
                     key={attr}
                     label={ATTRIBUTE_LABELS[attr]}
                     data={attributes[attr]}
+                    attrs={attributes}
+                    level={identity.level}
+                    pb={pb}
                     showManualControls={isManualSectionVisible("coreStats")}
                     onBaseChange={(v) => updateAttributeBase(attr, v)}
                     onStackChange={(stack: ModifierEntry[]) =>
@@ -1226,6 +1235,8 @@ export default function ForgePage({
                     proficiencyBonus={pb}
                     globalStack={saveGlobalStack}
                     attrKey={attr}
+                    attrs={attributes}
+                    level={identity.level}
                     showManualControls={isManualSectionVisible("savingThrows")}
                     onProficiencyChange={(p) => setSaveProficiency(attr, p)}
                     onStackChange={(stack) => setSaveStack(attr, stack)}
@@ -1301,43 +1312,22 @@ export default function ForgePage({
                                   )
                                 }
                               />
-                              <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                                <span className="select-none pl-2 text-xs text-muted-foreground">
-                                  +
-                                </span>
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  value={
-                                    mod.value === 0 ? "" : String(mod.value)
-                                  }
-                                  placeholder="0"
-                                  onChange={(e) => {
-                                    const raw = e.target.value;
-                                    if (raw === "") {
-                                      setGlobalSaveStack(
-                                        saveGlobalStack.map((m) =>
-                                          m.id === mod.id
-                                            ? { ...m, value: 0 }
-                                            : m,
-                                        ),
-                                      );
-                                      return;
-                                    }
-                                    if (raw === "-") return;
-                                    const n = parseInt(raw, 10);
-                                    if (!isNaN(n))
-                                      setGlobalSaveStack(
-                                        saveGlobalStack.map((m) =>
-                                          m.id === mod.id
-                                            ? { ...m, value: n }
-                                            : m,
-                                        ),
-                                      );
-                                  }}
-                                  className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
-                                />
-                              </div>
+                              <DynamicValueInput
+                                value={mod.value}
+                                valueSource={mod.valueSource}
+                                attrs={attributes}
+                                level={identity.level}
+                                pb={pb}
+                                onChange={(v, vs) =>
+                                  setGlobalSaveStack(
+                                    saveGlobalStack.map((m) =>
+                                      m.id === mod.id
+                                        ? { ...m, value: v, valueSource: vs }
+                                        : m,
+                                    ),
+                                  )
+                                }
+                              />
                             </div>
                             <div className="mt-0.5 flex flex-col gap-0.5">
                               <button
@@ -1412,6 +1402,7 @@ export default function ForgePage({
               skills={skills}
               attributes={attributes}
               proficiencyBonus={pb}
+              level={identity.level}
               jackOfAllTrades={jackOfAllTrades}
               jackOfAllTradesSaves={jackOfAllTradesSaves}
               globalStack={skillGlobalStack}

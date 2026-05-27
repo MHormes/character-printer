@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import type { TrackerEntry, TrackerBaseSource, AttributeKey, AttributeData } from "@/lib/types/character"
 import { resolveTrackerBase } from "@/lib/character/calculations"
+import { DynamicValueInput } from "@/components/forge/dynamic-value-input"
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import type { DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
@@ -56,6 +57,16 @@ function sourceLabel(src?: TrackerBaseSource): string {
   return "Fixed"
 }
 
+function calcLabel(tracker: TrackerEntry): string {
+  const base = sourceLabel(tracker.baseSource)
+  const mult = tracker.baseMultiplier ?? 1
+  const off = tracker.baseOffset ?? 0
+  let label = mult !== 1 ? `${mult}×${base}` : base
+  if (off > 0) label += `+${off}`
+  else if (off < 0) label += String(off)
+  return label
+}
+
 type SortableTrackerItemProps = {
   tracker: TrackerEntry
   expanded: boolean
@@ -103,7 +114,7 @@ function SortableTrackerItem({
           <>
             {!isFixed && (
               <span className="shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                {sourceLabel(tracker.baseSource)}
+                {calcLabel(tracker)}
               </span>
             )}
             <span className="shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-muted-foreground">
@@ -134,12 +145,12 @@ function SortableTrackerItem({
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="w-16 shrink-0 text-xs text-muted-foreground">Base</span>
             <Select
               selectSize="sm"
               value={sourceToValue(tracker.baseSource)}
-              onChange={e => onPatch({ baseSource: valueToSource(e.target.value), override: null })}
+              onChange={e => onPatch({ baseSource: valueToSource(e.target.value), baseMultiplier: 1, baseOffset: 0, override: null })}
             >
               <option value="fixed">Fixed</option>
               <optgroup label="Attribute modifier">
@@ -162,9 +173,23 @@ function SortableTrackerItem({
                 className="h-6 w-16 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
               />
             ) : (
-              <span className="flex h-6 w-16 items-center justify-center rounded-md border border-input bg-muted/40 px-2 text-xs tabular-nums text-muted-foreground">
-                {resolvedBase}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">×</span>
+                <input type="number"
+                  value={tracker.baseMultiplier ?? 1}
+                  onChange={e => onPatch({ baseMultiplier: parseFloat(e.target.value) || 1, override: null })}
+                  className="h-6 w-10 rounded-md border border-input bg-background px-1.5 text-xs tabular-nums focus:outline-none focus:border-ring"
+                />
+                <span className="text-xs text-muted-foreground">+</span>
+                <input type="number"
+                  value={tracker.baseOffset ?? 0}
+                  onChange={e => onPatch({ baseOffset: parseInt(e.target.value) || 0, override: null })}
+                  className="h-6 w-10 rounded-md border border-input bg-background px-1.5 text-xs tabular-nums focus:outline-none focus:border-ring"
+                />
+                <span className="flex h-6 items-center justify-center rounded-md border border-input bg-muted/40 px-2 text-xs tabular-nums text-muted-foreground">
+                  ={resolvedBase}
+                </span>
+              </div>
             )}
           </div>
 
@@ -189,19 +214,14 @@ function SortableTrackerItem({
                         <Input type="text" value={mod.source} placeholder="Source"
                           onChange={e => onPatch({ stack: tracker.stack.map(m => m.id === mod.id ? { ...m, source: e.target.value } : m) })}
                           className="h-6 text-xs" />
-                        <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                          <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
-                          <input type="text" inputMode="numeric"
-                            value={mod.value === 0 ? "" : String(mod.value)} placeholder="0"
-                            onChange={e => {
-                              const raw = e.target.value
-                              if (raw === "" || raw === "-") return
-                              const n = parseInt(raw, 10)
-                              if (!isNaN(n)) onPatch({ stack: tracker.stack.map(m => m.id === mod.id ? { ...m, value: n } : m) })
-                            }}
-                            className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
-                          />
-                        </div>
+                        <DynamicValueInput
+                          value={mod.value}
+                          valueSource={mod.valueSource}
+                          attrs={attributes}
+                          level={level}
+                          pb={pb}
+                          onChange={(v, vs) => onPatch({ stack: tracker.stack.map(m => m.id === mod.id ? { ...m, value: v, valueSource: vs } : m) })}
+                        />
                       </div>
                       <div className="mt-0.5 flex flex-col gap-0.5">
                         <button type="button"

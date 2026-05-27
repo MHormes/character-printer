@@ -4,19 +4,23 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { X, Plus, RotateCcw, CircleDot, Circle, ChevronDown, ChevronRight, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { AttributeData, ModifierEntry } from "@/lib/types/character"
+import type { AttributeData, AttributeKey, ModifierEntry } from "@/lib/types/character"
 import { resolveAttributeScore } from "@/lib/character/calculations"
+import { DynamicValueInput } from "@/components/forge/dynamic-value-input"
 
 type StatBlockProps = {
   label: string
   data: AttributeData
+  attrs: Record<AttributeKey, AttributeData>
+  level: number
+  pb: number
   showManualControls: boolean
   onBaseChange: (value: number) => void
   onStackChange: (stack: ModifierEntry[]) => void
   onOverrideChange: (override: number | null) => void
 }
 
-export function StatBlock({ label, data, showManualControls, onBaseChange, onStackChange, onOverrideChange }: StatBlockProps) {
+export function StatBlock({ label, data, attrs, level, pb, showManualControls, onBaseChange, onStackChange, onOverrideChange }: StatBlockProps) {
   const [expanded, setExpanded] = useState(false)
 
   const calculated = resolveAttributeScore(data)
@@ -136,24 +140,14 @@ export function StatBlock({ label, data, showManualControls, onBaseChange, onSta
                         placeholder="Source"
                         className="h-6 text-xs"
                       />
-                      <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                        <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={mod.value === 0 ? "" : String(mod.value)}
-                          placeholder="0"
-                          onChange={(e) => {
-                            const raw = e.target.value
-                            if (raw === "") { updateValue(mod.id, 0); return }
-                            if (raw === "-") return
-                            const n = parseInt(raw, 10)
-                            if (!isNaN(n)) updateValue(mod.id, n)
-                          }}
-                          onBlur={(e) => { if (e.target.value === "-") updateValue(mod.id, 0) }}
-                          className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
-                        />
-                      </div>
+                      <DynamicValueInput
+                        value={mod.value}
+                        valueSource={mod.valueSource}
+                        attrs={attrs}
+                        level={level}
+                        pb={pb}
+                        onChange={(v, vs) => onStackChange(data.stack.map(m => m.id === mod.id ? { ...m, value: v, valueSource: vs } : m))}
+                      />
                     </div>
                     <div className="mt-0.5 flex flex-col gap-0.5">
                       <button

@@ -22,6 +22,7 @@ import type {
   ModifierEntry,
   DerivedValueData,
 } from "@/lib/types/character";
+import { DynamicValueInput } from "@/components/forge/dynamic-value-input";
 
 import {
   resolveSkillBonus,
@@ -46,6 +47,7 @@ type SkillsBlockProps = {
   skills: Record<string, SkillData>;
   attributes: Record<AttributeKey, AttributeData>;
   proficiencyBonus: number;
+  level: number;
   jackOfAllTrades: boolean;
   jackOfAllTradesSaves?: boolean;
   globalStack: ModifierEntry[];
@@ -64,6 +66,7 @@ export function SkillsBlock({
   skills,
   attributes,
   proficiencyBonus,
+  level,
   jackOfAllTrades,
   jackOfAllTradesSaves,
   globalStack,
@@ -386,33 +389,14 @@ export function SkillsBlock({
                             updatePassiveMod(mod.id, { source: e.target.value })
                           }
                         />
-                        <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                          <span className="select-none pl-2 text-xs text-muted-foreground">
-                            +
-                          </span>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={mod.value === 0 ? "" : String(mod.value)}
-                            placeholder="0"
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              if (raw === "") {
-                                updatePassiveMod(mod.id, { value: 0 });
-                                return;
-                              }
-                              if (raw === "-") return;
-                              const n = parseInt(raw, 10);
-                              if (!isNaN(n))
-                                updatePassiveMod(mod.id, { value: n });
-                            }}
-                            onBlur={(e) => {
-                              if (e.target.value === "-")
-                                updatePassiveMod(mod.id, { value: 0 });
-                            }}
-                            className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
-                          />
-                        </div>
+                        <DynamicValueInput
+                          value={mod.value}
+                          valueSource={mod.valueSource}
+                          attrs={attributes}
+                          level={level}
+                          pb={proficiencyBonus}
+                          onChange={(v, vs) => updatePassiveMod(mod.id, { value: v, valueSource: vs })}
+                        />
                       </div>
                       <div className="mt-0.5 flex flex-col gap-0.5">
                         <button
@@ -517,33 +501,14 @@ export function SkillsBlock({
                           updateGlobalMod(mod.id, { source: e.target.value })
                         }
                       />
-                      <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                        <span className="select-none pl-2 text-xs text-muted-foreground">
-                          +
-                        </span>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={mod.value === 0 ? "" : String(mod.value)}
-                          placeholder="0"
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            if (raw === "") {
-                              updateGlobalMod(mod.id, { value: 0 });
-                              return;
-                            }
-                            if (raw === "-") return;
-                            const n = parseInt(raw, 10);
-                            if (!isNaN(n))
-                              updateGlobalMod(mod.id, { value: n });
-                          }}
-                          onBlur={(e) => {
-                            if (e.target.value === "-")
-                              updateGlobalMod(mod.id, { value: 0 });
-                          }}
-                          className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
-                        />
-                      </div>
+                      <DynamicValueInput
+                        value={mod.value}
+                        valueSource={mod.valueSource}
+                        attrs={attributes}
+                        level={level}
+                        pb={proficiencyBonus}
+                        onChange={(v, vs) => updateGlobalMod(mod.id, { value: v, valueSource: vs })}
+                      />
                     </div>
                     <div className="mt-0.5 flex flex-col gap-0.5">
                       <button

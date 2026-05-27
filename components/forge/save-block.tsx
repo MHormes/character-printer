@@ -18,9 +18,11 @@ import type {
   SaveData,
   ModifierEntry,
   AttributeKey,
+  AttributeData,
 } from "@/lib/types/character";
 
 import { resolveSaveBonus } from "@/lib/character/calculations";
+import { DynamicValueInput } from "@/components/forge/dynamic-value-input";
 
 type SaveBlockProps = {
   label: string;
@@ -29,6 +31,8 @@ type SaveBlockProps = {
   proficiencyBonus: number;
   globalStack: ModifierEntry[];
   attrKey: AttributeKey;
+  attrs: Record<AttributeKey, AttributeData>;
+  level: number;
   showManualControls: boolean;
   onProficiencyChange: (proficient: boolean) => void;
   onStackChange: (stack: ModifierEntry[]) => void;
@@ -45,6 +49,8 @@ export function SaveBlock({
   onStackChange,
   onOverrideChange,
   attrKey,
+  attrs,
+  level,
   showManualControls,
 }: SaveBlockProps) {
   const [expanded, setExpanded] = useState(false);
@@ -196,31 +202,14 @@ export function SaveBlock({
                         placeholder="Source"
                         className="h-6 text-xs"
                       />
-                      <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                        <span className="select-none pl-2 text-xs text-muted-foreground">
-                          +
-                        </span>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={mod.value === 0 ? "" : String(mod.value)}
-                          placeholder="0"
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            if (raw === "") {
-                              updateValue(mod.id, 0);
-                              return;
-                            }
-                            if (raw === "-") return;
-                            const n = parseInt(raw, 10);
-                            if (!isNaN(n)) updateValue(mod.id, n);
-                          }}
-                          onBlur={(e) => {
-                            if (e.target.value === "-") updateValue(mod.id, 0);
-                          }}
-                          className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
-                        />
-                      </div>
+                      <DynamicValueInput
+                        value={mod.value}
+                        valueSource={mod.valueSource}
+                        attrs={attrs}
+                        level={level}
+                        pb={proficiencyBonus}
+                        onChange={(v, vs) => onStackChange(data.stack.map(m => m.id === mod.id ? { ...m, value: v, valueSource: vs } : m))}
+                      />
                     </div>
                     <div className="mt-0.5 flex flex-col gap-0.5">
                       <button

@@ -30,6 +30,7 @@ import {
   resolveAttributeMod,
   resolveAttributeScore,
 } from "@/lib/character/calculations";
+import { DynamicValueInput } from "@/components/forge/dynamic-value-input";
 
 const ATTR_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"];
 const ATTR_ABBR: Record<AttributeKey, string> = {
@@ -50,11 +51,17 @@ function ModStack({
   expanded,
   onToggle,
   onStackChange,
+  attributes,
+  level,
+  proficiencyBonus,
 }: {
   stack: ModifierEntry[];
   expanded: boolean;
   onToggle: () => void;
   onStackChange: (s: ModifierEntry[]) => void;
+  attributes: Record<AttributeKey, AttributeData>;
+  level: number;
+  proficiencyBonus: number;
 }) {
   const sum = stack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0);
 
@@ -119,31 +126,14 @@ function ModStack({
                     className="h-6 text-xs"
                     onChange={(e) => patch(mod.id, { source: e.target.value })}
                   />
-                  <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-                    <span className="select-none pl-2 text-xs text-muted-foreground">
-                      +
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={mod.value === 0 ? "" : String(mod.value)}
-                      placeholder="0"
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        if (raw === "") {
-                          patch(mod.id, { value: 0 });
-                          return;
-                        }
-                        if (raw === "-") return;
-                        const n = parseInt(raw, 10);
-                        if (!isNaN(n)) patch(mod.id, { value: n });
-                      }}
-                      onBlur={(e) => {
-                        if (e.target.value === "-") patch(mod.id, { value: 0 });
-                      }}
-                      className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
-                    />
-                  </div>
+                  <DynamicValueInput
+                    value={mod.value}
+                    valueSource={mod.valueSource}
+                    attrs={attributes}
+                    level={level}
+                    pb={proficiencyBonus}
+                    onChange={(v, vs) => patch(mod.id, { value: v, valueSource: vs })}
+                  />
                 </div>
                 <div className="mt-0.5 flex flex-col gap-0.5">
                   <button
@@ -379,6 +369,9 @@ export function CombatBlock({
             expanded={acExpanded}
             onToggle={() => setAcExpanded((v) => !v)}
             onStackChange={(stack) => onAcChange({ ...data.ac, stack })}
+            attributes={attributes}
+            level={totalLevel}
+            proficiencyBonus={proficiencyBonus}
           />
         )}
 
@@ -443,6 +436,9 @@ export function CombatBlock({
             onStackChange={(stack) =>
               onInitiativeChange({ ...data.initiative, stack })
             }
+            attributes={attributes}
+            level={totalLevel}
+            proficiencyBonus={proficiencyBonus}
           />
         )}
 
@@ -536,6 +532,9 @@ export function CombatBlock({
             expanded={speedExpanded}
             onToggle={() => setSpeedExpanded((v) => !v)}
             onStackChange={(stack) => onSpeedChange({ ...data.speed, stack })}
+            attributes={attributes}
+            level={totalLevel}
+            proficiencyBonus={proficiencyBonus}
           />
         )}
 
@@ -642,6 +641,9 @@ export function CombatBlock({
                 expanded={hpExpanded}
                 onToggle={() => setHpExpanded((v) => !v)}
                 onStackChange={(stack) => onHpChange({ ...data.hp, stack })}
+                attributes={attributes}
+                level={totalLevel}
+                proficiencyBonus={proficiencyBonus}
               />
             )}
           </div>

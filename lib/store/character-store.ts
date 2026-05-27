@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type { CharacterData, AttributeKey, SkillState, FeatureEntry, TrackerEntry, SpellEntry, StatBox } from "@/lib/types/character";
 import { syncInventoryToStacks, syncGlobalSkillToInitiative, syncJoatToStacks } from "@/lib/character/modifier-sync";
+import { materializeDynamicModifiers } from "@/lib/character/calculations";
 
 type CharacterStore = {
   character: CharacterData | null;
@@ -60,6 +61,7 @@ export const useCharacterStore = create<CharacterStore>()(
         if (autoSave !== undefined) state.autoSave = autoSave;
         syncGlobalSkillToInitiative(state.character as unknown as CharacterData);
         syncJoatToStacks(state.character as unknown as CharacterData);
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = false;
       }),
 

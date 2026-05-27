@@ -155,19 +155,63 @@ export function resolveSpellAttack(c: CharacterData): number {
 }
 
 export function resolveTrackerBase(
-  tracker: { base: number; baseSource?: TrackerBaseSource },
+  tracker: { base: number; baseSource?: TrackerBaseSource; baseMultiplier?: number; baseOffset?: number },
   attrs: Record<AttributeKey, AttributeData>,
   level: number,
   pb: number,
 ): number {
   const src = tracker.baseSource
-  if (!src || src.kind === "fixed") return tracker.base
-  if (src.kind === "attr_mod") return resolveAttributeMod(attrs[src.attr])
-  if (src.kind === "level") return level
-  if (src.kind === "half_level_up") return Math.ceil(level / 2)
-  if (src.kind === "half_level_down") return Math.floor(level / 2)
-  if (src.kind === "prof_bonus") return pb
-  return tracker.base
+  let raw: number
+  if (!src || src.kind === "fixed") raw = tracker.base
+  else if (src.kind === "attr_mod") raw = resolveAttributeMod(attrs[src.attr])
+  else if (src.kind === "level") raw = level
+  else if (src.kind === "half_level_up") raw = Math.ceil(level / 2)
+  else if (src.kind === "half_level_down") raw = Math.floor(level / 2)
+  else if (src.kind === "prof_bonus") raw = pb
+  else raw = tracker.base
+
+  if (!src || src.kind === "fixed") return raw
+  return Math.round(raw * (tracker.baseMultiplier ?? 1)) + (tracker.baseOffset ?? 0)
+}
+
+export function resolveModifierValue(
+  mod: Pick<ModifierEntry, "value" | "valueSource">,
+  attrs: Record<AttributeKey, AttributeData>,
+  level: number,
+  pb: number,
+): number {
+  if (!mod.valueSource || mod.valueSource.kind === "fixed") return mod.value
+  return resolveTrackerBase({ base: mod.value, baseSource: mod.valueSource }, attrs, level, pb)
+}
+
+export function materializeDynamicModifiers(c: CharacterData): void {
+  const attrs = c.attributes
+  const level = c.identity?.level ?? 1
+  const pb = resolvePb(c)
+
+  function materializeStack(stack: ModifierEntry[]): void {
+    for (const m of stack) {
+      if (m.valueSource && m.valueSource.kind !== "fixed") {
+        m.value = resolveModifierValue(m, attrs, level, pb)
+      }
+    }
+  }
+
+  for (const attr of Object.values(c.attributes)) materializeStack(attr.stack)
+  for (const save of Object.values(c.saves)) materializeStack(save.stack)
+  materializeStack(c.saveGlobalStack)
+  for (const skill of Object.values(c.skills)) materializeStack(skill.stack)
+  materializeStack(c.skillGlobalStack)
+  materializeStack(c.passivePerception.stack)
+  materializeStack(c.combat.ac.stack)
+  materializeStack(c.combat.initiative.stack)
+  materializeStack(c.combat.speed.stack)
+  materializeStack(c.combat.hp.stack)
+  materializeStack(c.spells.attackStack)
+  materializeStack(c.spells.dcStack)
+  for (const slot of Object.values(c.spells.slots)) materializeStack(slot.stack)
+  materializeStack(c.profBonusStack)
+  for (const tracker of c.trackers) materializeStack(tracker.stack)
 }
 
 export function resolveEquippedWeight(c: CharacterData): number {
