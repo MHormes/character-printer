@@ -1190,7 +1190,7 @@ export default function ForgePage({
           )}
         </ForgeSection>
 
-        <div className="flex flex-col xl:flex-row gap-4">
+        <div className="flex flex-col xl:flex-row gap-4 items-start">
           {/* Core stats + saves stacked */}
           <div className="w-full xl:w-1/4 flex flex-col gap-4">
             <ForgeSection
@@ -1315,14 +1315,16 @@ export default function ForgePage({
                               <DynamicValueInput
                                 value={mod.value}
                                 valueSource={mod.valueSource}
+                                valueMultiplier={mod.valueMultiplier}
+                                valueOffset={mod.valueOffset}
                                 attrs={attributes}
                                 level={identity.level}
                                 pb={pb}
-                                onChange={(v, vs) =>
+                                onChange={(v, vs, vm, vo) =>
                                   setGlobalSaveStack(
                                     saveGlobalStack.map((m) =>
                                       m.id === mod.id
-                                        ? { ...m, value: v, valueSource: vs }
+                                        ? { ...m, value: v, valueSource: vs, valueMultiplier: vm, valueOffset: vo }
                                         : m,
                                     ),
                                   )

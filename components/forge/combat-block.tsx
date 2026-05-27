@@ -129,10 +129,12 @@ function ModStack({
                   <DynamicValueInput
                     value={mod.value}
                     valueSource={mod.valueSource}
+                    valueMultiplier={mod.valueMultiplier}
+                    valueOffset={mod.valueOffset}
                     attrs={attributes}
                     level={level}
                     pb={proficiencyBonus}
-                    onChange={(v, vs) => patch(mod.id, { value: v, valueSource: vs })}
+                    onChange={(v, vs, vm, vo) => patch(mod.id, { value: v, valueSource: vs, valueMultiplier: vm, valueOffset: vo })}
                   />
                 </div>
                 <div className="mt-0.5 flex flex-col gap-0.5">

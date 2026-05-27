@@ -2,6 +2,7 @@
 
 import { Sigma } from "lucide-react"
 import { Select } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import type { TrackerBaseSource, AttributeKey, AttributeData } from "@/lib/types/character"
 import { resolveModifierValue } from "@/lib/character/calculations"
 
@@ -28,23 +29,25 @@ function valueToSource(s: string): TrackerBaseSource {
 type DynamicValueInputProps = {
   value: number
   valueSource?: TrackerBaseSource
+  valueMultiplier?: number
+  valueOffset?: number
   attrs: Record<AttributeKey, AttributeData>
   level: number
   pb: number
-  onChange: (value: number, valueSource?: TrackerBaseSource) => void
+  onChange: (value: number, valueSource?: TrackerBaseSource, valueMultiplier?: number, valueOffset?: number) => void
   disabled?: boolean
 }
 
 export function DynamicValueInput({
-  value, valueSource, attrs, level, pb, onChange, disabled,
+  value, valueSource, valueMultiplier, valueOffset, attrs, level, pb, onChange, disabled,
 }: DynamicValueInputProps) {
   const isDynamic = !!valueSource && valueSource.kind !== "fixed"
-  const resolved = resolveModifierValue({ value, valueSource }, attrs, level, pb)
+  const resolved = resolveModifierValue({ value, valueSource, valueMultiplier, valueOffset }, attrs, level, pb)
 
   if (disabled) {
     return (
       <div className="flex h-6 items-center rounded-md border border-input bg-background">
-        <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
+        <span className="select-none pl-2 text-xs text-foreground">+</span>
         <span className="px-1.5 text-xs tabular-nums">{value}</span>
       </div>
     )
@@ -52,36 +55,53 @@ export function DynamicValueInput({
 
   if (isDynamic) {
     return (
-      <div className="flex items-center gap-1">
-        <div className="flex h-6 flex-1 items-center gap-1 rounded-md border border-ring/40 bg-background px-1.5">
-          <span className="select-none text-xs text-muted-foreground">+</span>
-          <Select
-            selectSize="sm"
-            value={sourceToValue(valueSource)}
-            onChange={e => onChange(resolved, valueToSource(e.target.value))}
-            className="h-5 flex-1 border-0 bg-transparent p-0 text-xs focus:ring-0"
-          >
-            <optgroup label="Attribute modifier">
-              {ATTR_KEYS.map(k => (
-                <option key={k} value={`attr_mod:${k}`}>{ATTR_LABELS[k]} mod</option>
-              ))}
-            </optgroup>
-            <optgroup label="Level">
-              <option value="level">Level</option>
-              <option value="half_level_up">½ level ↑</option>
-              <option value="half_level_down">½ level ↓</option>
-            </optgroup>
-            <optgroup label="Other">
-              <option value="prof_bonus">Prof bonus</option>
-            </optgroup>
-          </Select>
-          <span className="shrink-0 tabular-nums text-xs text-muted-foreground">={resolved}</span>
-        </div>
-        <button type="button" onClick={() => onChange(resolved, undefined)}
-          title="Switch to static value"
-          className="flex size-4 items-center justify-center text-ring/70 transition-colors hover:text-muted-foreground">
-          <Sigma className="size-2.5" />
-        </button>
+      <div className="flex flex-wrap items-center gap-1">
+        <Select
+          selectSize="sm"
+          value={sourceToValue(valueSource)}
+          onChange={e => onChange(resolved, valueToSource(e.target.value), 1, 0)}
+          className="h-6 min-w-0 flex-1"
+        >
+          <optgroup label="Attribute modifier">
+            {ATTR_KEYS.map(k => (
+              <option key={k} value={`attr_mod:${k}`}>{ATTR_LABELS[k]} mod</option>
+            ))}
+          </optgroup>
+          <optgroup label="Level">
+            <option value="level">Level</option>
+            <option value="half_level_up">½ level ↑</option>
+            <option value="half_level_down">½ level ↓</option>
+          </optgroup>
+          <optgroup label="Other">
+            <option value="prof_bonus">Prof bonus</option>
+          </optgroup>
+        </Select>
+        <span className="text-xs text-foreground">×</span>
+        <input
+          type="number"
+          value={valueMultiplier ?? 1}
+          onChange={e => onChange(resolved, valueSource, parseFloat(e.target.value) || 1, valueOffset ?? 0)}
+          className="h-6 w-10 rounded-md border border-input bg-background px-1.5 text-xs tabular-nums focus:outline-none focus:border-ring"
+        />
+        <span className="text-xs text-foreground">+</span>
+        <input
+          type="number"
+          value={valueOffset ?? 0}
+          onChange={e => onChange(resolved, valueSource, valueMultiplier ?? 1, parseInt(e.target.value) || 0)}
+          className="h-6 w-10 rounded-md border border-input bg-background px-1.5 text-xs tabular-nums focus:outline-none focus:border-ring"
+        />
+        <span className="flex h-6 items-center justify-center rounded-md border border-input bg-muted/40 px-2 text-xs tabular-nums text-foreground">
+          ={resolved}
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          tooltip="Use fixed value"
+          onClick={() => onChange(resolved, undefined, undefined, undefined)}
+        >
+          <Sigma className="size-3" />
+        </Button>
       </div>
     )
   }
@@ -89,7 +109,7 @@ export function DynamicValueInput({
   return (
     <div className="flex items-center gap-1">
       <div className="flex h-6 flex-1 items-center rounded-md border border-input bg-background focus-within:border-ring">
-        <span className="select-none pl-2 text-xs text-muted-foreground">+</span>
+        <span className="select-none pl-2 text-xs text-foreground">+</span>
         <input
           type="text"
           inputMode="numeric"
@@ -99,19 +119,23 @@ export function DynamicValueInput({
             const raw = e.target.value
             if (raw === "" || raw === "-") return
             const n = parseInt(raw, 10)
-            if (!isNaN(n)) onChange(n, undefined)
+            if (!isNaN(n)) onChange(n, undefined, undefined, undefined)
           }}
           onBlur={(e) => {
-            if (e.target.value === "-") onChange(0, undefined)
+            if (e.target.value === "-") onChange(0, undefined, undefined, undefined)
           }}
           className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
         />
       </div>
-      <button type="button" onClick={() => onChange(value, { kind: "level" })}
-        title="Base on stat"
-        className="flex size-4 items-center justify-center text-muted-foreground/40 transition-colors hover:text-muted-foreground">
-        <Sigma className="size-2.5" />
-      </button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-xs"
+        tooltip="Base on stat"
+        onClick={() => onChange(value, { kind: "level" }, 1, 0)}
+      >
+        <Sigma className="size-3" />
+      </Button>
     </div>
   )
 }

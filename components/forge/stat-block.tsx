@@ -143,10 +143,12 @@ export function StatBlock({ label, data, attrs, level, pb, showManualControls, o
                       <DynamicValueInput
                         value={mod.value}
                         valueSource={mod.valueSource}
+                        valueMultiplier={mod.valueMultiplier}
+                        valueOffset={mod.valueOffset}
                         attrs={attrs}
                         level={level}
                         pb={pb}
-                        onChange={(v, vs) => onStackChange(data.stack.map(m => m.id === mod.id ? { ...m, value: v, valueSource: vs } : m))}
+                        onChange={(v, vs, vm, vo) => onStackChange(data.stack.map(m => m.id === mod.id ? { ...m, value: v, valueSource: vs, valueMultiplier: vm, valueOffset: vo } : m))}
                       />
                     </div>
                     <div className="mt-0.5 flex flex-col gap-0.5">

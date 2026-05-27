@@ -102,6 +102,7 @@ export const useCharacterStore = create<CharacterStore>()(
         if (!state.character) return;
         state.character.attributes[attr].base = value;
         state.character.attributes[attr].override = null;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -110,6 +111,7 @@ export const useCharacterStore = create<CharacterStore>()(
         if (!state.character) return;
         state.character.attributes[attr].stack = stack;
         state.character.attributes[attr].override = null;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -117,6 +119,7 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.attributes[attr].override = override;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -132,6 +135,7 @@ export const useCharacterStore = create<CharacterStore>()(
         if (!state.character) return;
         state.character.saves[attr].stack = stack;
         state.character.saves[attr].override = null;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -146,6 +150,7 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.saveGlobalStack = stack;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -167,6 +172,7 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.passivePerception.stack = stack;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -183,6 +189,7 @@ export const useCharacterStore = create<CharacterStore>()(
         state.character.identity.classes = classes;
         state.character.identity.level = classes.reduce((sum, c) => sum + c.level, 0) || 1;
         syncJoatToStacks(state.character as unknown as CharacterData);
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -198,6 +205,7 @@ export const useCharacterStore = create<CharacterStore>()(
         if (!state.character) return;
         state.character.skillGlobalStack = stack;
         syncGlobalSkillToInitiative(state.character as unknown as CharacterData);
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -225,6 +233,7 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.combat.ac = ac;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -232,6 +241,7 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.combat.initiative = initiative;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -239,6 +249,7 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.combat.speed = speed;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -246,6 +257,7 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.combat.hp = hp;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 
@@ -275,6 +287,7 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         if (!state.character) return;
         state.character.trackers = list;
+        materializeDynamicModifiers(state.character as unknown as CharacterData);
         state.isDirty = true;
       }),
 

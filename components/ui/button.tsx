@@ -45,15 +45,27 @@ function Button({
   variant = "default",
   size = "default",
   contrast,
+  tooltip,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & { contrast?: boolean }) {
-  return (
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & { contrast?: boolean; tooltip?: string }) {
+  const btn = (
     <ButtonPrimitive
       data-slot="button"
       data-contrast={contrast || undefined}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
+  )
+
+  if (!tooltip) return btn
+
+  return (
+    <div className="group/tooltip relative shrink-0">
+      {btn}
+      <div className="pointer-events-none absolute -top-8 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground opacity-0 transition-opacity group-hover/tooltip:opacity-100">
+        {tooltip}
+      </div>
+    </div>
   )
 }
 

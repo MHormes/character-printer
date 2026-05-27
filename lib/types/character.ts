@@ -5,6 +5,8 @@ export type ModifierEntry = {
   source: string;
   value: number;
   valueSource?: TrackerBaseSource; // if set, value is materialized from this source at save time
+  valueMultiplier?: number; // multiplied against resolved valueSource; default 1
+  valueOffset?: number;     // added after multiplier; default 0
   isActive: boolean;
   sourceId?: string; // namespaced: "item:<uuid>", "race:<id>", "class:<id>", etc. — set means system-managed, read-only in UI
   type?: "Bonus" | "Set To"; // undefined = Bonus (backward compat)

@@ -205,10 +205,12 @@ export function SaveBlock({
                       <DynamicValueInput
                         value={mod.value}
                         valueSource={mod.valueSource}
+                        valueMultiplier={mod.valueMultiplier}
+                        valueOffset={mod.valueOffset}
                         attrs={attrs}
                         level={level}
                         pb={proficiencyBonus}
-                        onChange={(v, vs) => onStackChange(data.stack.map(m => m.id === mod.id ? { ...m, value: v, valueSource: vs } : m))}
+                        onChange={(v, vs, vm, vo) => onStackChange(data.stack.map(m => m.id === mod.id ? { ...m, value: v, valueSource: vs, valueMultiplier: vm, valueOffset: vo } : m))}
                       />
                     </div>
                     <div className="mt-0.5 flex flex-col gap-0.5">

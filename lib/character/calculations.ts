@@ -175,13 +175,16 @@ export function resolveTrackerBase(
 }
 
 export function resolveModifierValue(
-  mod: Pick<ModifierEntry, "value" | "valueSource">,
+  mod: Pick<ModifierEntry, "value" | "valueSource" | "valueMultiplier" | "valueOffset">,
   attrs: Record<AttributeKey, AttributeData>,
   level: number,
   pb: number,
 ): number {
   if (!mod.valueSource || mod.valueSource.kind === "fixed") return mod.value
-  return resolveTrackerBase({ base: mod.value, baseSource: mod.valueSource }, attrs, level, pb)
+  return resolveTrackerBase(
+    { base: mod.value, baseSource: mod.valueSource, baseMultiplier: mod.valueMultiplier, baseOffset: mod.valueOffset },
+    attrs, level, pb,
+  )
 }
 
 export function materializeDynamicModifiers(c: CharacterData): void {
