@@ -26,6 +26,8 @@ import {
   sqliteRaceAbilityBonuses,
   sqliteRaceAbilityBonusOptions,
   sqliteRaceSkillChoices,
+  sqliteRaceLanguageChoices,
+  sqliteRaceProficiencies,
   sqliteClassStartingEquipment,
   sqliteClassStartingEquipmentOptions,
 } from "./schema";
@@ -120,12 +122,15 @@ type SpellSlotProgression = "none" | "full" | "half";
 
 type BgFeature = { name: string; description: string };
 type BgEquipItem = { name: string; quantity: number };
+type BgToolChoice = { count: number; category: string; label: string };
 type PhbBackground = {
   index: string;
   name: string;
   skills: string[];
   features: BgFeature[];
   fixedEquipment: BgEquipItem[];
+  languageChoiceCount?: number;
+  toolChoices?: BgToolChoice[];
 };
 
 // Backgrounds are PHB content — SRD JSON only has Acolyte, so we maintain
@@ -133,9 +138,8 @@ type PhbBackground = {
 const PHB_BACKGROUNDS: PhbBackground[] = [
   {
     index: "acolyte", name: "Acolyte", skills: ["insight", "religion"],
-    features: [
-      { name: "Languages", description: "You can speak, read, and write 2 additional languages of your choice." },
-    ],
+    features: [],
+    languageChoiceCount: 2,
     fixedEquipment: [
       { name: "Holy symbol", quantity: 1 },
       { name: "Prayer book", quantity: 1 },
@@ -160,9 +164,10 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   {
     index: "criminal", name: "Criminal", skills: ["deception", "stealth"],
     features: [
-      { name: "Tool Proficiencies", description: "One type of gaming set, Thieves' tools." },
+      { name: "Tool Proficiencies", description: "Thieves' tools." },
       { name: "Equipment — Gaming Set", description: "Add one gaming set of your choice (e.g. dice set, playing card set) to your inventory." },
     ],
+    toolChoices: [{ count: 1, category: "gaming", label: "one gaming set" }],
     fixedEquipment: [
       { name: "Crowbar", quantity: 1 },
       { name: "Dark common clothes with hood", quantity: 1 },
@@ -172,9 +177,10 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   {
     index: "entertainer", name: "Entertainer", skills: ["acrobatics", "performance"],
     features: [
-      { name: "Tool Proficiencies", description: "Disguise kit, one type of musical instrument." },
+      { name: "Tool Proficiencies", description: "Disguise kit." },
       { name: "Equipment — Musical Instrument", description: "Add one musical instrument of your choice to your inventory." },
     ],
+    toolChoices: [{ count: 1, category: "instrument", label: "one musical instrument" }],
     fixedEquipment: [
       { name: "Admirer's token", quantity: 1 },
       { name: "Costume clothes", quantity: 1 },
@@ -184,9 +190,10 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   {
     index: "folk-hero", name: "Folk Hero", skills: ["animalHandling", "survival"],
     features: [
-      { name: "Tool Proficiencies", description: "One type of artisan's tools, Vehicles (land)." },
+      { name: "Tool Proficiencies", description: "Vehicles (land)." },
       { name: "Equipment — Artisan's Tools", description: "Add one set of artisan's tools of your choice to your inventory." },
     ],
+    toolChoices: [{ count: 1, category: "artisan", label: "one artisan's tool" }],
     fixedEquipment: [
       { name: "Shovel", quantity: 1 },
       { name: "Iron pot", quantity: 1 },
@@ -197,10 +204,10 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   {
     index: "guild-artisan", name: "Guild Artisan", skills: ["insight", "persuasion"],
     features: [
-      { name: "Tool Proficiencies", description: "One type of artisan's tools." },
-      { name: "Languages", description: "You can speak, read, and write 1 additional language of your choice." },
       { name: "Equipment — Artisan's Tools", description: "Add one set of artisan's tools of your choice to your inventory." },
     ],
+    languageChoiceCount: 1,
+    toolChoices: [{ count: 1, category: "artisan", label: "one artisan's tool" }],
     fixedEquipment: [
       { name: "Letter of introduction from guild", quantity: 1 },
       { name: "Traveler's clothes", quantity: 1 },
@@ -211,8 +218,8 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
     index: "hermit", name: "Hermit", skills: ["medicine", "religion"],
     features: [
       { name: "Tool Proficiencies", description: "Herbalism kit." },
-      { name: "Languages", description: "You can speak, read, and write 1 additional language of your choice." },
     ],
+    languageChoiceCount: 1,
     fixedEquipment: [
       { name: "Scroll case with notes", quantity: 1 },
       { name: "Winter blanket", quantity: 1 },
@@ -224,10 +231,10 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   {
     index: "noble", name: "Noble", skills: ["history", "persuasion"],
     features: [
-      { name: "Tool Proficiencies", description: "One type of gaming set." },
-      { name: "Languages", description: "You can speak, read, and write 1 additional language of your choice." },
       { name: "Equipment — Gaming Set", description: "Add one gaming set of your choice to your inventory." },
     ],
+    languageChoiceCount: 1,
+    toolChoices: [{ count: 1, category: "gaming", label: "one gaming set" }],
     fixedEquipment: [
       { name: "Fine clothes", quantity: 1 },
       { name: "Signet ring", quantity: 1 },
@@ -238,10 +245,10 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   {
     index: "outlander", name: "Outlander", skills: ["athletics", "survival"],
     features: [
-      { name: "Tool Proficiencies", description: "One type of musical instrument." },
-      { name: "Languages", description: "You can speak, read, and write 1 additional language of your choice." },
       { name: "Equipment — Musical Instrument", description: "Add one musical instrument of your choice to your inventory." },
     ],
+    languageChoiceCount: 1,
+    toolChoices: [{ count: 1, category: "instrument", label: "one musical instrument" }],
     fixedEquipment: [
       { name: "Staff", quantity: 1 },
       { name: "Hunting trap", quantity: 1 },
@@ -252,9 +259,8 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   },
   {
     index: "sage", name: "Sage", skills: ["arcana", "history"],
-    features: [
-      { name: "Languages", description: "You can speak, read, and write 2 additional languages of your choice." },
-    ],
+    features: [],
+    languageChoiceCount: 2,
     fixedEquipment: [
       { name: "Bottle of black ink", quantity: 1 },
       { name: "Quill", quantity: 1 },
@@ -280,9 +286,10 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   {
     index: "soldier", name: "Soldier", skills: ["athletics", "intimidation"],
     features: [
-      { name: "Tool Proficiencies", description: "One type of gaming set, Vehicles (land)." },
+      { name: "Tool Proficiencies", description: "Vehicles (land)." },
       { name: "Equipment — Gaming Set", description: "Add one gaming set of your choice to your inventory." },
     ],
+    toolChoices: [{ count: 1, category: "gaming", label: "one gaming set" }],
     fixedEquipment: [
       { name: "Insignia of rank", quantity: 1 },
       { name: "Trophy from fallen enemy", quantity: 1 },
@@ -643,6 +650,8 @@ async function main() {
   db.delete(sqliteClassSkillChoices).where(eq(sqliteClassSkillChoices.system, SYSTEM)).run();
   db.delete(sqliteClassProficiencies).where(eq(sqliteClassProficiencies.system, SYSTEM)).run();
   db.delete(sqliteRaceSkillChoices).where(eq(sqliteRaceSkillChoices.system, SYSTEM)).run();
+  db.delete(sqliteRaceLanguageChoices).where(eq(sqliteRaceLanguageChoices.system, SYSTEM)).run();
+  db.delete(sqliteRaceProficiencies).where(eq(sqliteRaceProficiencies.system, SYSTEM)).run();
   db.delete(sqliteRaceAbilityBonusOptions).where(eq(sqliteRaceAbilityBonusOptions.system, SYSTEM)).run();
   db.delete(sqliteRaceAbilityBonuses).where(eq(sqliteRaceAbilityBonuses.system, SYSTEM)).run();
   db.delete(sqliteRaceTraits).where(eq(sqliteRaceTraits.system, SYSTEM)).run();
@@ -771,6 +780,8 @@ async function main() {
     skillGrants: JSON.stringify(b.skills),
     featuresJson: JSON.stringify(b.features),
     fixedEquipmentJson: JSON.stringify(b.fixedEquipment),
+    languageChoiceCount: b.languageChoiceCount ?? null,
+    toolChoicesJson: b.toolChoices ? JSON.stringify(b.toolChoices) : null,
     source: SOURCE,
     userId: null as string | null,
   }));
@@ -1091,6 +1102,61 @@ async function main() {
     db.insert(sqliteRaceSkillChoices).values(raceSkillRows).run();
   }
   console.log(`  ${raceSkillRows.length} race skill choice entries`);
+
+  console.log("Inserting race language choices...");
+  const raceLangRows: {
+    id: string; system: string; raceId: string | null; subraceId: string | null; chooseCount: number;
+  }[] = [];
+  // Half-Elf: 1 extra language
+  const halfElfId = raceIdByIndex.get("half-elf");
+  if (halfElfId) {
+    raceLangRows.push({ id: `${SYSTEM}:race-lang:half-elf`, system: SYSTEM, raceId: halfElfId, subraceId: null, chooseCount: 1 });
+  }
+  // High Elf (subrace of Elf): 1 extra language
+  const highElfId = subraceIdByIndex.get("high-elf");
+  if (highElfId) {
+    raceLangRows.push({ id: `${SYSTEM}:subrace-lang:high-elf`, system: SYSTEM, raceId: null, subraceId: highElfId, chooseCount: 1 });
+  }
+  if (raceLangRows.length > 0) {
+    db.insert(sqliteRaceLanguageChoices).values(raceLangRows).run();
+  }
+  console.log(`  ${raceLangRows.length} race language choice entries`);
+
+  console.log("Inserting race proficiencies...");
+  const raceProfRows: {
+    id: string; system: string; raceId: string | null; subraceId: string | null;
+    name: string; profType: string; source: string;
+  }[] = [];
+
+  // Elf: Keen Senses → Perception (fixed skill grant)
+  const elfId = raceIdByIndex.get("elf");
+  if (elfId) {
+    raceProfRows.push({ id: `${SYSTEM}:race-prof:perception:elf`, system: SYSTEM, raceId: elfId, subraceId: null, name: "perception", profType: "Skill", source: SOURCE });
+  }
+  // High Elf subrace: Elf Weapon Training → 4 weapons
+  const highElfSubId = subraceIdByIndex.get("high-elf");
+  if (highElfSubId) {
+    for (const weapon of ["Longsword", "Shortsword", "Shortbow", "Longbow"]) {
+      raceProfRows.push({ id: `${SYSTEM}:race-prof:${weapon.toLowerCase()}:high-elf`, system: SYSTEM, raceId: null, subraceId: highElfSubId, name: weapon, profType: "Weapon", source: SOURCE });
+    }
+  }
+  // Dwarf: Dwarven Combat Training → 4 weapons
+  const dwarfId = raceIdByIndex.get("dwarf");
+  if (dwarfId) {
+    for (const weapon of ["Battleaxe", "Handaxe", "Light Hammer", "Warhammer"]) {
+      raceProfRows.push({ id: `${SYSTEM}:race-prof:${weapon.toLowerCase().replace(/ /g, "-")}:dwarf`, system: SYSTEM, raceId: dwarfId, subraceId: null, name: weapon, profType: "Weapon", source: SOURCE });
+    }
+  }
+  // Half-Orc: Menacing → Intimidation (fixed skill grant)
+  const halfOrcId = raceIdByIndex.get("half-orc");
+  if (halfOrcId) {
+    raceProfRows.push({ id: `${SYSTEM}:race-prof:intimidation:half-orc`, system: SYSTEM, raceId: halfOrcId, subraceId: null, name: "intimidation", profType: "Skill", source: SOURCE });
+  }
+
+  if (raceProfRows.length > 0) {
+    db.insert(sqliteRaceProficiencies).values(raceProfRows).run();
+  }
+  console.log(`  ${raceProfRows.length} race proficiency entries`);
 
   console.log("Inserting class proficiencies...");
   const classProfRows: {

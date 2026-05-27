@@ -1,0 +1,11 @@
+CREATE TABLE `race_proficiencies` (
+	`id` text PRIMARY KEY NOT NULL,
+	`system` text NOT NULL,
+	`race_id` text,
+	`subrace_id` text,
+	`name` text NOT NULL,
+	`prof_type` text NOT NULL,
+	`source` text DEFAULT 'srd',
+	FOREIGN KEY (`race_id`) REFERENCES `races`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`subrace_id`) REFERENCES `subraces`(`id`) ON UPDATE no action ON DELETE cascade
+);

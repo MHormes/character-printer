@@ -20,6 +20,8 @@ import {
   sqliteRaceAbilityBonuses,
   sqliteRaceAbilityBonusOptions,
   sqliteRaceSkillChoices,
+  sqliteRaceLanguageChoices,
+  sqliteRaceProficiencies,
   sqliteClassStartingEquipment,
   sqliteClassStartingEquipmentOptions,
 } from "@/lib/db/schema";
@@ -33,6 +35,8 @@ const anyDb = db as any;
 export type RaceAbilityBonusRow = typeof sqliteRaceAbilityBonuses.$inferSelect;
 export type RaceAbilityBonusOptionRow = typeof sqliteRaceAbilityBonusOptions.$inferSelect;
 export type RaceSkillChoiceRow = typeof sqliteRaceSkillChoices.$inferSelect;
+export type RaceLanguageChoiceRow = typeof sqliteRaceLanguageChoices.$inferSelect;
+export type RaceProficiencyRow = typeof sqliteRaceProficiencies.$inferSelect;
 export type ClassStartingEquipmentRow = typeof sqliteClassStartingEquipment.$inferSelect & {
   armorCategory: string | null;
   acBase: number | null;
@@ -309,6 +313,16 @@ export async function getLanguages(system = "dnd5e"): Promise<LanguageRow[]> {
     .orderBy(asc(sqliteLanguages.name));
 }
 
+export async function getTools(system = "dnd5e"): Promise<ItemRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteItems)
+    .where(
+      and(eq(sqliteItems.system, system), eq(sqliteItems.equipmentCategory, "Tools")),
+    )
+    .orderBy(asc(sqliteItems.name));
+}
+
 // ─── Other proficiency search ─────────────────────────────────────────────────
 
 export type OtherProfResult = {
@@ -542,6 +556,20 @@ export async function getAllRaceSkillChoices(system = "dnd5e"): Promise<RaceSkil
     .from(sqliteRaceSkillChoices)
     .where(eq(sqliteRaceSkillChoices.system, system))
     .orderBy(asc(sqliteRaceSkillChoices.raceId), asc(sqliteRaceSkillChoices.skillKey));
+}
+
+export async function getAllRaceLanguageChoices(system = "dnd5e"): Promise<RaceLanguageChoiceRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteRaceLanguageChoices)
+    .where(eq(sqliteRaceLanguageChoices.system, system));
+}
+
+export async function getAllRaceProficiencies(system = "dnd5e"): Promise<RaceProficiencyRow[]> {
+  return anyDb
+    .select()
+    .from(sqliteRaceProficiencies)
+    .where(eq(sqliteRaceProficiencies.system, system));
 }
 
 // ─── Class starting equipment ─────────────────────────────────────────────────

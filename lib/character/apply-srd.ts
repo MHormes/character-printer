@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, BackgroundChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, DieType } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, BackgroundChoiceMade, LanguageChoiceMade, ToolChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, DieType } from "@/lib/types/character"
 import type {
   RaceRow,
   SubraceRow,
@@ -7,6 +7,7 @@ import type {
   ClassProficiencyRow,
   BackgroundRow,
   RaceAbilityBonusRow,
+  RaceProficiencyRow,
   ClassStartingEquipmentRow,
 } from "@/lib/actions/5e-data"
 import type { CharacterClassEntry } from "@/lib/types/character"
@@ -40,12 +41,30 @@ export function clearRaceAutomation(char: CharacterData): CharacterData {
     (f) => !f.sourceId?.startsWith("race:") && !f.sourceId?.startsWith("subrace:"),
   )
   clearRaceModifiers(next)
+  // Clear fixed race/subrace weapon/armor/tool proficiencies
+  next.otherProficiencies = next.otherProficiencies.filter(
+    (p) => !(p.sourceId?.startsWith("race:") && p.sourceId.endsWith(":prof")) &&
+            !(p.sourceId?.startsWith("subrace:") && p.sourceId.endsWith(":prof")),
+  )
+  // Clear race skill grants
+  const oldRaceSkillGrants = next.srdGrants?.raceSkillProficiencies ?? []
+  for (const key of oldRaceSkillGrants) {
+    if (next.skills[key]) next.skills[key].state = "None"
+  }
   next.srdGrants = {
     saveProficiencies: next.srdGrants?.saveProficiencies ?? [],
     skillProficiencies: next.srdGrants?.skillProficiencies ?? [],
+    raceSkillProficiencies: [],
     raceAsiBonuses: [],
   }
   return next
+}
+
+// Trait IDs that represent "choose a language" — handled by the choices panel, not shown as features.
+const LANGUAGE_CHOICE_TRAIT_IDS = new Set(["extra-language"])
+
+function isLanguageChoiceTrait(traitId: string): boolean {
+  return LANGUAGE_CHOICE_TRAIT_IDS.has(traitId.split(":").at(-2) ?? "")
 }
 
 export function applyRace(
@@ -57,6 +76,7 @@ export function applyRace(
   oldRaceKey?: string,
   subraceRow?: SubraceRow,
   subraceTraits?: RaceTraitRow[],
+  allRaceProficiencies?: RaceProficiencyRow[],
 ): CharacterData {
   const next = structuredClone(char)
 
@@ -74,9 +94,28 @@ export function applyRace(
       (f) => !f.sourceId?.startsWith("race:") && !f.sourceId?.startsWith("subrace:"),
     )
     clearRaceModifiers(next)
+    // Clear fixed race/subrace proficiency grants
+    next.otherProficiencies = next.otherProficiencies.filter(
+      (p) => !(p.sourceId?.startsWith("race:") && p.sourceId.endsWith(":prof")) &&
+              !(p.sourceId?.startsWith("subrace:") && p.sourceId.endsWith(":prof")),
+    )
+    const oldRaceSkillProfs = next.srdGrants?.raceSkillProficiencies ?? []
+    for (const key of oldRaceSkillProfs) {
+      if (next.skills[key]) next.skills[key].state = "None"
+    }
 
-    // Apply base traits (only on major change)
+    // Clear language choices from old race/subrace (they're no longer valid)
+    next.languageChoices = (next.languageChoices ?? []).filter(
+      (c) => !c.sourceId.startsWith("race:") && !c.sourceId.startsWith("subrace:"),
+    )
+    // Clear dismissed race language choice keys on race change
+    next.dismissedRaceChoiceKeys = (next.dismissedRaceChoiceKeys ?? []).filter(
+      (k) => !k.includes(":language"),
+    )
+
+    // Apply base traits (only on major change) — skip language-choice-only traits
     for (const trait of raceTraits) {
+      if (isLanguageChoiceTrait(trait.id)) continue
       next.features.push({
         id: crypto.randomUUID(),
         name: trait.name,
@@ -88,6 +127,7 @@ export function applyRace(
 
     if (subraceRow && subraceTraits) {
       for (const trait of subraceTraits) {
+        if (isLanguageChoiceTrait(trait.id)) continue
         next.features.push({
           id: crypto.randomUUID(),
           name: trait.name,
@@ -95,6 +135,43 @@ export function applyRace(
           sourceId: `subrace:${subraceRow.id}`,
           description: trait.description ?? "",
         } satisfies FeatureEntry)
+      }
+    }
+
+    // Apply fixed race/subrace proficiencies (weapons, armor, tools, skills)
+    if (allRaceProficiencies) {
+      const raceProfs = allRaceProficiencies.filter((p) => p.raceId === raceRow.id && !p.subraceId)
+      const subraceProfs = subraceRow
+        ? allRaceProficiencies.filter((p) => p.subraceId === subraceRow.id)
+        : []
+      const allProfs = [...raceProfs, ...subraceProfs]
+      const newRaceSkillProfs: string[] = []
+
+      for (const prof of allProfs) {
+        const profSourceId = prof.subraceId ? `subrace:${prof.subraceId}:prof` : `race:${raceRow.id}:prof`
+        if (prof.profType === "Skill") {
+          if (next.skills[prof.name]) next.skills[prof.name].state = "Proficient"
+          newRaceSkillProfs.push(prof.name)
+        } else {
+          const category = prof.profType as OtherProficiency["category"]
+          const already = next.otherProficiencies.some((p) => p.name === prof.name && p.category === category)
+          if (!already) {
+            next.otherProficiencies.push({
+              id: crypto.randomUUID(),
+              name: prof.name,
+              category,
+              training: "Proficient",
+              stat: null,
+              override: null,
+              sourceId: profSourceId,
+            })
+          }
+        }
+      }
+
+      next.srdGrants = {
+        ...(next.srdGrants ?? { saveProficiencies: [], skillProficiencies: [] }),
+        raceSkillProficiencies: newRaceSkillProfs,
       }
     }
 
@@ -188,6 +265,24 @@ export function applyRace(
       if (next.skills[choice.skillKey]) {
         next.skills[choice.skillKey].state = "Proficient"
       }
+    }
+  }
+
+  // 3. Language choice application — always clear then re-apply from current choices
+  next.otherProficiencies = next.otherProficiencies.filter(
+    (p) => !((p.sourceId?.startsWith("race:") || p.sourceId?.startsWith("subrace:")) && p.sourceId?.endsWith(":lang")),
+  )
+  for (const choice of (next.languageChoices ?? [])) {
+    if (choice.sourceId.startsWith("race:") || choice.sourceId.startsWith("subrace:")) {
+      next.otherProficiencies.push({
+        id: crypto.randomUUID(),
+        name: choice.languageName,
+        category: "Language",
+        training: "Proficient",
+        stat: null,
+        override: null,
+        sourceId: `${choice.sourceId}:lang`,
+      })
     }
   }
 
@@ -539,8 +634,11 @@ export function applyBackground(
     )
   }
 
-  // ── Clear old background features ────────────────────────────────────────
+  // ── Clear old background features and system-managed proficiencies ────────
   next.features = next.features.filter((f) => !f.sourceId?.startsWith("background:"))
+  next.otherProficiencies = next.otherProficiencies.filter(
+    (p) => !p.sourceId?.startsWith("background:"),
+  )
 
   // ── Apply new skill grants ────────────────────────────────────────────────
   const skillGrants: string[] = bgRow.skillGrants ? (typeof bgRow.skillGrants === "string" ? JSON.parse(bgRow.skillGrants) : bgRow.skillGrants as unknown as string[]) : []
@@ -564,6 +662,34 @@ export function applyBackground(
       })
       newBgAsis.push({ abilityScore: imp.attr, bonus: imp.bonus, sourceId })
     }
+  }
+
+  // ── Apply confirmed language choices ─────────────────────────────────────
+  const bgLangChoices = (next.languageChoices ?? []).filter((c) => c.sourceId === `background:${bgRow.id}`)
+  for (const choice of bgLangChoices) {
+    next.otherProficiencies.push({
+      id: crypto.randomUUID(),
+      name: choice.languageName,
+      category: "Language",
+      training: "Proficient",
+      stat: null,
+      override: null,
+      sourceId: `background:${bgRow.id}:lang`,
+    })
+  }
+
+  // ── Apply confirmed tool choices ──────────────────────────────────────────
+  const bgToolChoices = (next.toolChoices ?? []).filter((c) => c.backgroundId === bgRow.id)
+  for (const choice of bgToolChoices) {
+    next.otherProficiencies.push({
+      id: crypto.randomUUID(),
+      name: choice.toolName,
+      category: "Tool",
+      training: "Proficient",
+      stat: null,
+      override: null,
+      sourceId: `background:${bgRow.id}:tool`,
+    })
   }
 
   // ── Apply feat grant (2024) ───────────────────────────────────────────────
@@ -614,9 +740,18 @@ export function applyBackground(
     }
   }
 
-  // ── Prune stale background choices for other backgrounds ─────────────────
+  // ── Prune stale choices for other backgrounds ────────────────────────────
   next.backgroundChoices = (next.backgroundChoices ?? []).filter(
     (c) => c.backgroundId === bgRow.id,
+  )
+  next.languageChoices = (next.languageChoices ?? []).filter(
+    (c) => !c.sourceId.startsWith("background:") || c.sourceId === `background:${bgRow.id}`,
+  )
+  next.toolChoices = (next.toolChoices ?? []).filter(
+    (c) => c.backgroundId === bgRow.id,
+  )
+  next.dismissedBackgroundChoiceKeys = (next.dismissedBackgroundChoiceKeys ?? []).filter(
+    (k) => k.startsWith(`${bgRow.id}:`),
   )
 
   next.srdGrants = {

@@ -230,8 +230,10 @@ export const sqliteBackgrounds = sqliteTable("backgrounds", {
   skillGrants: text("skill_grants"), // JSON: ["acrobatics","insight",...] camelCase keys
   asiGrants: text("asi_grants"),     // JSON: [{"stat":"str","bonus":2},...] — 2024 backgrounds only
   featGrant: text("feat_grant"),     // feat name granted at creation — 2024 backgrounds only
-  featuresJson: text("features_json"), // JSON: [{name, description}] — languages, tool profs, equipment choices
+  featuresJson: text("features_json"), // JSON: [{name, description}] — fixed (non-choice) features only
   fixedEquipmentJson: text("fixed_equipment_json"), // JSON: [{name, quantity}] — auto-added to inventory
+  languageChoiceCount: integer("language_choice_count"), // how many languages to pick
+  toolChoicesJson: text("tool_choices_json"), // JSON: [{count, category, label}] — choosable tool profs
   source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
 });
@@ -243,8 +245,10 @@ export const pgBackgrounds = pgTable("backgrounds", {
   skillGrants: jsonb("skill_grants"), // string[]
   asiGrants: jsonb("asi_grants"),     // {stat: string, bonus: number}[] — 2024 backgrounds only
   featGrant: varchar("feat_grant", { length: 255 }), // feat name — 2024 backgrounds only
-  featuresJson: jsonb("features_json"), // {name: string, description: string}[]
+  featuresJson: jsonb("features_json"), // {name: string, description: string}[] — fixed features only
   fixedEquipmentJson: jsonb("fixed_equipment_json"), // {name: string, quantity: number}[]
+  languageChoiceCount: pgInteger("language_choice_count"),
+  toolChoicesJson: pgText("tool_choices_json"),
   source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
@@ -533,6 +537,44 @@ export const pgRaceSkillChoices = pgTable("race_skill_choices", {
   raceId: varchar("race_id", { length: 100 }).notNull().references(() => pgRaces.id, { onDelete: "cascade" }),
   skillKey: varchar("skill_key", { length: 60 }).notNull(),
   chooseCount: pgInteger("choose_count").notNull(),
+});
+
+// choosable language grants — e.g. Half-Elf picks 1 extra language
+export const sqliteRaceLanguageChoices = sqliteTable("race_language_choices", {
+  id: text("id").primaryKey(),
+  system: text("system").notNull(),
+  raceId: text("race_id").references(() => sqliteRaces.id, { onDelete: "cascade" }),
+  subraceId: text("subrace_id").references(() => sqliteSubraces.id, { onDelete: "cascade" }),
+  chooseCount: integer("choose_count").notNull(),
+});
+
+export const pgRaceLanguageChoices = pgTable("race_language_choices", {
+  id: varchar("id", { length: 150 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  raceId: varchar("race_id", { length: 100 }).references(() => pgRaces.id, { onDelete: "cascade" }),
+  subraceId: varchar("subrace_id", { length: 100 }).references(() => pgSubraces.id, { onDelete: "cascade" }),
+  chooseCount: pgInteger("choose_count").notNull(),
+});
+
+// fixed proficiency grants from race/subrace — e.g. Elf Weapon Training, Keen Senses
+export const sqliteRaceProficiencies = sqliteTable("race_proficiencies", {
+  id: text("id").primaryKey(),
+  system: text("system").notNull(),
+  raceId: text("race_id").references(() => sqliteRaces.id, { onDelete: "cascade" }),
+  subraceId: text("subrace_id").references(() => sqliteSubraces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  profType: text("prof_type").notNull(), // "Weapon" | "Armor" | "Tool" | "Skill"
+  source: text("source").default("srd"),
+});
+
+export const pgRaceProficiencies = pgTable("race_proficiencies", {
+  id: varchar("id", { length: 150 }).primaryKey(),
+  system: varchar("system", { length: 50 }).notNull(),
+  raceId: varchar("race_id", { length: 100 }).references(() => pgRaces.id, { onDelete: "cascade" }),
+  subraceId: varchar("subrace_id", { length: 100 }).references(() => pgSubraces.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  profType: varchar("prof_type", { length: 50 }).notNull(),
+  source: varchar("source", { length: 50 }).default("srd"),
 });
 
 // ─── Game content: feats ──────────────────────────────────────────────────────

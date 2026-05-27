@@ -17,6 +17,10 @@ import {
   getAllRaceAbilityBonuses,
   getAllRaceAbilityBonusOptions,
   getAllRaceSkillChoices,
+  getAllRaceLanguageChoices,
+  getAllRaceProficiencies,
+  getLanguages,
+  getTools,
   searchFeats,
   getAllClassStartingEquipment,
   getAllClassStartingEquipmentOptions,
@@ -37,19 +41,27 @@ import type {
   RaceAbilityBonusRow,
   RaceAbilityBonusOptionRow,
   RaceSkillChoiceRow,
+  RaceLanguageChoiceRow,
+  RaceProficiencyRow,
+  LanguageRow,
   ClassStartingEquipmentRow,
   ClassStartingEquipmentOptionRow,
 } from "@/lib/actions/5e-data";
 import { ClassChoicesPanel } from "@/components/forge/class-choices-panel";
 import type { ResolvedEquipmentItem } from "@/components/forge/class-choices-panel";
 import { RaceChoicesPanel } from "@/components/forge/race-choices-panel";
+import { BackgroundChoicesPanel } from "@/components/forge/background-choices-panel";
 import {
   derivePendingChoices,
   deriveRacePendingChoices,
+  deriveRaceLanguagePendingChoices,
   deriveEquipmentPendingChoices,
+  deriveBackgroundPendingChoices,
   type PendingChoice,
   type RacePendingChoice,
+  type RaceLanguagePendingChoice,
   type EquipmentPendingChoice,
+  type BackgroundPendingChoice,
 } from "@/lib/character/derive-pending-choices";
 import { StringField } from "@/components/forge/string-field";
 import { ClassesField } from "@/components/forge/classes-field";
@@ -225,6 +237,14 @@ export default function ForgePage({
   const [allRaceSkillChoiceRows, setAllRaceSkillChoiceRows] = useState<
     RaceSkillChoiceRow[]
   >([]);
+  const [allRaceLanguageChoiceRows, setAllRaceLanguageChoiceRows] = useState<
+    RaceLanguageChoiceRow[]
+  >([]);
+  const [allRaceProficiencyRows, setAllRaceProficiencyRows] = useState<
+    RaceProficiencyRow[]
+  >([]);
+  const [availableLanguages, setAvailableLanguages] = useState<LanguageRow[]>([]);
+  const [availableTools, setAvailableTools] = useState<ItemRow[]>([]);
   const [availableFeats, setAvailableFeats] = useState<FeatRow[]>([]);
   const [allClassStartEquipRows, setAllClassStartEquipRows] = useState<
     ClassStartingEquipmentRow[]
@@ -234,6 +254,12 @@ export default function ForgePage({
   const [pendingChoices, setPendingChoices] = useState<PendingChoice[]>([]);
   const [racePendingChoices, setRacePendingChoices] = useState<
     RacePendingChoice[]
+  >([]);
+  const [raceLanguagePendingChoices, setRaceLanguagePendingChoices] = useState<
+    RaceLanguagePendingChoice[]
+  >([]);
+  const [backgroundPendingChoices, setBackgroundPendingChoices] = useState<
+    BackgroundPendingChoice[]
   >([]);
   const [equipmentPendingChoices, setEquipmentPendingChoices] = useState<
     EquipmentPendingChoice[]
@@ -297,6 +323,7 @@ export default function ForgePage({
   const [identityTab, setIdentityTab] = useState<
     "basics" | "characteristics" | "bio"
   >("basics");
+  const [openChoicePanel, setOpenChoicePanel] = useState<"race" | "background" | null>(null);
 
   const srdSystem = character ? getRuleSet(character.edition).srdSystem : null;
 
@@ -353,6 +380,10 @@ export default function ForgePage({
     getAllRaceAbilityBonuses(srdSystem).then(setAllRaceAsiBonusRows);
     getAllRaceAbilityBonusOptions(srdSystem).then(setAllRaceAsiOptionRows);
     getAllRaceSkillChoices(srdSystem).then(setAllRaceSkillChoiceRows);
+    getAllRaceLanguageChoices(srdSystem).then(setAllRaceLanguageChoiceRows);
+    getAllRaceProficiencies(srdSystem).then(setAllRaceProficiencyRows);
+    getLanguages(srdSystem).then(setAvailableLanguages);
+    getTools(srdSystem).then(setAvailableTools);
     searchFeats(undefined, srdSystem).then(setAvailableFeats);
     getAllClassStartingEquipment(srdSystem).then(setAllClassStartEquipRows);
     getAllClassStartingEquipmentOptions(srdSystem).then(
@@ -559,6 +590,7 @@ export default function ForgePage({
             char.automationKeys?.srdRaceKey,
             matchedSubrace,
             subraceTraits,
+            allRaceProficiencyRows,
           );
         }
       } else {
@@ -664,6 +696,46 @@ export default function ForgePage({
     );
   }, [character, availableRaces, allRaceAsiOptionRows, allRaceSkillChoiceRows]);
 
+  // Derive race language pending choices.
+  useEffect(() => {
+    if (!character || availableRaces.length === 0) {
+      setRaceLanguagePendingChoices([]);
+      return;
+    }
+    const matchedRace = character.identity.race
+      ? availableRaces.find(
+          (r) => r.name.toLowerCase() === character.identity.race.toLowerCase(),
+        )
+      : undefined;
+    const matchedSubrace = character.identity.subrace && availableSubraces.length > 0
+      ? availableSubraces.find(
+          (s) => s.name.toLowerCase() === character.identity.subrace.toLowerCase(),
+        )
+      : undefined;
+    setRaceLanguagePendingChoices(
+      deriveRaceLanguagePendingChoices(
+        character,
+        matchedRace,
+        matchedSubrace,
+        allRaceLanguageChoiceRows,
+      ),
+    );
+  }, [character, availableRaces, availableSubraces, allRaceLanguageChoiceRows]);
+
+  // Derive background pending choices.
+  useEffect(() => {
+    if (!character || availableBackgrounds.length === 0) {
+      setBackgroundPendingChoices([]);
+      return;
+    }
+    const matchedBg = character.identity.background
+      ? availableBackgrounds.find(
+          (b) => b.name.toLowerCase() === character.identity.background.toLowerCase(),
+        )
+      : undefined;
+    setBackgroundPendingChoices(deriveBackgroundPendingChoices(character, matchedBg));
+  }, [character, availableBackgrounds]);
+
   function handleConfirmRaceChoice(
     choices: import("@/lib/types/character").RaceChoiceMade[],
   ) {
@@ -689,6 +761,111 @@ export default function ForgePage({
       ...character,
       dismissedRaceChoiceKeys: [
         ...(character.dismissedRaceChoiceKeys ?? []),
+        choiceKey,
+      ],
+    });
+  }
+
+  function handleConfirmRaceLanguageChoice(
+    choices: import("@/lib/types/character").LanguageChoiceMade[],
+  ) {
+    if (!character) return;
+    const newLangChoices = [...(character.languageChoices ?? []), ...choices];
+    const updated = structuredClone(character);
+    updated.languageChoices = newLangChoices;
+    // Eagerly re-apply race language proficiencies
+    updated.otherProficiencies = updated.otherProficiencies.filter(
+      (p) => !((p.sourceId?.startsWith("race:") || p.sourceId?.startsWith("subrace:")) && p.sourceId?.endsWith(":lang")),
+    );
+    for (const c of newLangChoices) {
+      if (c.sourceId.startsWith("race:") || c.sourceId.startsWith("subrace:")) {
+        updated.otherProficiencies.push({
+          id: crypto.randomUUID(),
+          name: c.languageName,
+          category: "Language",
+          training: "Proficient",
+          stat: null,
+          override: null,
+          sourceId: `${c.sourceId}:lang`,
+        });
+      }
+    }
+    replaceCharacter(updated);
+  }
+
+  function handleConfirmBackgroundAsi(
+    choice: import("@/lib/types/character").BackgroundChoiceMade,
+  ) {
+    if (!character) return;
+    const existing = character.backgroundChoices ?? [];
+    replaceCharacter({ ...character, backgroundChoices: [...existing, choice] });
+  }
+
+  function handleConfirmBackgroundLanguage(
+    choices: import("@/lib/types/character").LanguageChoiceMade[],
+    _backgroundId: string,
+  ) {
+    if (!character) return;
+    const bgRow = availableBackgrounds.find(
+      (b) => b.name.toLowerCase() === character.identity.background.toLowerCase(),
+    );
+    if (!bgRow) return;
+    const newLangChoices = [...(character.languageChoices ?? []), ...choices];
+    const updated = structuredClone(character);
+    updated.languageChoices = newLangChoices;
+    // Eagerly re-apply background language proficiencies
+    updated.otherProficiencies = updated.otherProficiencies.filter(
+      (p) => p.sourceId !== `background:${bgRow.id}:lang`,
+    );
+    for (const c of newLangChoices.filter((c) => c.sourceId === `background:${bgRow.id}`)) {
+      updated.otherProficiencies.push({
+        id: crypto.randomUUID(),
+        name: c.languageName,
+        category: "Language",
+        training: "Proficient",
+        stat: null,
+        override: null,
+        sourceId: `background:${bgRow.id}:lang`,
+      });
+    }
+    replaceCharacter(updated);
+  }
+
+  function handleConfirmBackgroundTool(
+    choice: import("@/lib/types/character").ToolChoiceMade,
+  ) {
+    if (!character) return;
+    const bgRow = availableBackgrounds.find(
+      (b) => b.name.toLowerCase() === character.identity.background.toLowerCase(),
+    );
+    if (!bgRow) return;
+    const newToolChoices = [...(character.toolChoices ?? []), choice];
+    const updated = structuredClone(character);
+    updated.toolChoices = newToolChoices;
+    // Eagerly re-apply background tool proficiencies
+    updated.otherProficiencies = updated.otherProficiencies.filter(
+      (p) => p.sourceId !== `background:${bgRow.id}:tool`,
+    );
+    for (const tc of newToolChoices.filter((c) => c.backgroundId === bgRow.id)) {
+      updated.otherProficiencies.push({
+        id: crypto.randomUUID(),
+        name: tc.toolName,
+        category: "Tool",
+        training: "Proficient",
+        stat: null,
+        override: null,
+        sourceId: `background:${bgRow.id}:tool`,
+      });
+    }
+    replaceCharacter(updated);
+  }
+
+  function handleDismissBackgroundChoice(choiceKey: string) {
+    if (!character) return;
+    replaceCharacter({
+      ...character,
+      dismissedBackgroundChoiceKeys: [
+        ...(character.dismissedBackgroundChoiceKeys ?? []),
         choiceKey,
       ],
     });
@@ -1089,30 +1266,61 @@ export default function ForgePage({
                     onChange={(v) => updateIdentityField("name", v)}
                     placeholder="Character name"
                   />
-                  <RaceField
-                    race={identity.race}
-                    subrace={identity.subrace}
-                    ignoreAutomation={character.selectionIgnores?.race ?? false}
-                    onRaceChange={(v) => updateIdentityField("race", v)}
-                    onSubraceChange={(v) => updateIdentityField("subrace", v)}
-                    onIgnoreAutomationChange={setRaceAutomationIgnored}
-                    availableRaces={availableRaces}
-                    availableSubraces={availableSubraces}
-                  />
-                  <BackgroundField
-                    value={identity.background}
-                    ignoreAutomation={
-                      character.selectionIgnores?.background ?? false
-                    }
-                    selectedBackground={availableBackgrounds.find(
-                      (b) =>
-                        b.name.toLowerCase() ===
-                        identity.background.toLowerCase(),
-                    )}
-                    onChange={(v) => updateIdentityField("background", v)}
-                    onIgnoreAutomationChange={setBackgroundAutomationIgnored}
-                    availableBackgrounds={availableBackgrounds}
-                  />
+                  <div className="col-span-2 space-y-2">
+                    <RaceField
+                      race={identity.race}
+                      subrace={identity.subrace}
+                      ignoreAutomation={character.selectionIgnores?.race ?? false}
+                      onRaceChange={(v) => updateIdentityField("race", v)}
+                      onSubraceChange={(v) => updateIdentityField("subrace", v)}
+                      onIgnoreAutomationChange={setRaceAutomationIgnored}
+                      availableRaces={availableRaces}
+                      availableSubraces={availableSubraces}
+                    />
+                    <RaceChoicesPanel
+                      pendingChoices={racePendingChoices}
+                      languagePendingChoices={raceLanguagePendingChoices}
+                      languages={availableLanguages}
+                      alreadyChosenLanguageIds={(character.languageChoices ?? [])
+                        .filter((c) => c.sourceId.startsWith("race:") || c.sourceId.startsWith("subrace:"))
+                        .map((c) => c.languageId)}
+                      isOpen={openChoicePanel === "race"}
+                      onToggle={() => setOpenChoicePanel((v) => v === "race" ? null : "race")}
+                      onConfirmChoice={handleConfirmRaceChoice}
+                      onConfirmLanguageChoice={handleConfirmRaceLanguageChoice}
+                      onDismissChoice={handleDismissRaceChoice}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <BackgroundField
+                      value={identity.background}
+                      ignoreAutomation={
+                        character.selectionIgnores?.background ?? false
+                      }
+                      selectedBackground={availableBackgrounds.find(
+                        (b) =>
+                          b.name.toLowerCase() ===
+                          identity.background.toLowerCase(),
+                      )}
+                      onChange={(v) => updateIdentityField("background", v)}
+                      onIgnoreAutomationChange={setBackgroundAutomationIgnored}
+                      availableBackgrounds={availableBackgrounds}
+                    />
+                    <BackgroundChoicesPanel
+                      pendingChoices={backgroundPendingChoices}
+                      languages={availableLanguages}
+                      tools={availableTools}
+                      alreadyChosenLanguageIds={(character.languageChoices ?? [])
+                        .filter((c) => c.sourceId.startsWith("background:"))
+                        .map((c) => c.languageId)}
+                      isOpen={openChoicePanel === "background"}
+                      onToggle={() => setOpenChoicePanel((v) => v === "background" ? null : "background")}
+                      onConfirmAsi={handleConfirmBackgroundAsi}
+                      onConfirmLanguage={handleConfirmBackgroundLanguage}
+                      onConfirmTool={handleConfirmBackgroundTool}
+                      onDismissChoice={handleDismissBackgroundChoice}
+                    />
+                  </div>
                   <StringField
                     label="Deity"
                     value={identity.deity}
@@ -1171,11 +1379,6 @@ export default function ForgePage({
                     />
                   </div>
                 </div>
-                <RaceChoicesPanel
-                  pendingChoices={racePendingChoices}
-                  onConfirmChoice={handleConfirmRaceChoice}
-                  onDismissChoice={handleDismissRaceChoice}
-                />
               </div>
             )}
 

@@ -3,8 +3,10 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp } from "lucide-react"
-import type { RaceChoiceMade, AttributeKey } from "@/lib/types/character"
-import { getRacePendingChoiceKey, type RacePendingChoice } from "@/lib/character/derive-pending-choices"
+import type { RaceChoiceMade, LanguageChoiceMade, AttributeKey } from "@/lib/types/character"
+import { getRacePendingChoiceKey, getRaceLanguagePendingChoiceKey, type RacePendingChoice, type RaceLanguagePendingChoice } from "@/lib/character/derive-pending-choices"
+import { LanguagePicker } from "@/components/forge/language-picker"
+import type { LanguageRow } from "@/lib/actions/5e-data"
 
 const ATTR_LABELS: Record<AttributeKey, string> = {
   str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
@@ -173,27 +175,42 @@ function RaceSkillPicker({
 
 type Props = {
   pendingChoices: RacePendingChoice[]
+  languagePendingChoices: RaceLanguagePendingChoice[]
+  languages: LanguageRow[]
+  alreadyChosenLanguageIds: string[]
+  isOpen: boolean
+  onToggle: () => void
   onConfirmChoice: (choices: RaceChoiceMade[]) => void
+  onConfirmLanguageChoice: (choices: LanguageChoiceMade[]) => void
   onDismissChoice: (choiceKey: string) => void
 }
 
-export function RaceChoicesPanel({ pendingChoices, onConfirmChoice, onDismissChoice }: Props) {
-  const [open, setOpen] = useState(false)
-
-  if (pendingChoices.length === 0) return null
+export function RaceChoicesPanel({
+  pendingChoices,
+  languagePendingChoices,
+  languages,
+  alreadyChosenLanguageIds,
+  isOpen,
+  onToggle,
+  onConfirmChoice,
+  onConfirmLanguageChoice,
+  onDismissChoice,
+}: Props) {
+  const total = pendingChoices.length + languagePendingChoices.length
+  if (total === 0) return null
 
   return (
     <div className="space-y-0">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={onToggle}
         className="flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
       >
-        {pendingChoices.length} pending {pendingChoices.length === 1 ? "choice" : "choices"}
-        {open ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+        {total} pending {total === 1 ? "choice" : "choices"}
+        {isOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
       </button>
 
-      {open && (
+      {isOpen && (
         <div className="mt-3 space-y-6 rounded-lg border border-border bg-muted/30 p-4">
           {pendingChoices.map((pc, i) => (
             <div key={`${pc.raceId}:${pc.type}:${i}`} className="space-y-3">
@@ -222,6 +239,28 @@ export function RaceChoicesPanel({ pendingChoices, onConfirmChoice, onDismissCho
               >
                 Dismiss
               </Button>
+            </div>
+          ))}
+          {languagePendingChoices.map((lpc, i) => (
+            <div key={`${lpc.sourceId}:lang:${i}`} className="space-y-3">
+              <LanguagePicker
+                languages={languages}
+                alreadyChosen={alreadyChosenLanguageIds}
+                chooseCount={lpc.chooseCount}
+                sourceName={lpc.sourceName}
+                choiceLabel={`${lpc.chooseCount}`}
+                onConfirm={(choices) => {
+                  onConfirmLanguageChoice(
+                    choices.map((c) => ({
+                      id: crypto.randomUUID(),
+                      sourceId: lpc.sourceId,
+                      languageId: c.languageId,
+                      languageName: c.languageName,
+                    })),
+                  )
+                }}
+                onDismiss={() => onDismissChoice(getRaceLanguagePendingChoiceKey(lpc))}
+              />
             </div>
           ))}
         </div>

@@ -44,6 +44,7 @@ const TABLES = [
   "race_ability_bonuses",
   "race_ability_bonus_options",
   "race_skill_choices",
+  "race_language_choices",
   "class_starting_equipment",
   "class_starting_equipment_options",
   "characters",

@@ -242,9 +242,24 @@ export type BackgroundChoiceMade = {
   improvements: { attr: AttributeKey; bonus: number }[];
 };
 
+export type LanguageChoiceMade = {
+  id: string;
+  sourceId: string;  // "background:<bgId>" | "race:<raceId>" | "subrace:<subraceId>"
+  languageId: string;
+  languageName: string;
+};
+
+export type ToolChoiceMade = {
+  id: string;
+  backgroundId: string;
+  choiceIndex: number;
+  toolName: string;
+};
+
 export type SrdGrants = {
   saveProficiencies: string[];
   skillProficiencies: string[];
+  raceSkillProficiencies?: string[];
   raceAsiBonuses?: { abilityScore: AttributeKey; bonus: number; sourceId: string }[];
   backgroundAsiBonuses?: { abilityScore: AttributeKey; bonus: number; sourceId: string }[];
 };
@@ -281,6 +296,7 @@ export type CharacterData = {
   dismissedClassChoiceKeys?: string[];
   dismissedRaceChoiceKeys?: string[];
   dismissedEquipmentChoiceKeys?: string[];
+  dismissedBackgroundChoiceKeys?: string[];
   identity: {
     name: string;
     race: string;
@@ -339,5 +355,7 @@ export type CharacterData = {
   classChoices?: ClassChoiceMade[];
   raceChoices?: RaceChoiceMade[];
   backgroundChoices?: BackgroundChoiceMade[];
+  languageChoices?: LanguageChoiceMade[];
+  toolChoices?: ToolChoiceMade[];
   equipmentChoicesMade?: EquipmentChoiceMade[];
 };

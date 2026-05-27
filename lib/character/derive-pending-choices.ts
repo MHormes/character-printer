@@ -4,7 +4,9 @@ import type {
   ClassSkillChoiceRow,
   RaceAbilityBonusOptionRow,
   RaceSkillChoiceRow,
+  RaceLanguageChoiceRow,
   RaceRow,
+  SubraceRow,
   BackgroundRow,
   ClassStartingEquipmentOptionRow,
 } from "@/lib/actions/5e-data"
@@ -60,35 +62,136 @@ export function getEquipmentPendingChoiceKey(choice: Pick<EquipmentPendingChoice
   return `${choice.classId}:equip:${choice.choiceIndex}`
 }
 
-export type BackgroundPendingChoice = {
-  backgroundId: string;
-  backgroundName: string;
-  type: "asi";
-  asiPool: AttributeKey[];
+export type BackgroundToolChoiceOption = {
+  count: number;
+  category: string;
+  label: string;
 }
 
-export function getBackgroundPendingChoiceKey(choice: Pick<BackgroundPendingChoice, "backgroundId" | "type">): string {
+export type BackgroundPendingChoice =
+  | {
+      type: "asi";
+      backgroundId: string;
+      backgroundName: string;
+      asiPool: AttributeKey[];
+    }
+  | {
+      type: "language";
+      backgroundId: string;
+      backgroundName: string;
+      chooseCount: number;
+    }
+  | {
+      type: "tool";
+      backgroundId: string;
+      backgroundName: string;
+      choiceIndex: number;
+      count: number;
+      category: string;
+      label: string;
+    }
+
+export type RaceLanguagePendingChoice = {
+  sourceId: string;  // "race:<id>" or "subrace:<id>"
+  sourceName: string;
+  chooseCount: number;
+}
+
+export function getBackgroundPendingChoiceKey(choice: Pick<BackgroundPendingChoice, "backgroundId" | "type"> & { choiceIndex?: number }): string {
+  if (choice.type === "tool") return `${choice.backgroundId}:tool:${choice.choiceIndex}`
   return `${choice.backgroundId}:${choice.type}`
+}
+
+export function getRaceLanguagePendingChoiceKey(choice: Pick<RaceLanguagePendingChoice, "sourceId">): string {
+  return `${choice.sourceId}:language`
 }
 
 export function deriveBackgroundPendingChoices(
   char: CharacterData,
   bgRow: BackgroundRow | null | undefined,
 ): BackgroundPendingChoice[] {
-  if (!bgRow?.asiGrants) return []
+  if (!bgRow) return []
+  const dismissed = new Set(char.dismissedBackgroundChoiceKeys ?? [])
+  const pending: BackgroundPendingChoice[] = []
 
-  const asiPool: string[] = typeof bgRow.asiGrants === "string" ? JSON.parse(bgRow.asiGrants) : bgRow.asiGrants as unknown as string[]
-  if (asiPool.length === 0) return []
+  // ── ASI choices (2024 backgrounds) ───────────────────────────────────────
+  if (bgRow.asiGrants) {
+    const asiPool: string[] = typeof bgRow.asiGrants === "string" ? JSON.parse(bgRow.asiGrants) : bgRow.asiGrants as unknown as string[]
+    if (asiPool.length > 0) {
+      const filled = (char.backgroundChoices ?? []).some((c) => c.backgroundId === bgRow.id)
+      const key = getBackgroundPendingChoiceKey({ backgroundId: bgRow.id, type: "asi" })
+      if (!filled && !dismissed.has(key)) {
+        pending.push({ type: "asi", backgroundId: bgRow.id, backgroundName: bgRow.name, asiPool: asiPool as AttributeKey[] })
+      }
+    }
+  }
 
-  const filled = (char.backgroundChoices ?? []).some((c) => c.backgroundId === bgRow.id)
-  if (filled) return []
+  // ── Language choices ──────────────────────────────────────────────────────
+  const langCount: number = bgRow.languageChoiceCount ?? 0
+  if (langCount > 0) {
+    const madeCount = (char.languageChoices ?? []).filter((c) => c.sourceId === `background:${bgRow.id}`).length
+    const remaining = langCount - madeCount
+    if (remaining > 0) {
+      const key = getBackgroundPendingChoiceKey({ backgroundId: bgRow.id, type: "language" })
+      if (!dismissed.has(key)) {
+        pending.push({ type: "language", backgroundId: bgRow.id, backgroundName: bgRow.name, chooseCount: remaining })
+      }
+    }
+  }
 
-  return [{
-    backgroundId: bgRow.id,
-    backgroundName: bgRow.name,
-    type: "asi",
-    asiPool: asiPool as AttributeKey[],
-  }]
+  // ── Tool choices ──────────────────────────────────────────────────────────
+  if (bgRow.toolChoicesJson) {
+    const toolChoices: BackgroundToolChoiceOption[] = typeof bgRow.toolChoicesJson === "string"
+      ? JSON.parse(bgRow.toolChoicesJson)
+      : bgRow.toolChoicesJson as unknown as BackgroundToolChoiceOption[]
+    for (let i = 0; i < toolChoices.length; i++) {
+      const opt = toolChoices[i]
+      const alreadyMade = (char.toolChoices ?? []).some((c) => c.backgroundId === bgRow.id && c.choiceIndex === i)
+      const key = getBackgroundPendingChoiceKey({ backgroundId: bgRow.id, type: "tool", choiceIndex: i })
+      if (!alreadyMade && !dismissed.has(key)) {
+        pending.push({ type: "tool", backgroundId: bgRow.id, backgroundName: bgRow.name, choiceIndex: i, ...opt })
+      }
+    }
+  }
+
+  return pending
+}
+
+export function deriveRaceLanguagePendingChoices(
+  char: CharacterData,
+  raceRow: RaceRow | undefined,
+  subraceRow: SubraceRow | undefined,
+  allLangChoiceRows: RaceLanguageChoiceRow[],
+): RaceLanguagePendingChoice[] {
+  if (char.selectionIgnores?.race) return []
+  const dismissed = new Set(char.dismissedRaceChoiceKeys ?? [])
+  const pending: RaceLanguagePendingChoice[] = []
+
+  if (raceRow) {
+    const row = allLangChoiceRows.find((r) => r.raceId === raceRow.id && !r.subraceId)
+    if (row) {
+      const sourceId = `race:${raceRow.id}`
+      const madeCount = (char.languageChoices ?? []).filter((c) => c.sourceId === sourceId).length
+      const remaining = row.chooseCount - madeCount
+      if (remaining > 0 && !dismissed.has(getRaceLanguagePendingChoiceKey({ sourceId }))) {
+        pending.push({ sourceId, sourceName: raceRow.name, chooseCount: remaining })
+      }
+    }
+  }
+
+  if (subraceRow) {
+    const row = allLangChoiceRows.find((r) => r.subraceId === subraceRow.id)
+    if (row) {
+      const sourceId = `subrace:${subraceRow.id}`
+      const madeCount = (char.languageChoices ?? []).filter((c) => c.sourceId === sourceId).length
+      const remaining = row.chooseCount - madeCount
+      if (remaining > 0 && !dismissed.has(getRaceLanguagePendingChoiceKey({ sourceId }))) {
+        pending.push({ sourceId, sourceName: subraceRow.name, chooseCount: remaining })
+      }
+    }
+  }
+
+  return pending
 }
 
 export function derivePendingChoices(

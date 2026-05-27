@@ -69,7 +69,7 @@ export function RaceField({
   }
 
   return (
-    <div className="contents" ref={containerRef}>
+    <div className="grid grid-cols-2 gap-4" ref={containerRef}>
       {/* Race combobox */}
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
