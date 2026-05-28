@@ -107,6 +107,61 @@ function BackgroundAsiPicker({
   )
 }
 
+// ─── Item list picker (specific named options, no DB search) ─────────────────
+
+function ItemListPicker({
+  backgroundName,
+  options,
+  label,
+  onConfirm,
+  onDismiss,
+}: {
+  backgroundName: string
+  options: { name: string }[]
+  label: string
+  onConfirm: (itemName: string) => void
+  onDismiss: () => void
+}) {
+  const [selected, setSelected] = useState<string | null>(null)
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        {backgroundName} · Starting Equipment — choose {label}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {options.map(({ name }) => (
+          <Button
+            key={name}
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-pressed={selected === name}
+            onClick={() => setSelected(selected === name ? null : name)}
+            className={selected === name ? "border-primary bg-primary/10" : ""}
+          >
+            {name}
+          </Button>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          contrast
+          disabled={!selected}
+          onClick={() => { if (selected) onConfirm(selected) }}
+        >
+          Confirm
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDismiss}>
+          Dismiss
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 type Props = {
@@ -184,12 +239,29 @@ export function BackgroundChoicesPanel({
                     onDismiss={() => onDismissChoice(key)}
                   />
                 )}
-                {pc.type === "tool" && (
+                {pc.type === "tool" && pc.inventoryOnly && pc.options && (
+                  <ItemListPicker
+                    backgroundName={pc.backgroundName}
+                    options={pc.options}
+                    label={pc.label}
+                    onConfirm={(toolName) => {
+                      onConfirmTool({
+                        id: crypto.randomUUID(),
+                        backgroundId: pc.backgroundId,
+                        choiceIndex: pc.choiceIndex,
+                        toolName,
+                      })
+                    }}
+                    onDismiss={() => onDismissChoice(key)}
+                  />
+                )}
+                {pc.type === "tool" && !pc.inventoryOnly && (
                   <ToolPicker
                     tools={tools}
-                    category={pc.category}
+                    category={pc.category ?? ""}
                     label={pc.label}
                     sourceName={pc.backgroundName}
+                    profLabel={pc.addToInventory ? "Tool Proficiency & Equipment" : "Tool Proficiency"}
                     onConfirm={(toolName) => {
                       onConfirmTool({
                         id: crypto.randomUUID(),

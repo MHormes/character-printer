@@ -32,6 +32,7 @@ function ProficiencyPicker({
   const [results, setResults] = useState<OtherProfResult[]>([])
   const [loading, setLoading] = useState(true)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   function runSearch(q: string, cat: OtherProficiency["category"] | "All") {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -69,6 +70,7 @@ function ProficiencyPicker({
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
           <Input
+            ref={inputRef}
             autoFocus
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
@@ -113,7 +115,7 @@ function ProficiencyPicker({
               <span className="shrink-0 text-[10px] text-muted-foreground">{r.category}</span>
               <button
                 type="button"
-                onClick={() => { if (!alreadyAdded) onPick(r) }}
+                onClick={() => { if (!alreadyAdded) { onPick(r); setQuery(""); runSearch("", category); inputRef.current?.focus() } }}
                 disabled={alreadyAdded}
                 className={cn(
                   "flex size-5 shrink-0 items-center justify-center rounded-full transition-colors",

@@ -72,35 +72,37 @@ export function StatBlock({ label, data, attrs, level, pb, showManualControls, o
         {label}
       </span>
 
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground">Base</span>
-        <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
-          <button
-            type="button"
-            onClick={() => onBaseChange(Math.max(1, data.base - 1))}
-            disabled={data.base <= 1}
-            className="flex h-full w-5 shrink-0 items-center justify-center text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
-          >
-            -
-          </button>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={data.base}
-            onChange={(e) => handleBaseChange(e.target.value)}
-            onFocus={(e) => e.target.select()}
-            className="w-6 bg-transparent text-center text-xs font-medium tabular-nums focus:outline-none"
-          />
-          <button
-            type="button"
-            onClick={() => onBaseChange(Math.min(30, data.base + 1))}
-            disabled={data.base >= 30}
-            className="flex h-full w-5 shrink-0 items-center justify-center text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
-          >
-            +
-          </button>
+      {showManualControls && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">Base</span>
+          <div className="flex h-6 items-center rounded-md border border-input bg-background focus-within:border-ring">
+            <button
+              type="button"
+              onClick={() => onBaseChange(Math.max(1, data.base - 1))}
+              disabled={data.base <= 1}
+              className="flex h-full w-5 shrink-0 items-center justify-center text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+            >
+              -
+            </button>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={data.base}
+              onChange={(e) => handleBaseChange(e.target.value)}
+              onFocus={(e) => e.target.select()}
+              className="w-6 bg-transparent text-center text-xs font-medium tabular-nums focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => onBaseChange(Math.min(30, data.base + 1))}
+              disabled={data.base >= 30}
+              className="flex h-full w-5 shrink-0 items-center justify-center text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+            >
+              +
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {showManualControls && (
         <>

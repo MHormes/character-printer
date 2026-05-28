@@ -189,6 +189,7 @@ function ItemPicker({
   const [results, setResults] = useState<ItemRow[]>([]);
   const [loading, setLoading] = useState(true);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function runSearch(q: string, cat: string) {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -227,6 +228,7 @@ function ItemPicker({
         <div className="relative flex-1">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
           <Input
+            ref={inputRef}
             autoFocus
             type="text"
             value={query}
@@ -285,7 +287,7 @@ function ItemPicker({
               )}
               <button
                 type="button"
-                onClick={() => onPick(item)}
+                onClick={() => { onPick(item); setQuery(""); runSearch("", categoryFilter); inputRef.current?.focus(); }}
                 className="flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
               >
                 <Plus className="size-3" />
@@ -368,7 +370,6 @@ export function InventoryBlock({
     } else {
       onChange([...inventory, invItem]);
     }
-    setShowPicker(false);
   }
 
   const totalWeight = inventory

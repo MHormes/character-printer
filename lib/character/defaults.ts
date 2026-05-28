@@ -59,6 +59,7 @@ export function createDefaultCharacter(id: string, edition: CharacterData["editi
       hair: "",
       skin: "",
       size: "",
+      creatureType: "",
       level: 1,
       classes: [{ classId: null, name: "", subclass: "", subclassId: null, level: 1, hitDie: "d8", ignoreAutomation: false }],
     },

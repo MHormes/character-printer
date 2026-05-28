@@ -1,12 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { ChevronDown, ChevronUp } from "lucide-react"
-import type { RaceChoiceMade, LanguageChoiceMade, AttributeKey } from "@/lib/types/character"
-import { getRacePendingChoiceKey, getRaceLanguagePendingChoiceKey, type RacePendingChoice, type RaceLanguagePendingChoice } from "@/lib/character/derive-pending-choices"
+import type { RaceChoiceMade, LanguageChoiceMade, RaceToolChoiceMade, RaceCantripChoiceMade, AttributeKey } from "@/lib/types/character"
+import {
+  getRacePendingChoiceKey,
+  getRaceLanguagePendingChoiceKey,
+  getRaceToolPendingChoiceKey,
+  getRaceCantripPendingChoiceKey,
+  type RacePendingChoice,
+  type RaceLanguagePendingChoice,
+  type RaceToolPendingChoice,
+  type RaceCantripPendingChoice,
+} from "@/lib/character/derive-pending-choices"
 import { LanguagePicker } from "@/components/forge/language-picker"
-import type { LanguageRow } from "@/lib/actions/5e-data"
+import { ToolPicker } from "@/components/forge/tool-picker"
+import type { LanguageRow, ItemRow, SpellRow } from "@/lib/actions/5e-data"
 
 const ATTR_LABELS: Record<AttributeKey, string> = {
   str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
@@ -171,32 +182,115 @@ function RaceSkillPicker({
   )
 }
 
+// ─── Cantrip picker ───────────────────────────────────────────────────────────
+
+function CantripPicker({
+  sourceName,
+  cantrips,
+  onConfirm,
+  onDismiss,
+}: {
+  sourceName: string
+  cantrips: SpellRow[]
+  onConfirm: (spell: SpellRow) => void
+  onDismiss: () => void
+}) {
+  const [search, setSearch] = useState("")
+  const [selected, setSelected] = useState<SpellRow | null>(null)
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase()
+    return cantrips.filter((s) => s.name.toLowerCase().includes(q))
+  }, [cantrips, search])
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        {sourceName} · Racial Cantrip — choose one
+      </p>
+      <Input
+        placeholder="Search cantrips…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="h-8 text-sm"
+      />
+      <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto">
+        {filtered.map((spell) => {
+          const checked = selected?.id === spell.id
+          return (
+            <Button
+              key={spell.id}
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-pressed={checked}
+              onClick={() => setSelected(checked ? null : spell)}
+              className={checked ? "border-primary bg-primary/10" : ""}
+            >
+              {spell.name}
+            </Button>
+          )
+        })}
+        {filtered.length === 0 && (
+          <p className="text-xs text-muted-foreground">No cantrips found.</p>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          contrast
+          disabled={!selected}
+          onClick={() => { if (selected) onConfirm(selected) }}
+        >
+          Confirm
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onDismiss}>
+          Dismiss
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 type Props = {
   pendingChoices: RacePendingChoice[]
   languagePendingChoices: RaceLanguagePendingChoice[]
+  toolPendingChoices: RaceToolPendingChoice[]
+  cantripPendingChoices: RaceCantripPendingChoice[]
   languages: LanguageRow[]
+  tools: ItemRow[]
+  cantrips: SpellRow[]
   alreadyChosenLanguageIds: string[]
   isOpen: boolean
   onToggle: () => void
   onConfirmChoice: (choices: RaceChoiceMade[]) => void
   onConfirmLanguageChoice: (choices: LanguageChoiceMade[]) => void
+  onConfirmToolChoice: (choice: RaceToolChoiceMade) => void
+  onConfirmCantripChoice: (choice: RaceCantripChoiceMade) => void
   onDismissChoice: (choiceKey: string) => void
 }
 
 export function RaceChoicesPanel({
   pendingChoices,
   languagePendingChoices,
+  toolPendingChoices,
+  cantripPendingChoices,
   languages,
+  tools,
+  cantrips,
   alreadyChosenLanguageIds,
   isOpen,
   onToggle,
   onConfirmChoice,
   onConfirmLanguageChoice,
+  onConfirmToolChoice,
+  onConfirmCantripChoice,
   onDismissChoice,
 }: Props) {
-  const total = pendingChoices.length + languagePendingChoices.length
+  const total = pendingChoices.length + languagePendingChoices.length + toolPendingChoices.length + cantripPendingChoices.length
   if (total === 0) return null
 
   return (
@@ -260,6 +354,59 @@ export function RaceChoicesPanel({
                   )
                 }}
                 onDismiss={() => onDismissChoice(getRaceLanguagePendingChoiceKey(lpc))}
+              />
+            </div>
+          ))}
+          {toolPendingChoices.map((tpc) => (
+            <div key={getRaceToolPendingChoiceKey(tpc)} className="space-y-3">
+              <ToolPicker
+                tools={tools}
+                category={tpc.category ?? ""}
+                label={tpc.label}
+                sourceName={tpc.sourceName}
+                profLabel={tpc.addToInventory ? "Tool Proficiency & Equipment" : "Tool Proficiency"}
+                onConfirm={(toolName) => {
+                  onConfirmToolChoice({
+                    id: crypto.randomUUID(),
+                    sourceId: tpc.sourceId,
+                    choiceIndex: tpc.choiceIndex,
+                    toolName,
+                  })
+                }}
+                onDismiss={() => onDismissChoice(getRaceToolPendingChoiceKey(tpc))}
+              />
+            </div>
+          ))}
+          {cantripPendingChoices.map((cpc) => (
+            <div key={getRaceCantripPendingChoiceKey(cpc)} className="space-y-3">
+              <CantripPicker
+                sourceName={cpc.sourceName}
+                cantrips={cantrips}
+                onConfirm={(spell) => {
+                  onConfirmCantripChoice({
+                    id: crypto.randomUUID(),
+                    sourceId: cpc.sourceId,
+                    spellId: spell.id,
+                    spellName: spell.name,
+                    spellLevel: spell.level,
+                    spellSchool: spell.school ?? "",
+                    spellCastingTime: spell.castingTime ?? "",
+                    spellRange: spell.range ?? "",
+                    spellDuration: spell.duration ?? "",
+                    spellDescription: spell.description ?? "",
+                    spellComponents: {
+                      verbal: spell.verbal ?? false,
+                      somatic: spell.somatic ?? false,
+                      material: spell.material ?? false,
+                      materialDesc: spell.materialDesc ?? "",
+                    },
+                    spellTags: {
+                      ritual: spell.ritual ?? false,
+                      concentration: spell.concentration ?? false,
+                    },
+                  })
+                }}
+                onDismiss={() => onDismissChoice(getRaceCantripPendingChoiceKey(cpc))}
               />
             </div>
           ))}

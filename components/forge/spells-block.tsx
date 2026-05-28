@@ -71,6 +71,7 @@ function SpellPicker({
   const [loading, setLoading] = useState(true)
   const [addedNames, setAddedNames] = useState<Set<string>>(new Set())
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   function runSearch(q: string, cls: string) {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -105,6 +106,9 @@ function SpellPicker({
   function handleAdd(spell: SpellRow) {
     onAdd(spell)
     setAddedNames(prev => new Set([...prev, spell.name]))
+    setQuery("")
+    runSearch("", classFilter)
+    inputRef.current?.focus()
   }
 
   return (
@@ -114,6 +118,7 @@ function SpellPicker({
         <div className="relative flex-1">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
           <Input
+            ref={inputRef}
             autoFocus
             type="text"
             value={query}

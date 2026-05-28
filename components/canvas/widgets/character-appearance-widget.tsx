@@ -7,7 +7,7 @@ export function CharacterAppearanceWidget() {
   const character = useCharacterStore((s) => s.character)
   if (!character) return null
 
-  const { age, height, weight, eyes, skin, hair, size } = character.identity
+  const { age, height, weight, eyes, skin, hair, size, creatureType } = character.identity
 
   const ff = "Georgia, 'Times New Roman', serif"
   const ink = "#1a1208"
@@ -58,14 +58,18 @@ export function CharacterAppearanceWidget() {
       {/* divider */}
       <line x1="18" y1="39" x2="482" y2="39" stroke={ink} strokeWidth="0.5" />
 
-      {/* ── Row 2: EYES | SKIN | HAIR ── */}
+      {/* ── Row 2: EYES | CREATURE TYPE | SKIN | HAIR ── */}
       {/* EYES */}
       <text x="20" y="52" fontSize="12" fontWeight="700" fontFamily={ff} fill={ink}>{eyes || "—"}</text>
       <text x="20" y="62" fontSize="5" fontWeight="700" fontFamily={ff} letterSpacing="0.8" fill={ink}>EYES</text>
 
+      {/* CREATURE TYPE */}
+      <text x="167" y="52" fontSize="12" fontWeight="700" fontFamily={ff} fill={ink}>{creatureType || "—"}</text>
+      <text x="167" y="62" fontSize="5" fontWeight="700" fontFamily={ff} letterSpacing="0.8" fill={ink}>CREATURE TYPE</text>
+
       {/* SKIN */}
-      <text x="250" y="52" fontSize="12" fontWeight="700" fontFamily={ff} fill={ink} textAnchor="middle">{skin || "—"}</text>
-      <text x="250" y="62" fontSize="5" fontWeight="700" fontFamily={ff} letterSpacing="0.8" fill={ink} textAnchor="middle">SKIN</text>
+      <text x="313" y="52" fontSize="12" fontWeight="700" fontFamily={ff} fill={ink}>{skin || "—"}</text>
+      <text x="313" y="62" fontSize="5" fontWeight="700" fontFamily={ff} letterSpacing="0.8" fill={ink}>SKIN</text>
 
       {/* HAIR */}
       <text x="460" y="52" fontSize="12" fontWeight="700" fontFamily={ff} fill={ink} textAnchor="end">{hair || "—"}</text>

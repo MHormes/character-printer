@@ -262,6 +262,8 @@ export const sqliteRaces = sqliteTable("races", {
   speed: integer("speed"),               // walking speed in feet (30, 25, etc.)
   source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
+  toolChoicesJson: text("tool_choices_json"),
+  cantripChoicesJson: text("cantrip_choices_json"),
 });
 
 export const pgRaces = pgTable("races", {
@@ -271,6 +273,8 @@ export const pgRaces = pgTable("races", {
   speed: pgInteger("speed"),
   source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
+  toolChoicesJson: pgText("tool_choices_json"),
+  cantripChoicesJson: pgText("cantrip_choices_json"),
 });
 
 // ─── Game content: subraces ───────────────────────────────────────────────────
@@ -282,6 +286,8 @@ export const sqliteSubraces = sqliteTable("subraces", {
   name: text("name").notNull(),
   source: text("source").default("srd"),
   userId: text("user_id").references(() => sqliteUsers.id, { onDelete: "cascade" }),
+  toolChoicesJson: text("tool_choices_json"),
+  cantripChoicesJson: text("cantrip_choices_json"),
 });
 
 export const pgSubraces = pgTable("subraces", {
@@ -291,6 +297,8 @@ export const pgSubraces = pgTable("subraces", {
   name: varchar("name", { length: 255 }).notNull(),
   source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
+  toolChoicesJson: pgText("tool_choices_json"),
+  cantripChoicesJson: pgText("cantrip_choices_json"),
 });
 
 // ─── Game content: equipment / items ─────────────────────────────────────────

@@ -21,6 +21,7 @@ import {
   getAllRaceProficiencies,
   getLanguages,
   getTools,
+  getCantripsByClass,
   searchFeats,
   getAllClassStartingEquipment,
   getAllClassStartingEquipmentOptions,
@@ -33,6 +34,7 @@ import type {
   BackgroundRow,
   SpellSlotRow,
   ItemRow,
+  SpellRow,
   ClassFeatureRow,
   ClassProficiencyRow,
   RaceTraitRow,
@@ -55,11 +57,15 @@ import {
   derivePendingChoices,
   deriveRacePendingChoices,
   deriveRaceLanguagePendingChoices,
+  deriveRaceToolPendingChoices,
+  deriveRaceCantripPendingChoices,
   deriveEquipmentPendingChoices,
   deriveBackgroundPendingChoices,
   type PendingChoice,
   type RacePendingChoice,
   type RaceLanguagePendingChoice,
+  type RaceToolPendingChoice,
+  type RaceCantripPendingChoice,
   type EquipmentPendingChoice,
   type BackgroundPendingChoice,
 } from "@/lib/character/derive-pending-choices";
@@ -258,6 +264,9 @@ export default function ForgePage({
   const [raceLanguagePendingChoices, setRaceLanguagePendingChoices] = useState<
     RaceLanguagePendingChoice[]
   >([]);
+  const [raceToolPendingChoices, setRaceToolPendingChoices] = useState<RaceToolPendingChoice[]>([]);
+  const [raceCantripPendingChoices, setRaceCantripPendingChoices] = useState<RaceCantripPendingChoice[]>([]);
+  const [availableRaceCantrips, setAvailableRaceCantrips] = useState<SpellRow[]>([]);
   const [backgroundPendingChoices, setBackgroundPendingChoices] = useState<
     BackgroundPendingChoice[]
   >([]);
@@ -722,6 +731,41 @@ export default function ForgePage({
     );
   }, [character, availableRaces, availableSubraces, allRaceLanguageChoiceRows]);
 
+  // Derive race tool + cantrip pending choices.
+  useEffect(() => {
+    if (!character || availableRaces.length === 0) {
+      setRaceToolPendingChoices([]);
+      setRaceCantripPendingChoices([]);
+      return;
+    }
+    const matchedRace = character.identity.race
+      ? availableRaces.find((r) => r.name.toLowerCase() === character.identity.race.toLowerCase())
+      : undefined;
+    const matchedSubrace = character.identity.subrace && availableSubraces.length > 0
+      ? availableSubraces.find((s) => s.name.toLowerCase() === character.identity.subrace.toLowerCase())
+      : undefined;
+    setRaceToolPendingChoices(deriveRaceToolPendingChoices(character, matchedRace, matchedSubrace));
+    setRaceCantripPendingChoices(deriveRaceCantripPendingChoices(character, matchedRace, matchedSubrace, availableRaceCantrips));
+  }, [character, availableRaces, availableSubraces, availableRaceCantrips]);
+
+  // Fetch cantrips when the selected race/subrace has a cantrip choice.
+  useEffect(() => {
+    if (availableRaces.length === 0) return;
+    const matchedRace = character?.identity.race
+      ? availableRaces.find((r) => r.name.toLowerCase() === character.identity.race.toLowerCase())
+      : undefined;
+    const matchedSubrace = character?.identity.subrace && availableSubraces.length > 0
+      ? availableSubraces.find((s) => s.name.toLowerCase() === character.identity.subrace.toLowerCase())
+      : undefined;
+    const needsCantrips = !!(matchedRace?.cantripChoicesJson || matchedSubrace?.cantripChoicesJson);
+    if (!needsCantrips) { setAvailableRaceCantrips([]); return; }
+    // Parse classId from the first cantrip choice entry (default wizard)
+    const json = matchedSubrace?.cantripChoicesJson ?? matchedRace?.cantripChoicesJson;
+    let classId = "dnd5e:wizard";
+    try { const parsed = JSON.parse(json!); if (parsed[0]?.classId) classId = parsed[0].classId; } catch { /* ignore */ }
+    getCantripsByClass(classId).then(setAvailableRaceCantrips);
+  }, [character?.identity.race, character?.identity.subrace, availableRaces, availableSubraces]);
+
   // Derive background pending choices.
   useEffect(() => {
     if (!character || availableBackgrounds.length === 0) {
@@ -793,6 +837,48 @@ export default function ForgePage({
     replaceCharacter(updated);
   }
 
+  function handleConfirmRaceToolChoice(
+    choice: import("@/lib/types/character").RaceToolChoiceMade,
+  ) {
+    if (!character) return;
+    replaceCharacter({
+      ...character,
+      raceToolChoices: [...(character.raceToolChoices ?? []), choice],
+    });
+  }
+
+  function handleConfirmRaceCantripChoice(
+    choice: import("@/lib/types/character").RaceCantripChoiceMade,
+  ) {
+    if (!character) return;
+    const updated = structuredClone(character);
+    updated.raceCantripChoices = [...(updated.raceCantripChoices ?? []), choice];
+    // Clear any existing cantrip entry for this source then add the new one
+    updated.spells.list = updated.spells.list.filter(
+      (s) => s.sourceId !== `${choice.sourceId}:cantrip`,
+    );
+    updated.spells.list.push({
+      id: crypto.randomUUID(),
+      name: choice.spellName,
+      level: choice.spellLevel,
+      school: choice.spellSchool,
+      castingTime: choice.spellCastingTime,
+      range: choice.spellRange,
+      duration: choice.spellDuration,
+      mode: "Plain",
+      castingStat: null,
+      fixedDC: null,
+      saveStat: null,
+      damageStack: [],
+      description: choice.spellDescription,
+      upcastDescription: "",
+      components: choice.spellComponents,
+      tags: { ...choice.spellTags, prepared: true },
+      sourceId: `${choice.sourceId}:cantrip`,
+    });
+    replaceCharacter(updated);
+  }
+
   function handleConfirmBackgroundAsi(
     choice: import("@/lib/types/character").BackgroundChoiceMade,
   ) {
@@ -839,24 +925,53 @@ export default function ForgePage({
       (b) => b.name.toLowerCase() === character.identity.background.toLowerCase(),
     );
     if (!bgRow) return;
+
+    type ToolChoiceMeta = { count?: number; category?: string; label: string; addToInventory?: boolean; inventoryOnly?: boolean; options?: { name: string }[] };
+    const toolChoiceMeta: ToolChoiceMeta[] = bgRow.toolChoicesJson
+      ? (typeof bgRow.toolChoicesJson === "string" ? JSON.parse(bgRow.toolChoicesJson) : bgRow.toolChoicesJson as unknown as ToolChoiceMeta[])
+      : [];
+
     const newToolChoices = [...(character.toolChoices ?? []), choice];
     const updated = structuredClone(character);
     updated.toolChoices = newToolChoices;
+
     // Eagerly re-apply background tool proficiencies
     updated.otherProficiencies = updated.otherProficiencies.filter(
       (p) => p.sourceId !== `background:${bgRow.id}:tool`,
     );
     for (const tc of newToolChoices.filter((c) => c.backgroundId === bgRow.id)) {
-      updated.otherProficiencies.push({
-        id: crypto.randomUUID(),
-        name: tc.toolName,
-        category: "Tool",
-        training: "Proficient",
-        stat: null,
-        override: null,
-        sourceId: `background:${bgRow.id}:tool`,
-      });
+      const meta = toolChoiceMeta[tc.choiceIndex] as ToolChoiceMeta | undefined;
+      if (!meta?.inventoryOnly) {
+        updated.otherProficiencies.push({
+          id: crypto.randomUUID(),
+          name: tc.toolName,
+          category: "Tool",
+          training: "Proficient",
+          stat: null,
+          override: null,
+          sourceId: `background:${bgRow.id}:tool`,
+        });
+      }
     }
+
+    // Eagerly re-apply tool-choice inventory items
+    updated.inventory = updated.inventory.filter((i) => i.sourceId !== `bg-tool:${bgRow.id}`);
+    for (const tc of newToolChoices.filter((c) => c.backgroundId === bgRow.id)) {
+      const meta = toolChoiceMeta[tc.choiceIndex] as ToolChoiceMeta | undefined;
+      if (meta?.addToInventory || meta?.inventoryOnly) {
+        updated.inventory.push({
+          id: crypto.randomUUID(),
+          name: tc.toolName,
+          quantity: meta?.count ?? 1,
+          weight: 0,
+          category: meta?.inventoryOnly ? "Mundane" : "Tool",
+          equipped: false,
+          modifiers: [],
+          sourceId: `bg-tool:${bgRow.id}`,
+        });
+      }
+    }
+
     replaceCharacter(updated);
   }
 
@@ -1280,7 +1395,11 @@ export default function ForgePage({
                     <RaceChoicesPanel
                       pendingChoices={racePendingChoices}
                       languagePendingChoices={raceLanguagePendingChoices}
+                      toolPendingChoices={raceToolPendingChoices}
+                      cantripPendingChoices={raceCantripPendingChoices}
                       languages={availableLanguages}
+                      tools={availableTools}
+                      cantrips={availableRaceCantrips}
                       alreadyChosenLanguageIds={(character.languageChoices ?? [])
                         .filter((c) => c.sourceId.startsWith("race:") || c.sourceId.startsWith("subrace:"))
                         .map((c) => c.languageId)}
@@ -1288,6 +1407,8 @@ export default function ForgePage({
                       onToggle={() => setOpenChoicePanel((v) => v === "race" ? null : "race")}
                       onConfirmChoice={handleConfirmRaceChoice}
                       onConfirmLanguageChoice={handleConfirmRaceLanguageChoice}
+                      onConfirmToolChoice={handleConfirmRaceToolChoice}
+                      onConfirmCantripChoice={handleConfirmRaceCantripChoice}
                       onDismissChoice={handleDismissRaceChoice}
                     />
                   </div>

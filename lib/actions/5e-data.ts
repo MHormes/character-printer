@@ -25,7 +25,7 @@ import {
   sqliteClassStartingEquipment,
   sqliteClassStartingEquipmentOptions,
 } from "@/lib/db/schema";
-import { eq, and, like, ilike, asc } from "drizzle-orm";
+import { eq, and, like, ilike, asc, min } from "drizzle-orm";
 
 const likeCI = process.env.DB_DRIVER === "postgres" ? ilike : like;
 
@@ -470,9 +470,14 @@ export async function searchSrdFeatures(
       .orderBy(asc(sqliteClassFeatures.name))
       .limit(20),
     anyDb
-      .select()
+      .select({
+        id: min(sqliteRaceTraits.id),
+        name: sqliteRaceTraits.name,
+        description: min(sqliteRaceTraits.description),
+      })
       .from(sqliteRaceTraits)
       .where(and(eq(sqliteRaceTraits.system, system), nameFilter ? likeCI(sqliteRaceTraits.name, nameFilter) : undefined))
+      .groupBy(sqliteRaceTraits.name)
       .orderBy(asc(sqliteRaceTraits.name))
       .limit(20),
   ])
@@ -480,7 +485,7 @@ export async function searchSrdFeatures(
   return [
     ...feats.map((f: typeof sqliteFeats.$inferSelect) => ({ id: f.id, name: f.name, description: f.description, category: "Feat" as const })),
     ...classFeatures.map((f: typeof sqliteClassFeatures.$inferSelect) => ({ id: f.id, name: f.name, description: f.description, category: "Class Feature" as const })),
-    ...raceTraits.map((f: typeof sqliteRaceTraits.$inferSelect) => ({ id: f.id, name: f.name, description: f.description, category: "Race Trait" as const })),
+    ...raceTraits.map((f: { id: string | null; name: string; description: string | null }) => ({ id: f.id ?? "", name: f.name, description: f.description ?? "", category: "Race Trait" as const })),
   ].sort((a, b) => a.name.localeCompare(b.name))
 }
 
@@ -665,4 +670,20 @@ export async function searchSpells(
     )
     .orderBy(asc(sqliteSpells.level), asc(sqliteSpells.name))
     .limit(60);
+}
+
+export async function getCantripsByClass(classId: string, system = "dnd5e"): Promise<SpellRow[]> {
+  const rows = await anyDb
+    .select({ spell: sqliteSpells })
+    .from(sqliteSpells)
+    .innerJoin(sqliteClassSpells, eq(sqliteClassSpells.spellId, sqliteSpells.id))
+    .where(
+      and(
+        eq(sqliteSpells.system, system),
+        eq(sqliteClassSpells.classId, classId),
+        eq(sqliteSpells.level, 0),
+      ),
+    )
+    .orderBy(asc(sqliteSpells.name));
+  return rows.map((r: { spell: SpellRow }) => r.spell);
 }

@@ -9,6 +9,7 @@ import type {
   SubraceRow,
   BackgroundRow,
   ClassStartingEquipmentOptionRow,
+  SpellRow,
 } from "@/lib/actions/5e-data"
 import type { CharacterClassEntry } from "@/lib/types/character"
 
@@ -64,8 +65,11 @@ export function getEquipmentPendingChoiceKey(choice: Pick<EquipmentPendingChoice
 
 export type BackgroundToolChoiceOption = {
   count: number;
-  category: string;
+  category?: string;
   label: string;
+  addToInventory?: boolean;
+  inventoryOnly?: boolean;
+  options?: { name: string }[];
 }
 
 export type BackgroundPendingChoice =
@@ -87,8 +91,11 @@ export type BackgroundPendingChoice =
       backgroundName: string;
       choiceIndex: number;
       count: number;
-      category: string;
+      category?: string;
       label: string;
+      addToInventory?: boolean;
+      inventoryOnly?: boolean;
+      options?: { name: string }[];
     }
 
 export type RaceLanguagePendingChoice = {
@@ -187,6 +194,123 @@ export function deriveRaceLanguagePendingChoices(
       const remaining = row.chooseCount - madeCount
       if (remaining > 0 && !dismissed.has(getRaceLanguagePendingChoiceKey({ sourceId }))) {
         pending.push({ sourceId, sourceName: subraceRow.name, chooseCount: remaining })
+      }
+    }
+  }
+
+  return pending
+}
+
+// ─── Race tool choices ────────────────────────────────────────────────────────
+
+export type RaceToolChoiceOption = {
+  count: number;
+  category?: string;
+  label: string;
+  addToInventory?: boolean;
+  inventoryOnly?: boolean;
+  options?: { name: string }[];
+}
+
+export type RaceToolPendingChoice = {
+  sourceId: string; // "race:<id>" | "subrace:<id>"
+  sourceName: string;
+  choiceIndex: number;
+  count: number;
+  category?: string;
+  label: string;
+  addToInventory?: boolean;
+  inventoryOnly?: boolean;
+  options?: { name: string }[];
+}
+
+export function getRaceToolPendingChoiceKey(choice: Pick<RaceToolPendingChoice, "sourceId" | "choiceIndex">): string {
+  return `${choice.sourceId}:tool:${choice.choiceIndex}`
+}
+
+export type RaceCantripChoiceOption = {
+  classId: string;
+  label: string;
+  count: number;
+}
+
+export type RaceCantripPendingChoice = {
+  sourceId: string; // "race:<id>" | "subrace:<id>"
+  sourceName: string;
+  classId: string;
+  label: string;
+  count: number;
+}
+
+export function getRaceCantripPendingChoiceKey(choice: Pick<RaceCantripPendingChoice, "sourceId">): string {
+  return `${choice.sourceId}:cantrip`
+}
+
+function parseToolChoices(json: string | null | undefined): RaceToolChoiceOption[] {
+  if (!json) return []
+  try { return JSON.parse(json) } catch { return [] }
+}
+
+function parseCantripChoices(json: string | null | undefined): RaceCantripChoiceOption[] {
+  if (!json) return []
+  try { return JSON.parse(json) } catch { return [] }
+}
+
+export function deriveRaceToolPendingChoices(
+  char: CharacterData,
+  raceRow: RaceRow | undefined,
+  subraceRow: SubraceRow | undefined,
+): RaceToolPendingChoice[] {
+  if (!raceRow) return []
+  if (char.selectionIgnores?.race) return []
+  const dismissed = new Set(char.dismissedRaceChoiceKeys ?? [])
+  const pending: RaceToolPendingChoice[] = []
+
+  const sources: { sourceId: string; sourceName: string; json: string | null | undefined }[] = [
+    { sourceId: `race:${raceRow.id}`, sourceName: raceRow.name, json: raceRow.toolChoicesJson },
+    ...(subraceRow ? [{ sourceId: `subrace:${subraceRow.id}`, sourceName: subraceRow.name, json: subraceRow.toolChoicesJson }] : []),
+  ]
+
+  for (const src of sources) {
+    const choices = parseToolChoices(src.json)
+    for (let i = 0; i < choices.length; i++) {
+      const opt = choices[i]
+      const alreadyMade = (char.raceToolChoices ?? []).some(
+        (c) => c.sourceId === src.sourceId && c.choiceIndex === i,
+      )
+      const key = getRaceToolPendingChoiceKey({ sourceId: src.sourceId, choiceIndex: i })
+      if (!alreadyMade && !dismissed.has(key)) {
+        pending.push({ sourceId: src.sourceId, sourceName: src.sourceName, choiceIndex: i, ...opt })
+      }
+    }
+  }
+
+  return pending
+}
+
+export function deriveRaceCantripPendingChoices(
+  char: CharacterData,
+  raceRow: RaceRow | undefined,
+  subraceRow: SubraceRow | undefined,
+  cantrips: SpellRow[],
+): RaceCantripPendingChoice[] {
+  if (!raceRow) return []
+  if (char.selectionIgnores?.race) return []
+  const dismissed = new Set(char.dismissedRaceChoiceKeys ?? [])
+  const pending: RaceCantripPendingChoice[] = []
+
+  const sources: { sourceId: string; sourceName: string; json: string | null | undefined }[] = [
+    { sourceId: `race:${raceRow.id}`, sourceName: raceRow.name, json: raceRow.cantripChoicesJson },
+    ...(subraceRow ? [{ sourceId: `subrace:${subraceRow.id}`, sourceName: subraceRow.name, json: subraceRow.cantripChoicesJson }] : []),
+  ]
+
+  for (const src of sources) {
+    const choices = parseCantripChoices(src.json)
+    for (const opt of choices) {
+      const alreadyMade = (char.raceCantripChoices ?? []).some((c) => c.sourceId === src.sourceId)
+      const key = getRaceCantripPendingChoiceKey({ sourceId: src.sourceId })
+      if (!alreadyMade && !dismissed.has(key)) {
+        pending.push({ sourceId: src.sourceId, sourceName: src.sourceName, ...opt })
       }
     }
   }

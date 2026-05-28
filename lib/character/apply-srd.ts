@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, BackgroundChoiceMade, LanguageChoiceMade, ToolChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, DieType } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, BackgroundChoiceMade, LanguageChoiceMade, ToolChoiceMade, RaceToolChoiceMade, RaceCantripChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, DieType } from "@/lib/types/character"
 import type {
   RaceRow,
   SubraceRow,
@@ -108,10 +108,19 @@ export function applyRace(
     next.languageChoices = (next.languageChoices ?? []).filter(
       (c) => !c.sourceId.startsWith("race:") && !c.sourceId.startsWith("subrace:"),
     )
-    // Clear dismissed race language choice keys on race change
-    next.dismissedRaceChoiceKeys = (next.dismissedRaceChoiceKeys ?? []).filter(
-      (k) => !k.includes(":language"),
+    // Clear tool/cantrip choices from old race/subrace
+    next.raceToolChoices = (next.raceToolChoices ?? []).filter(
+      (c) => !c.sourceId.startsWith("race:") && !c.sourceId.startsWith("subrace:"),
     )
+    next.raceCantripChoices = (next.raceCantripChoices ?? []).filter(
+      (c) => !c.sourceId.startsWith("race:") && !c.sourceId.startsWith("subrace:"),
+    )
+    // Clear race cantrip spells
+    next.spells.list = next.spells.list.filter(
+      (s) => !((s.sourceId?.startsWith("race:") || s.sourceId?.startsWith("subrace:")) && s.sourceId?.endsWith(":cantrip")),
+    )
+    // Clear all dismissed race choice keys on race change
+    next.dismissedRaceChoiceKeys = []
 
     // Apply base traits (only on major change) — skip language-choice-only traits
     for (const trait of raceTraits) {
@@ -282,6 +291,77 @@ export function applyRace(
         stat: null,
         override: null,
         sourceId: `${choice.sourceId}:lang`,
+      })
+    }
+  }
+
+  // 4. Race tool choice application — clear then re-apply
+  next.otherProficiencies = next.otherProficiencies.filter(
+    (p) => !((p.sourceId?.startsWith("race:") || p.sourceId?.startsWith("subrace:")) && p.sourceId?.endsWith(":tool")),
+  )
+  next.inventory = next.inventory.filter(
+    (i) => !(i.sourceId?.startsWith("race-tool:")),
+  )
+  const raceSources: { id: string; toolChoicesJson: string | null | undefined }[] = [
+    { id: `race:${raceRow.id}`, toolChoicesJson: raceRow.toolChoicesJson },
+    ...(subraceRow ? [{ id: `subrace:${subraceRow.id}`, toolChoicesJson: subraceRow.toolChoicesJson }] : []),
+  ]
+  for (const src of raceSources) {
+    const meta: { count?: number; category?: string; label: string; addToInventory?: boolean; inventoryOnly?: boolean }[] =
+      src.toolChoicesJson ? (typeof src.toolChoicesJson === "string" ? JSON.parse(src.toolChoicesJson) : src.toolChoicesJson as never) : []
+    const madeForSrc = (next.raceToolChoices ?? []).filter((c) => c.sourceId === src.id)
+    for (const choice of madeForSrc) {
+      const m = meta[choice.choiceIndex]
+      if (!m?.inventoryOnly) {
+        next.otherProficiencies.push({
+          id: crypto.randomUUID(),
+          name: choice.toolName,
+          category: "Tool",
+          training: "Proficient",
+          stat: null,
+          override: null,
+          sourceId: `${src.id}:tool`,
+        })
+      }
+      if (m?.addToInventory || m?.inventoryOnly) {
+        next.inventory.push({
+          id: crypto.randomUUID(),
+          name: choice.toolName,
+          quantity: m?.count ?? 1,
+          weight: 0,
+          category: m?.inventoryOnly ? "Mundane" : "Tool",
+          equipped: true,
+          modifiers: [],
+          sourceId: `race-tool:${src.id}`,
+        })
+      }
+    }
+  }
+
+  // 5. Race cantrip choice application — clear then re-add to spells.list
+  next.spells.list = next.spells.list.filter(
+    (s) => !((s.sourceId?.startsWith("race:") || s.sourceId?.startsWith("subrace:")) && s.sourceId?.endsWith(":cantrip")),
+  )
+  for (const choice of (next.raceCantripChoices ?? [])) {
+    if (choice.sourceId.startsWith("race:") || choice.sourceId.startsWith("subrace:")) {
+      next.spells.list.push({
+        id: crypto.randomUUID(),
+        name: choice.spellName,
+        level: choice.spellLevel,
+        school: choice.spellSchool,
+        castingTime: choice.spellCastingTime,
+        range: choice.spellRange,
+        duration: choice.spellDuration,
+        mode: "Plain",
+        castingStat: null,
+        fixedDC: null,
+        saveStat: null,
+        damageStack: [],
+        description: choice.spellDescription,
+        upcastDescription: "",
+        components: choice.spellComponents,
+        tags: { ...choice.spellTags, prepared: true },
+        sourceId: `${choice.sourceId}:cantrip`,
       })
     }
   }
@@ -634,11 +714,12 @@ export function applyBackground(
     )
   }
 
-  // ── Clear old background features and system-managed proficiencies ────────
+  // ── Clear old background features, system-managed proficiencies, and tool-choice items ──
   next.features = next.features.filter((f) => !f.sourceId?.startsWith("background:"))
   next.otherProficiencies = next.otherProficiencies.filter(
     (p) => !p.sourceId?.startsWith("background:"),
   )
+  next.inventory = next.inventory.filter((i) => i.sourceId !== `bg-tool:${bgRow.id}`)
 
   // ── Apply new skill grants ────────────────────────────────────────────────
   const skillGrants: string[] = bgRow.skillGrants ? (typeof bgRow.skillGrants === "string" ? JSON.parse(bgRow.skillGrants) : bgRow.skillGrants as unknown as string[]) : []
@@ -678,18 +759,38 @@ export function applyBackground(
     })
   }
 
-  // ── Apply confirmed tool choices ──────────────────────────────────────────
+  // ── Apply confirmed tool choices (proficiency and/or inventory) ──────────
+  type ToolChoiceMeta = { count?: number; category?: string; label: string; addToInventory?: boolean; inventoryOnly?: boolean; options?: { name: string }[] }
+  const toolChoiceMeta: ToolChoiceMeta[] = bgRow.toolChoicesJson
+    ? (typeof bgRow.toolChoicesJson === "string" ? JSON.parse(bgRow.toolChoicesJson) : bgRow.toolChoicesJson as unknown as ToolChoiceMeta[])
+    : []
+
   const bgToolChoices = (next.toolChoices ?? []).filter((c) => c.backgroundId === bgRow.id)
   for (const choice of bgToolChoices) {
-    next.otherProficiencies.push({
-      id: crypto.randomUUID(),
-      name: choice.toolName,
-      category: "Tool",
-      training: "Proficient",
-      stat: null,
-      override: null,
-      sourceId: `background:${bgRow.id}:tool`,
-    })
+    const meta = toolChoiceMeta[choice.choiceIndex] as ToolChoiceMeta | undefined
+    if (!meta?.inventoryOnly) {
+      next.otherProficiencies.push({
+        id: crypto.randomUUID(),
+        name: choice.toolName,
+        category: "Tool",
+        training: "Proficient",
+        stat: null,
+        override: null,
+        sourceId: `background:${bgRow.id}:tool`,
+      })
+    }
+    if (meta?.addToInventory || meta?.inventoryOnly) {
+      next.inventory.push({
+        id: crypto.randomUUID(),
+        name: choice.toolName,
+        quantity: meta?.count ?? 1,
+        weight: 0,
+        category: meta?.inventoryOnly ? "Mundane" : "Tool",
+        equipped: true,
+        modifiers: [],
+        sourceId: `bg-tool:${bgRow.id}`,
+      })
+    }
   }
 
   // ── Apply feat grant (2024) ───────────────────────────────────────────────
@@ -733,7 +834,7 @@ export function applyBackground(
         quantity: item.quantity,
         weight: 0,
         category: "Mundane",
-        equipped: false,
+        equipped: true,
         modifiers: [],
         sourceId: bgEquipSourceId,
       })
@@ -904,7 +1005,9 @@ export function clearBackgroundAutomation(char: CharacterData): CharacterData {
   }
 
   next.features = next.features.filter((f) => !f.sourceId?.startsWith("background:"))
-  next.inventory = next.inventory.filter((item) => !item.sourceId?.startsWith("bg-start:"))
+  next.inventory = next.inventory.filter(
+    (item) => !item.sourceId?.startsWith("bg-start:") && !item.sourceId?.startsWith("bg-tool:"),
+  )
   next.backgroundChoices = []
 
   next.srdGrants = {

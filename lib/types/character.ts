@@ -185,6 +185,7 @@ export type SpellEntry = {
   upcastDescription: string;
   components: { verbal: boolean; somatic: boolean; material: boolean; materialDesc: string };
   tags: { ritual: boolean; concentration: boolean; prepared: boolean };
+  sourceId?: string;
 };
 
 import type { CanvasPage } from "./canvas";
@@ -256,6 +257,28 @@ export type ToolChoiceMade = {
   toolName: string;
 };
 
+export type RaceToolChoiceMade = {
+  id: string;
+  sourceId: string; // "race:<raceId>" | "subrace:<subraceId>"
+  choiceIndex: number;
+  toolName: string;
+};
+
+export type RaceCantripChoiceMade = {
+  id: string;
+  sourceId: string; // "race:<raceId>" | "subrace:<subraceId>"
+  spellId: string;
+  spellName: string;
+  spellLevel: number;
+  spellSchool: string;
+  spellCastingTime: string;
+  spellRange: string;
+  spellDuration: string;
+  spellDescription: string;
+  spellComponents: { verbal: boolean; somatic: boolean; material: boolean; materialDesc: string };
+  spellTags: { ritual: boolean; concentration: boolean };
+};
+
 export type SrdGrants = {
   saveProficiencies: string[];
   skillProficiencies: string[];
@@ -313,6 +336,7 @@ export type CharacterData = {
     hair: string;
     skin: string;
     size: string;
+    creatureType: string;
     level: number;
     classes: CharacterClassEntry[];
   };
@@ -357,5 +381,7 @@ export type CharacterData = {
   backgroundChoices?: BackgroundChoiceMade[];
   languageChoices?: LanguageChoiceMade[];
   toolChoices?: ToolChoiceMade[];
+  raceToolChoices?: RaceToolChoiceMade[];
+  raceCantripChoices?: RaceCantripChoiceMade[];
   equipmentChoicesMade?: EquipmentChoiceMade[];
 };

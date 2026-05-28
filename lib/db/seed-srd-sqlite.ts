@@ -122,7 +122,14 @@ type SpellSlotProgression = "none" | "full" | "half";
 
 type BgFeature = { name: string; description: string };
 type BgEquipItem = { name: string; quantity: number };
-type BgToolChoice = { count: number; category: string; label: string };
+type BgToolChoice = {
+  count: number;
+  category?: string;
+  label: string;
+  addToInventory?: boolean;
+  inventoryOnly?: boolean;
+  options?: { name: string }[];
+};
 type PhbBackground = {
   index: string;
   name: string;
@@ -153,8 +160,13 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
     index: "charlatan", name: "Charlatan", skills: ["deception", "sleightOfHand"],
     features: [
       { name: "Tool Proficiencies", description: "Disguise kit, Forgery kit." },
-      { name: "Equipment — Tools of the Con", description: "Add one of the following to your inventory: ten stoppered bottles of colored liquid, a set of weighted dice, a deck of marked cards, or a signet ring of an imaginary duke." },
     ],
+    toolChoices: [{ count: 1, label: "one tool of the con", inventoryOnly: true, addToInventory: true, options: [
+      { name: "Ten stoppered bottles of colored liquid" },
+      { name: "Set of weighted dice" },
+      { name: "Deck of marked cards" },
+      { name: "Signet ring of an imaginary duke" },
+    ] }],
     fixedEquipment: [
       { name: "Fine clothes", quantity: 1 },
       { name: "Disguise kit", quantity: 1 },
@@ -165,9 +177,8 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
     index: "criminal", name: "Criminal", skills: ["deception", "stealth"],
     features: [
       { name: "Tool Proficiencies", description: "Thieves' tools." },
-      { name: "Equipment — Gaming Set", description: "Add one gaming set of your choice (e.g. dice set, playing card set) to your inventory." },
     ],
-    toolChoices: [{ count: 1, category: "gaming", label: "one gaming set" }],
+    toolChoices: [{ count: 1, category: "gaming", label: "one gaming set", addToInventory: true }],
     fixedEquipment: [
       { name: "Crowbar", quantity: 1 },
       { name: "Dark common clothes with hood", quantity: 1 },
@@ -178,9 +189,8 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
     index: "entertainer", name: "Entertainer", skills: ["acrobatics", "performance"],
     features: [
       { name: "Tool Proficiencies", description: "Disguise kit." },
-      { name: "Equipment — Musical Instrument", description: "Add one musical instrument of your choice to your inventory." },
     ],
-    toolChoices: [{ count: 1, category: "instrument", label: "one musical instrument" }],
+    toolChoices: [{ count: 1, category: "instrument", label: "one musical instrument", addToInventory: true }],
     fixedEquipment: [
       { name: "Admirer's token", quantity: 1 },
       { name: "Costume clothes", quantity: 1 },
@@ -191,9 +201,8 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
     index: "folk-hero", name: "Folk Hero", skills: ["animalHandling", "survival"],
     features: [
       { name: "Tool Proficiencies", description: "Vehicles (land)." },
-      { name: "Equipment — Artisan's Tools", description: "Add one set of artisan's tools of your choice to your inventory." },
     ],
-    toolChoices: [{ count: 1, category: "artisan", label: "one artisan's tool" }],
+    toolChoices: [{ count: 1, category: "artisan", label: "one artisan's tool", addToInventory: true }],
     fixedEquipment: [
       { name: "Shovel", quantity: 1 },
       { name: "Iron pot", quantity: 1 },
@@ -203,11 +212,9 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   },
   {
     index: "guild-artisan", name: "Guild Artisan", skills: ["insight", "persuasion"],
-    features: [
-      { name: "Equipment — Artisan's Tools", description: "Add one set of artisan's tools of your choice to your inventory." },
-    ],
+    features: [],
     languageChoiceCount: 1,
-    toolChoices: [{ count: 1, category: "artisan", label: "one artisan's tool" }],
+    toolChoices: [{ count: 1, category: "artisan", label: "one artisan's tool", addToInventory: true }],
     fixedEquipment: [
       { name: "Letter of introduction from guild", quantity: 1 },
       { name: "Traveler's clothes", quantity: 1 },
@@ -230,11 +237,9 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   },
   {
     index: "noble", name: "Noble", skills: ["history", "persuasion"],
-    features: [
-      { name: "Equipment — Gaming Set", description: "Add one gaming set of your choice to your inventory." },
-    ],
+    features: [],
     languageChoiceCount: 1,
-    toolChoices: [{ count: 1, category: "gaming", label: "one gaming set" }],
+    toolChoices: [{ count: 1, category: "gaming", label: "one gaming set", addToInventory: true }],
     fixedEquipment: [
       { name: "Fine clothes", quantity: 1 },
       { name: "Signet ring", quantity: 1 },
@@ -244,11 +249,9 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
   },
   {
     index: "outlander", name: "Outlander", skills: ["athletics", "survival"],
-    features: [
-      { name: "Equipment — Musical Instrument", description: "Add one musical instrument of your choice to your inventory." },
-    ],
+    features: [],
     languageChoiceCount: 1,
-    toolChoices: [{ count: 1, category: "instrument", label: "one musical instrument" }],
+    toolChoices: [{ count: 1, category: "instrument", label: "one musical instrument", addToInventory: true }],
     fixedEquipment: [
       { name: "Staff", quantity: 1 },
       { name: "Hunting trap", quantity: 1 },
@@ -287,9 +290,8 @@ const PHB_BACKGROUNDS: PhbBackground[] = [
     index: "soldier", name: "Soldier", skills: ["athletics", "intimidation"],
     features: [
       { name: "Tool Proficiencies", description: "Vehicles (land)." },
-      { name: "Equipment — Gaming Set", description: "Add one gaming set of your choice to your inventory." },
     ],
-    toolChoices: [{ count: 1, category: "gaming", label: "one gaming set" }],
+    toolChoices: [{ count: 1, category: "gaming", label: "one gaming set", addToInventory: true }],
     fixedEquipment: [
       { name: "Insignia of rank", quantity: 1 },
       { name: "Trophy from fallen enemy", quantity: 1 },

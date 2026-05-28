@@ -10,6 +10,7 @@ type Props = {
   category: string
   label: string
   sourceName: string
+  profLabel?: string
   onConfirm: (toolName: string) => void
   onDismiss: () => void
 }
@@ -22,7 +23,7 @@ const CATEGORY_FILTERS: Record<string, (name: string) => boolean> = {
   ].some((inst) => name.toLowerCase().includes(inst)),
 }
 
-export function ToolPicker({ tools, category, label, sourceName, onConfirm, onDismiss }: Props) {
+export function ToolPicker({ tools, category, label, sourceName, profLabel = "Tool Proficiency", onConfirm, onDismiss }: Props) {
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState<string | null>(null)
 
@@ -39,7 +40,7 @@ export function ToolPicker({ tools, category, label, sourceName, onConfirm, onDi
   return (
     <div className="space-y-3">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        {sourceName} · Tool Proficiency — choose {label}
+        {sourceName} · {profLabel} — choose {label}
       </p>
 
       <Input
