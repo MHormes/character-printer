@@ -17,8 +17,18 @@ function createDb() {
   return drizzleLibsql(libsql, { schema: sqliteSchema });
 }
 
-// Singleton — reuse across hot-reloads in dev
+// Lazy singleton — defers createDb() until first use so module import doesn't crash at build time when DATABASE_URL is absent
 const globalDb = globalThis as typeof globalThis & { _db?: ReturnType<typeof createDb> };
-if (!globalDb._db) globalDb._db = createDb();
 
-export const db = globalDb._db;
+function getDb(): ReturnType<typeof createDb> {
+  if (!globalDb._db) globalDb._db = createDb();
+  return globalDb._db;
+}
+
+export const db = new Proxy({} as ReturnType<typeof createDb>, {
+  get(_, prop) {
+    const real = getDb();
+    const val = (real as any)[prop];
+    return typeof val === "function" ? val.bind(real) : val;
+  },
+});
