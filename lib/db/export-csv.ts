@@ -28,12 +28,9 @@ function rowToCsvLine(headers: string[], row: Record<string, unknown>): string {
     const v = row[h];
     if (v === null || v === undefined) return NULL_SENTINEL;
     if (typeof v === "boolean") return String(v);
-    if (typeof v === "object") {
-      const s = escapeNewlines(JSON.stringify(v));
-      return s.includes(",") || s.includes('"') ? csvEscape(s) : s;
-    }
-    const s = escapeNewlines(String(v));
-    return s.includes(",") || s.includes('"') ? csvEscape(s) : s;
+    if (typeof v === "number" || typeof v === "bigint") return String(v);
+    if (typeof v === "object") return csvEscape(escapeNewlines(JSON.stringify(v)));
+    return csvEscape(escapeNewlines(String(v)));
   }).join(",");
 }
 
