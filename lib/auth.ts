@@ -5,26 +5,6 @@ import { sqliteUsers } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 
-declare module "next-auth" {
-  interface User {
-    username?: string
-    role?: "admin" | "user"
-  }
-  interface Session {
-    user: {
-      id: string
-      username: string
-      role: "admin" | "user"
-    } & Pick<import("next-auth").DefaultSession["user"], "email" | "name" | "image">
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    username?: string
-    role?: "admin" | "user"
-  }
-}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = db as any

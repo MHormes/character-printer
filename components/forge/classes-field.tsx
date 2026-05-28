@@ -61,7 +61,7 @@ export function ClassesField({
     onChange(
       classes.map((c, i) =>
         i === index
-          ? { ...c, classId: dbClass.id, name: dbClass.name, hitDie: dbClass.hitDie, subclass: "", subclassId: null, ignoreAutomation: false }
+          ? { ...c, classId: dbClass.id, name: dbClass.name, hitDie: dbClass.hitDie ?? "", subclass: "", subclassId: null, ignoreAutomation: false }
           : c,
       ),
     )

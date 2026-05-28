@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useSyncExternalStore } from "react";
+import { useRef, useCallback, useSyncExternalStore, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronLeft,
