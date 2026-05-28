@@ -58,7 +58,9 @@ All character state is a single JSON blob. Example:
     },
     "hp": {
       "max": 52,
-      "stack": [{ "id": "uuid", "source": "Tough feat", "value": 10, "isActive": true }]
+      "stack": [
+        { "id": "uuid", "source": "Tough feat", "value": 10, "isActive": true }
+      ]
     }
   },
   "canvas": {
