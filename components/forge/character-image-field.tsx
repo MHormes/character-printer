@@ -147,7 +147,7 @@ export function CharacterImageField({ characterId, image, onChange }: CharacterI
       <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
         <div className="relative aspect-square overflow-hidden rounded-md border border-border bg-muted">
           {visiblePreviewUrl ? (
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={visiblePreviewUrl}
               alt={image?.filename || "Character image"}
