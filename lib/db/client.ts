@@ -28,7 +28,8 @@ function getDb(): ReturnType<typeof createDb> {
 export const db = new Proxy({} as ReturnType<typeof createDb>, {
   get(_, prop) {
     const real = getDb();
-    const val = (real as Record<string | symbol, unknown>)[prop];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const val = (real as unknown as Record<string | symbol, unknown>)[prop];
     return typeof val === "function" ? val.bind(real) : val;
   },
 });
