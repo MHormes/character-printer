@@ -347,17 +347,21 @@ function EquipmentChoicePicker({
     (selectedAltType === "bundle" && !catPicked)
 
   useEffect(() => {
-    setCatSearch("")
-    setCatResults([])
-    setCatPicked(null)
-    setCatOpen(false)
+    Promise.resolve().then(() => {
+      setCatSearch("")
+      setCatResults([])
+      setCatPicked(null)
+      setCatOpen(false)
+    })
   }, [selectedIdx])
 
   useEffect(() => {
     if (!catCategory || !selectedAltType || catPicked) return
     const trimmed = catSearch.trim()
-    searchItems({ equipmentCategory: catCategory, name: trimmed || undefined }).then(setCatResults)
-    setCatOpen(true)
+    searchItems({ equipmentCategory: catCategory, name: trimmed || undefined }).then((results) => {
+      setCatResults(results)
+      setCatOpen(true)
+    })
   }, [catCategory, catPicked, catSearch, selectedAltType])
 
   async function confirm() {

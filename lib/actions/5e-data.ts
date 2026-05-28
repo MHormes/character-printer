@@ -29,7 +29,8 @@ import { eq, and, like, ilike, asc, min } from "drizzle-orm";
 
 const likeCI = process.env.DB_DRIVER === "postgres" ? ilike : like;
 
-// Cast once — db is a union of SQLite/PG clients, TS can't call both signatures
+// Cast once — db is a union of SQLite/PG clients, TS can't resolve both overload signatures
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = db as any;
 
 export type RaceAbilityBonusRow = typeof sqliteRaceAbilityBonuses.$inferSelect;

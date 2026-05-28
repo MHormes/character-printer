@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useEffect, useState } from "react";
+import { useRef, useCallback, useSyncExternalStore, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronLeft,
@@ -1033,8 +1033,11 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     }
   }
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    (cb) => { cb(); return () => {}; },
+    () => true,
+    () => false,
+  );
 
   return (
     <DndContext

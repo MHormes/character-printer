@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import {
-  CircleDot,
   Circle,
   ChevronDown,
   ChevronRight,
@@ -135,7 +134,6 @@ function mapEquipmentCategory(eq: string): InventoryItem["category"] {
 
 function buildInventoryItem(item: ItemRow): InventoryItem {
   const isShield = item.armorCategory === "Shield";
-  const isWeapon = item.equipmentCategory === "Weapon";
   return {
     id: crypto.randomUUID(),
     name: item.name,
@@ -193,8 +191,8 @@ function ItemPicker({
 
   function runSearch(q: string, cat: string) {
     if (timerRef.current) clearTimeout(timerRef.current);
-    setLoading(true);
     timerRef.current = setTimeout(async () => {
+      setLoading(true);
       const res = await searchItems({
         name: q || undefined,
         equipmentCategory: cat || undefined,
@@ -209,7 +207,6 @@ function ItemPicker({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleQueryChange(q: string) {
@@ -321,7 +318,7 @@ export function InventoryBlock({
   function toggle(id: string) {
     setExpanded((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id) } else { next.add(id) }
       return next;
     });
   }

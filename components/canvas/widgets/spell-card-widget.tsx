@@ -427,22 +427,22 @@ function spellRowToEntry(row: SpellRow): SpellEntry {
     id: row.id,
     name: row.name,
     level: row.level,
-    school: row.school,
-    castingTime: row.castingTime,
-    range: row.range,
-    duration: row.duration,
+    school: row.school ?? "",
+    castingTime: row.castingTime ?? "",
+    range: row.range ?? "",
+    duration: row.duration ?? "",
     mode: "Spell",
     castingStat: null,
     fixedDC: null,
     saveStat: row.dcSaveStat as AttributeKey | null,
     damageStack: [],
-    description: row.description,
+    description: row.description ?? "",
     upcastDescription: row.upcastDesc ?? "",
     components: {
       verbal: row.verbal,
       somatic: row.somatic,
       material: row.material,
-      materialDesc: row.materialDesc,
+      materialDesc: row.materialDesc ?? "",
     },
     tags: { ritual: row.ritual, concentration: row.concentration, prepared: false },
   };
@@ -454,11 +454,14 @@ export function SpellCardWidget({ spellId }: { spellId?: string }) {
   const [dbSpell, setDbSpell] = useState<SpellEntry | null>(null);
 
   useEffect(() => {
-    if (!spellId || charSpell) { setDbSpell(null); return; }
     let cancelled = false;
-    getSpell(spellId).then((row) => {
-      if (!cancelled && row) setDbSpell(spellRowToEntry(row));
-    });
+    if (!spellId || charSpell) {
+      Promise.resolve().then(() => { if (!cancelled) setDbSpell(null); });
+    } else {
+      getSpell(spellId).then((row) => {
+        if (!cancelled) setDbSpell(row ? spellRowToEntry(row) : null);
+      });
+    }
     return () => { cancelled = true; };
   }, [spellId, charSpell]);
 

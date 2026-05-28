@@ -89,8 +89,8 @@ export default function CanvasPage({
     };
 
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    setSaveStatus("saving");
     saveTimer.current = setTimeout(async () => {
+      setSaveStatus("saving");
       await saveCharacter(id, updatedCharacter, autoSave);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);

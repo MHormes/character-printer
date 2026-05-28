@@ -8,6 +8,7 @@ import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
 import { auth } from "@/lib/auth"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = db as any
 const STUB_USER_ID = "00000000-0000-0000-0000-000000000001"
 

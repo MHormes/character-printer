@@ -12,6 +12,7 @@ import {
   getStorageDriver,
 } from "@/lib/storage"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = db as any
 
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"])

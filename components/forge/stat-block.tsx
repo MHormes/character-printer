@@ -40,10 +40,6 @@ export function StatBlock({ label, data, attrs, level, pb, showManualControls, o
     onStackChange(data.stack.map((m) => (m.id === id ? { ...m, source } : m)))
   }
 
-  function updateValue(id: string, value: number) {
-    onStackChange(data.stack.map((m) => (m.id === id ? { ...m, value } : m)))
-  }
-
   function toggleModifier(id: string) {
     const mod = data.stack.find((m) => m.id === id)
     if (!mod) return

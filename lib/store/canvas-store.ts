@@ -32,7 +32,7 @@ type CanvasStore = {
   setSelected: (id: string | null) => void
   updateWidgetData: (
     id: string,
-    data: Partial<Pick<CanvasWidget, "spellId" | "featureId" | "statId" | "textSource" | "w" | "h">>,
+    data: Partial<Pick<CanvasWidget, "spellId" | "featureId" | "statId" | "trackerId" | "textSource" | "w" | "h">>,
   ) => void
   replaceCurrentPage: (cols: number, widgets: CanvasTemplateWidget[]) => void
   reorderPages: (fromIndex: number, toIndex: number) => void

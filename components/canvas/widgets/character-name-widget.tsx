@@ -9,7 +9,6 @@ export function CharacterNameWidget() {
   const name = character.identity.name || "—";
   const ff = "Georgia, 'Times New Roman', serif";
   const ink = "#1a1208";
-  const gold = "#c8920a";
 
   return (
     <svg

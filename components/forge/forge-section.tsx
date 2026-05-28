@@ -30,13 +30,13 @@ export function ForgeSection({
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    if (collapsible && storageKey) {
-      const stored = localStorage.getItem(storageKey);
-      if (stored !== null) {
-        setIsCollapsed(stored === "true");
+    Promise.resolve().then(() => {
+      if (collapsible && storageKey) {
+        const stored = localStorage.getItem(storageKey);
+        if (stored !== null) setIsCollapsed(stored === "true");
       }
-    }
-    setIsLoaded(true);
+      setIsLoaded(true);
+    });
   }, [collapsible, storageKey]);
 
   function toggleCollapse() {

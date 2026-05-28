@@ -292,7 +292,7 @@ export function deriveRaceCantripPendingChoices(
   char: CharacterData,
   raceRow: RaceRow | undefined,
   subraceRow: SubraceRow | undefined,
-  cantrips: SpellRow[],
+  _cantrips: SpellRow[],
 ): RaceCantripPendingChoice[] {
   if (!raceRow) return []
   if (char.selectionIgnores?.race) return []

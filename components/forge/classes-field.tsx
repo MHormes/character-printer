@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { IntegerField } from "@/components/forge/integer-field"
 import { Button } from "@/components/ui/button"
@@ -62,7 +61,7 @@ export function ClassesField({
     onChange(
       classes.map((c, i) =>
         i === index
-          ? { ...c, classId: dbClass.id, name: dbClass.name, hitDie: dbClass.hitDie, subclass: "", subclassId: null, ignoreAutomation: false }
+          ? { ...c, classId: dbClass.id, name: dbClass.name, hitDie: dbClass.hitDie ?? "", subclass: "", subclassId: null, ignoreAutomation: false }
           : c,
       ),
     )

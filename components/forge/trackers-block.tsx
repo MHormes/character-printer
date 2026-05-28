@@ -291,10 +291,10 @@ export function TrackersBlock({ trackers, showManualControls, attributes, level,
   const sensors = useSensors(useSensor(PointerSensor))
 
   function toggleExpand(id: string) {
-    setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setExpandedIds(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id) } else { n.add(id) } return n })
   }
   function toggleStack(id: string) {
-    setStackExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setStackExpandedIds(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id) } else { n.add(id) } return n })
   }
 
   function patch(id: string, update: Partial<TrackerEntry>) {

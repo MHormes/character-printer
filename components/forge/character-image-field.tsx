@@ -36,31 +36,23 @@ export function CharacterImageField({ characterId, image, onChange }: CharacterI
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!image?.key) {
-      setPreviewUrl(null)
-      return
-    }
-
     let cancelled = false
-    setIsLoadingPreview(true)
-    setError(null)
-    getCharacterImagePreviewUrl(characterId, image.key)
-      .then((url) => {
-        if (!cancelled) setPreviewUrl(url)
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setPreviewUrl(null)
-          setError(imageErrorMessage(err))
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingPreview(false)
-      })
-
-    return () => {
-      cancelled = true
+    if (!image?.key) {
+      Promise.resolve().then(() => { if (!cancelled) setPreviewUrl(null) })
+      return () => { cancelled = true }
     }
+    Promise.resolve().then(() => {
+      if (cancelled) return
+      setIsLoadingPreview(true)
+      setError(null)
+      getCharacterImagePreviewUrl(characterId, image.key)
+        .then((url) => { if (!cancelled) setPreviewUrl(url) })
+        .catch((err) => {
+          if (!cancelled) { setPreviewUrl(null); setError(imageErrorMessage(err)) }
+        })
+        .finally(() => { if (!cancelled) setIsLoadingPreview(false) })
+    })
+    return () => { cancelled = true }
   }, [characterId, image?.key])
 
   useEffect(() => {
@@ -155,6 +147,7 @@ export function CharacterImageField({ characterId, image, onChange }: CharacterI
       <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
         <div className="relative aspect-square overflow-hidden rounded-md border border-border bg-muted">
           {visiblePreviewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={visiblePreviewUrl}
               alt={image?.filename || "Character image"}

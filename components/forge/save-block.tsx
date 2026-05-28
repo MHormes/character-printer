@@ -11,7 +11,6 @@ import {
   ChevronDown,
   ChevronRight,
   Lock,
-  Dot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
@@ -19,6 +18,7 @@ import type {
   ModifierEntry,
   AttributeKey,
   AttributeData,
+  CharacterData,
 } from "@/lib/types/character";
 
 import { resolveSaveBonus } from "@/lib/character/calculations";
@@ -63,7 +63,7 @@ export function SaveBlock({
     saveGlobalStack: globalStack,
     identity: { level: (proficiencyBonus - 1) * 4 },
     profBonusStack: [],
-  } as any;
+  } as unknown as CharacterData;
 
   const stackTotal = data.stack
     .filter((m) => m.isActive)
@@ -91,10 +91,6 @@ export function SaveBlock({
 
   function updateSource(id: string, source: string) {
     onStackChange(data.stack.map((m) => (m.id === id ? { ...m, source } : m)));
-  }
-
-  function updateValue(id: string, value: number) {
-    onStackChange(data.stack.map((m) => (m.id === id ? { ...m, value } : m)));
   }
 
   function toggleModifier(id: string) {

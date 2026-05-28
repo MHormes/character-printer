@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useCharacterStore } from "@/lib/store/character-store"
 
 function portraitImageUrl(key: string): string {
@@ -13,15 +12,7 @@ function portraitImageUrl(key: string): string {
 export function CharacterPortraitWidget() {
   const portraitImage = useCharacterStore((s) => s.character?.portraitImage)
   const characterName = useCharacterStore((s) => s.character?.identity.name ?? "")
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (portraitImage?.key) {
-      setImageUrl(portraitImageUrl(portraitImage.key))
-    } else {
-      setImageUrl(null)
-    }
-  }, [portraitImage?.key])
+  const imageUrl = portraitImage?.key ? portraitImageUrl(portraitImage.key) : null
 
   const ink = "#1a1208"
   const parchment = "#f5f0e8"

@@ -5,6 +5,8 @@ import { sqliteUsers } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = db as any
 
 export const authOptions: NextAuthOptions = {
@@ -46,8 +48,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.username = (user as any).username
-        token.role = (user as any).role
+        token.username = user.username
+        token.role = user.role
       }
       return token
     },

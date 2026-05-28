@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot,
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
+import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry, CharacterData } from "@/lib/types/character"
 import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack, sumStack } from "@/lib/character/calculations"
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import type { DragEndEvent } from "@dnd-kit/core"
@@ -41,14 +41,6 @@ function sign(n: number) { return n >= 0 ? `+${n}` : String(n) }
 
 // ─── Spell picker ─────────────────────────────────────────────────────────────
 
-type PickerState = {
-  level: number
-  query: string
-  classFilter: string
-  results: SpellRow[]
-  loading: boolean
-  addedIds: Set<string>
-}
 
 function SpellPicker({
   level,
@@ -75,8 +67,8 @@ function SpellPicker({
 
   function runSearch(q: string, cls: string) {
     if (timerRef.current) clearTimeout(timerRef.current)
-    setLoading(true)
     timerRef.current = setTimeout(async () => {
+      setLoading(true)
       const res = await searchSpells({
         level,
         name: q || undefined,
@@ -222,7 +214,7 @@ export function SpellsBlock({
     spells: { globalCastingStat: castingStat, attackStack, dcStack },
     identity: { level: (proficiencyBonus - 1) * 4 },
     profBonusStack: [],
-  } as any
+  } as unknown as CharacterData
 
   const spellDC = resolveSpellDc(mockChar)
   const spellAttack = resolveSpellAttack(mockChar)
@@ -242,7 +234,7 @@ export function SpellsBlock({
   }
 
   function toggleExpand(id: string) {
-    setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setExpandedIds(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id) } else { n.add(id) } return n })
   }
 
   function toggleSlotExpand(level: string) {
@@ -325,22 +317,22 @@ export function SpellsBlock({
       id,
       name: spell.name,
       level: spell.level,
-      school: spell.school,
-      castingTime: spell.castingTime,
-      range: spell.range,
-      duration: spell.duration,
+      school: spell.school ?? "",
+      castingTime: spell.castingTime ?? "",
+      range: spell.range ?? "",
+      duration: spell.duration ?? "",
       mode,
       castingStat: null,
       fixedDC: null,
       saveStat: (spell.dcSaveStat as AttributeKey) ?? null,
       damageStack,
-      description: spell.description,
+      description: spell.description ?? "",
       upcastDescription: spell.upcastDesc ?? "",
       components: {
         verbal: spell.verbal,
         somatic: spell.somatic,
         material: spell.material,
-        materialDesc: spell.materialDesc,
+        materialDesc: spell.materialDesc ?? "",
       },
       tags: {
         ritual: spell.ritual,
@@ -617,7 +609,7 @@ function SortableSpellRow(props: Omit<SpellRowProps, "dragHandle">) {
   )
 }
 
-function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, attrMod, proficiencyBonus, onToggle, onPatch, onDelete, onPatchDmg, onDeleteDmg, dragHandle }: SpellRowProps) {
+function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, attrMod, onToggle, onPatch, onDelete, onPatchDmg, onDeleteDmg, dragHandle }: SpellRowProps) {
   function resolvedAttack(): number {
     const globalMod = globalCastingStat ? attrMod(globalCastingStat) : 0
     const overrideMod = spell.castingStat ? attrMod(spell.castingStat) : globalMod

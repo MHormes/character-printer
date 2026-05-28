@@ -2,12 +2,24 @@
 
 import { useCharacterStore } from "@/lib/store/character-store"
 
+const INK = "#1a1208"
+
+function ScrollEnd({ cx, cy }: { cx: number; cy: number }) {
+  return (
+    <>
+      <ellipse cx={cx} cy={cy} rx={7} ry={25} fill="#e0dbd0" stroke={INK} strokeWidth="0.8" />
+      <ellipse cx={cx} cy={cy} rx={4} ry={20} fill="none" stroke={INK} strokeWidth="0.4" opacity="0.5" />
+      <line x1={cx} y1={cy - 16} x2={cx} y2={cy + 16} stroke={INK} strokeWidth="0.3" opacity="0.4" />
+    </>
+  )
+}
+
 // viewBox 500×70 — 2-row compact identity block (class+level, background, race, alignment)
 export function CharacterInfoCompactWidget() {
   const character = useCharacterStore((s) => s.character)
   if (!character) return null
 
-  const { subrace, background, alignment } = character.identity
+  const { background, alignment } = character.identity
   const classes = character.identity.classes
   const classDisplay = classes.length > 0
     ? classes.map((c) => `${c.name} ${c.level}`).join(" & ")
@@ -17,17 +29,7 @@ export function CharacterInfoCompactWidget() {
     : "—"
 
   const ff = "Georgia, 'Times New Roman', serif"
-  const ink = "#1a1208"
-
-  function ScrollEnd({ cx, cy }: { cx: number; cy: number }) {
-    return (
-      <>
-        <ellipse cx={cx} cy={cy} rx={7} ry={25} fill="#e0dbd0" stroke={ink} strokeWidth="0.8" />
-        <ellipse cx={cx} cy={cy} rx={4} ry={20} fill="none" stroke={ink} strokeWidth="0.4" opacity="0.5" />
-        <line x1={cx} y1={cy - 16} x2={cx} y2={cy + 16} stroke={ink} strokeWidth="0.3" opacity="0.4" />
-      </>
-    )
-  }
+  const ink = INK
 
   return (
     <svg

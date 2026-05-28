@@ -20,6 +20,7 @@ import type {
   AttributeData,
   ModifierEntry,
   AcMode,
+  CharacterData,
 } from "@/lib/types/character";
 
 import {
@@ -228,7 +229,7 @@ export function CombatBlock({
     combat: data,
     jackOfAllTrades,
     profBonusStack: [], // resolvePb fallback
-  } as any;
+  } as unknown as CharacterData;
 
   const dexMod = resolveAttributeMod(attributes.dex);
   const dexScore = resolveAttributeScore(attributes.dex);
