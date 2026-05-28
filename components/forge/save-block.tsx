@@ -19,6 +19,7 @@ import type {
   ModifierEntry,
   AttributeKey,
   AttributeData,
+  CharacterData,
 } from "@/lib/types/character";
 
 import { resolveSaveBonus } from "@/lib/character/calculations";
@@ -63,7 +64,7 @@ export function SaveBlock({
     saveGlobalStack: globalStack,
     identity: { level: (proficiencyBonus - 1) * 4 },
     profBonusStack: [],
-  } as any;
+  } as unknown as CharacterData;
 
   const stackTotal = data.stack
     .filter((m) => m.isActive)

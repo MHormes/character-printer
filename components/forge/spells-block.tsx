@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot,
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
+import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry, CharacterData } from "@/lib/types/character"
 import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack, sumStack } from "@/lib/character/calculations"
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import type { DragEndEvent } from "@dnd-kit/core"
@@ -75,8 +75,8 @@ function SpellPicker({
 
   function runSearch(q: string, cls: string) {
     if (timerRef.current) clearTimeout(timerRef.current)
-    setLoading(true)
     timerRef.current = setTimeout(async () => {
+      setLoading(true)
       const res = await searchSpells({
         level,
         name: q || undefined,
@@ -222,7 +222,7 @@ export function SpellsBlock({
     spells: { globalCastingStat: castingStat, attackStack, dcStack },
     identity: { level: (proficiencyBonus - 1) * 4 },
     profBonusStack: [],
-  } as any
+  } as unknown as CharacterData
 
   const spellDC = resolveSpellDc(mockChar)
   const spellAttack = resolveSpellAttack(mockChar)

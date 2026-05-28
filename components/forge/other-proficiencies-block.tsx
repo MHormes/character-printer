@@ -36,8 +36,8 @@ function ProficiencyPicker({
 
   function runSearch(q: string, cat: OtherProficiency["category"] | "All") {
     if (timerRef.current) clearTimeout(timerRef.current)
-    setLoading(true)
     timerRef.current = setTimeout(async () => {
+      setLoading(true)
       const res = await searchOtherProficiencies({
         name: q || undefined,
         category: cat === "All" ? undefined : cat,

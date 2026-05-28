@@ -6,6 +6,7 @@ import { db } from "@/lib/db/client"
 import { sqliteCanvasTemplates } from "@/lib/db/schema"
 import type { CanvasTemplate, CanvasTemplateWidget } from "@/lib/types/canvas"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = db as any
 
 type CreateCanvasTemplateInput = {

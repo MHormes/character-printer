@@ -193,8 +193,8 @@ function ItemPicker({
 
   function runSearch(q: string, cat: string) {
     if (timerRef.current) clearTimeout(timerRef.current);
-    setLoading(true);
     timerRef.current = setTimeout(async () => {
+      setLoading(true);
       const res = await searchItems({
         name: q || undefined,
         equipmentCategory: cat || undefined,

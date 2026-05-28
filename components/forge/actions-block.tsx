@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, GripVertical, X, Plus, CircleDot, Circle, Ro
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import type { ActionEntry, ActionMode, DieType, DamageEntry, AttributeKey, AttributeData, ModifierEntry } from "@/lib/types/character"
+import type { ActionEntry, ActionMode, DieType, DamageEntry, AttributeKey, AttributeData, ModifierEntry, CharacterData } from "@/lib/types/character"
 import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack } from "@/lib/character/calculations"
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import type { DragEndEvent } from "@dnd-kit/core"
@@ -44,7 +44,7 @@ export function ActionsBlock({
     spells: { globalCastingStat: castingStat, attackStack, dcStack },
     identity: { level: (proficiencyBonus - 1) * 4 },
     profBonusStack: [],
-  } as any
+  } as unknown as CharacterData
 
   const spellDC = resolveSpellDc(mockChar)
   const spellAttackBonus = resolveSpellAttack(mockChar)

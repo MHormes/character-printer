@@ -10,6 +10,7 @@ import { randomUUID } from "crypto"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = db as any
 
 // Drizzle returns timestamps as raw strings when using SQLite schema over PostgreSQL.
@@ -189,8 +190,8 @@ export async function listAllCharacters(userId: string): Promise<CharacterSummar
     .from(sqliteCharacters)
     .where(eq(sqliteCharacters.userId, userId))
 
-  return rows
-    .map((row: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return rows.map((row: any) => {
       let data: Partial<CharacterData> = {}
       try {
         data = (typeof row.rawData === "string" ? JSON.parse(row.rawData) : row.rawData) as Partial<CharacterData>

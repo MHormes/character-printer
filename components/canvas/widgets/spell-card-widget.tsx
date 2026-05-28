@@ -454,11 +454,14 @@ export function SpellCardWidget({ spellId }: { spellId?: string }) {
   const [dbSpell, setDbSpell] = useState<SpellEntry | null>(null);
 
   useEffect(() => {
-    if (!spellId || charSpell) { setDbSpell(null); return; }
     let cancelled = false;
-    getSpell(spellId).then((row) => {
-      if (!cancelled && row) setDbSpell(spellRowToEntry(row));
-    });
+    if (!spellId || charSpell) {
+      Promise.resolve().then(() => { if (!cancelled) setDbSpell(null); });
+    } else {
+      getSpell(spellId).then((row) => {
+        if (!cancelled) setDbSpell(row ? spellRowToEntry(row) : null);
+      });
+    }
     return () => { cancelled = true; };
   }, [spellId, charSpell]);
 

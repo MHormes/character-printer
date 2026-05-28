@@ -48,8 +48,8 @@ function FeaturePicker({
 
   function runSearch(q: string) {
     if (timerRef.current) clearTimeout(timerRef.current);
-    setLoading(true);
     timerRef.current = setTimeout(async () => {
+      setLoading(true);
       const res = await searchSrdFeatures(q || undefined);
       setResults(res);
       setLoading(false);

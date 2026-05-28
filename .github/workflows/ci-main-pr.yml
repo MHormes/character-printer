@@ -1,4 +1,4 @@
-name: CI — PR to Main
+name: CI Main
 
 on:
   pull_request:

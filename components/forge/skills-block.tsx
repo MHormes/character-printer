@@ -21,6 +21,7 @@ import type {
   SkillState,
   ModifierEntry,
   DerivedValueData,
+  CharacterData,
 } from "@/lib/types/character";
 import { DynamicValueInput } from "@/components/forge/dynamic-value-input";
 
@@ -92,7 +93,7 @@ export function SkillsBlock({
     passivePerception,
     identity: { level: (proficiencyBonus - 1) * 4 }, // Hacky PB fallback
     profBonusStack: [],
-  } as any;
+  } as unknown as CharacterData;
 
   const globalSum = globalStack
     .filter((m) => m.isActive)

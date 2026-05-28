@@ -36,12 +36,11 @@ export function CharacterImageField({ characterId, image, onChange }: CharacterI
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!image?.key) {
-      setPreviewUrl(null)
-      return
-    }
-
     let cancelled = false
+    if (!image?.key) {
+      Promise.resolve().then(() => { if (!cancelled) setPreviewUrl(null) })
+      return () => { cancelled = true }
+    }
     setIsLoadingPreview(true)
     setError(null)
     getCharacterImagePreviewUrl(characterId, image.key)

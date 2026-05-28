@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useRef } from "react";
+import { use, useState, useEffect, useRef, useMemo } from "react";
 import { useCharacterStore } from "@/lib/store/character-store";
 import { loadCharacter, saveCharacter } from "@/lib/actions/character";
 import {
@@ -257,22 +257,7 @@ export default function ForgePage({
   >([]);
   const [allClassStartEquipOptionRows, setAllClassStartEquipOptionRows] =
     useState<ClassStartingEquipmentOptionRow[]>([]);
-  const [pendingChoices, setPendingChoices] = useState<PendingChoice[]>([]);
-  const [racePendingChoices, setRacePendingChoices] = useState<
-    RacePendingChoice[]
-  >([]);
-  const [raceLanguagePendingChoices, setRaceLanguagePendingChoices] = useState<
-    RaceLanguagePendingChoice[]
-  >([]);
-  const [raceToolPendingChoices, setRaceToolPendingChoices] = useState<RaceToolPendingChoice[]>([]);
-  const [raceCantripPendingChoices, setRaceCantripPendingChoices] = useState<RaceCantripPendingChoice[]>([]);
   const [availableRaceCantrips, setAvailableRaceCantrips] = useState<SpellRow[]>([]);
-  const [backgroundPendingChoices, setBackgroundPendingChoices] = useState<
-    BackgroundPendingChoice[]
-  >([]);
-  const [equipmentPendingChoices, setEquipmentPendingChoices] = useState<
-    EquipmentPendingChoice[]
-  >([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
@@ -344,26 +329,24 @@ export default function ForgePage({
   }, [id, clearCharacter, setCharacter]);
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(getManualUiStorageKey(id));
-    if (!raw) {
-      setManualUiPrefs(DEFAULT_MANUAL_UI_PREFS);
+    Promise.resolve().then(() => {
+      const raw = window.localStorage.getItem(getManualUiStorageKey(id));
+      if (!raw) {
+        setManualUiPrefs(DEFAULT_MANUAL_UI_PREFS);
+        setManualUiLoadedForId(id);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw) as Partial<ForgeManualUiPrefs>;
+        setManualUiPrefs({
+          manualControlsEnabled: parsed.manualControlsEnabled ?? false,
+          sections: { ...DEFAULT_MANUAL_UI_PREFS.sections, ...(parsed.sections ?? {}) },
+        });
+      } catch {
+        setManualUiPrefs(DEFAULT_MANUAL_UI_PREFS);
+      }
       setManualUiLoadedForId(id);
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as Partial<ForgeManualUiPrefs>;
-      setManualUiPrefs({
-        manualControlsEnabled: parsed.manualControlsEnabled ?? false,
-        sections: {
-          ...DEFAULT_MANUAL_UI_PREFS.sections,
-          ...(parsed.sections ?? {}),
-        },
-      });
-    } catch {
-      setManualUiPrefs(DEFAULT_MANUAL_UI_PREFS);
-    }
-    setManualUiLoadedForId(id);
+    });
   }, [id]);
 
   useEffect(() => {
@@ -404,8 +387,8 @@ export default function ForgePage({
   useEffect(() => {
     if (!character || !isDirty || !autoSave) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    setSaveStatus("saving");
     saveTimer.current = setTimeout(async () => {
+      setSaveStatus("saving");
       const saveData = structuredClone(character);
       materializeDynamicModifiers(saveData);
       await saveCharacter(id, saveData, autoSave);
@@ -649,103 +632,55 @@ export default function ForgePage({
     allClassStartEquipRows,
   ]);
 
-  // Derive pending choices whenever character or static data changes.
-  useEffect(() => {
-    if (
-      !character ||
-      allClassFeatureRows.length === 0 ||
-      allClassSkillChoiceRows.length === 0
-    ) {
-      setPendingChoices([]);
-      return;
-    }
-    setPendingChoices(
-      derivePendingChoices(
-        character,
-        character.identity.classes,
-        allClassFeatureRows,
-        allClassSkillChoiceRows,
-      ),
-    );
+  const pendingChoices = useMemo<PendingChoice[]>(() => {
+    if (!character || allClassFeatureRows.length === 0 || allClassSkillChoiceRows.length === 0) return [];
+    return derivePendingChoices(character, character.identity.classes, allClassFeatureRows, allClassSkillChoiceRows);
   }, [character, allClassFeatureRows, allClassSkillChoiceRows]);
 
-  // Derive equipment pending choices.
-  useEffect(() => {
-    if (!character || allClassStartEquipOptionRows.length === 0) {
-      setEquipmentPendingChoices([]);
-      return;
-    }
-    setEquipmentPendingChoices(
-      deriveEquipmentPendingChoices(
-        character,
-        character.identity.classes,
-        allClassStartEquipOptionRows,
-      ),
-    );
+  const equipmentPendingChoices = useMemo<EquipmentPendingChoice[]>(() => {
+    if (!character || allClassStartEquipOptionRows.length === 0) return [];
+    return deriveEquipmentPendingChoices(character, character.identity.classes, allClassStartEquipOptionRows);
   }, [character, allClassStartEquipOptionRows]);
 
-  // Derive race pending choices.
-  useEffect(() => {
-    if (!character || availableRaces.length === 0) {
-      setRacePendingChoices([]);
-      return;
-    }
+  const racePendingChoices = useMemo<RacePendingChoice[]>(() => {
+    if (!character || availableRaces.length === 0) return [];
     const matchedRace = character.identity.race
-      ? availableRaces.find(
-          (r) => r.name.toLowerCase() === character.identity.race.toLowerCase(),
-        )
+      ? availableRaces.find((r) => r.name.toLowerCase() === character.identity.race.toLowerCase())
       : undefined;
-    setRacePendingChoices(
-      deriveRacePendingChoices(
-        character,
-        matchedRace,
-        allRaceAsiOptionRows,
-        allRaceSkillChoiceRows,
-      ),
-    );
+    return deriveRacePendingChoices(character, matchedRace, allRaceAsiOptionRows, allRaceSkillChoiceRows);
   }, [character, availableRaces, allRaceAsiOptionRows, allRaceSkillChoiceRows]);
 
-  // Derive race language pending choices.
-  useEffect(() => {
-    if (!character || availableRaces.length === 0) {
-      setRaceLanguagePendingChoices([]);
-      return;
-    }
-    const matchedRace = character.identity.race
-      ? availableRaces.find(
-          (r) => r.name.toLowerCase() === character.identity.race.toLowerCase(),
-        )
-      : undefined;
-    const matchedSubrace = character.identity.subrace && availableSubraces.length > 0
-      ? availableSubraces.find(
-          (s) => s.name.toLowerCase() === character.identity.subrace.toLowerCase(),
-        )
-      : undefined;
-    setRaceLanguagePendingChoices(
-      deriveRaceLanguagePendingChoices(
-        character,
-        matchedRace,
-        matchedSubrace,
-        allRaceLanguageChoiceRows,
-      ),
-    );
-  }, [character, availableRaces, availableSubraces, allRaceLanguageChoiceRows]);
-
-  // Derive race tool + cantrip pending choices.
-  useEffect(() => {
-    if (!character || availableRaces.length === 0) {
-      setRaceToolPendingChoices([]);
-      setRaceCantripPendingChoices([]);
-      return;
-    }
+  const raceLanguagePendingChoices = useMemo<RaceLanguagePendingChoice[]>(() => {
+    if (!character || availableRaces.length === 0) return [];
     const matchedRace = character.identity.race
       ? availableRaces.find((r) => r.name.toLowerCase() === character.identity.race.toLowerCase())
       : undefined;
     const matchedSubrace = character.identity.subrace && availableSubraces.length > 0
       ? availableSubraces.find((s) => s.name.toLowerCase() === character.identity.subrace.toLowerCase())
       : undefined;
-    setRaceToolPendingChoices(deriveRaceToolPendingChoices(character, matchedRace, matchedSubrace));
-    setRaceCantripPendingChoices(deriveRaceCantripPendingChoices(character, matchedRace, matchedSubrace, availableRaceCantrips));
+    return deriveRaceLanguagePendingChoices(character, matchedRace, matchedSubrace, allRaceLanguageChoiceRows);
+  }, [character, availableRaces, availableSubraces, allRaceLanguageChoiceRows]);
+
+  const raceToolPendingChoices = useMemo<RaceToolPendingChoice[]>(() => {
+    if (!character || availableRaces.length === 0) return [];
+    const matchedRace = character.identity.race
+      ? availableRaces.find((r) => r.name.toLowerCase() === character.identity.race.toLowerCase())
+      : undefined;
+    const matchedSubrace = character.identity.subrace && availableSubraces.length > 0
+      ? availableSubraces.find((s) => s.name.toLowerCase() === character.identity.subrace.toLowerCase())
+      : undefined;
+    return deriveRaceToolPendingChoices(character, matchedRace, matchedSubrace);
+  }, [character, availableRaces, availableSubraces]);
+
+  const raceCantripPendingChoices = useMemo<RaceCantripPendingChoice[]>(() => {
+    if (!character || availableRaces.length === 0) return [];
+    const matchedRace = character.identity.race
+      ? availableRaces.find((r) => r.name.toLowerCase() === character.identity.race.toLowerCase())
+      : undefined;
+    const matchedSubrace = character.identity.subrace && availableSubraces.length > 0
+      ? availableSubraces.find((s) => s.name.toLowerCase() === character.identity.subrace.toLowerCase())
+      : undefined;
+    return deriveRaceCantripPendingChoices(character, matchedRace, matchedSubrace, availableRaceCantrips);
   }, [character, availableRaces, availableSubraces, availableRaceCantrips]);
 
   // Fetch cantrips when the selected race/subrace has a cantrip choice.
@@ -758,7 +693,7 @@ export default function ForgePage({
       ? availableSubraces.find((s) => s.name.toLowerCase() === character.identity.subrace.toLowerCase())
       : undefined;
     const needsCantrips = !!(matchedRace?.cantripChoicesJson || matchedSubrace?.cantripChoicesJson);
-    if (!needsCantrips) { setAvailableRaceCantrips([]); return; }
+    if (!needsCantrips) { Promise.resolve().then(() => setAvailableRaceCantrips([])); return; }
     // Parse classId from the first cantrip choice entry (default wizard)
     const json = matchedSubrace?.cantripChoicesJson ?? matchedRace?.cantripChoicesJson;
     let classId = "dnd5e:wizard";
@@ -766,18 +701,12 @@ export default function ForgePage({
     getCantripsByClass(classId).then(setAvailableRaceCantrips);
   }, [character?.identity.race, character?.identity.subrace, availableRaces, availableSubraces]);
 
-  // Derive background pending choices.
-  useEffect(() => {
-    if (!character || availableBackgrounds.length === 0) {
-      setBackgroundPendingChoices([]);
-      return;
-    }
+  const backgroundPendingChoices = useMemo<BackgroundPendingChoice[]>(() => {
+    if (!character || availableBackgrounds.length === 0) return [];
     const matchedBg = character.identity.background
-      ? availableBackgrounds.find(
-          (b) => b.name.toLowerCase() === character.identity.background.toLowerCase(),
-        )
+      ? availableBackgrounds.find((b) => b.name.toLowerCase() === character.identity.background.toLowerCase())
       : undefined;
-    setBackgroundPendingChoices(deriveBackgroundPendingChoices(character, matchedBg));
+    return deriveBackgroundPendingChoices(character, matchedBg);
   }, [character, availableBackgrounds]);
 
   function handleConfirmRaceChoice(

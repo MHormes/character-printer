@@ -8,6 +8,7 @@ import { sqliteUsers } from "@/lib/db/schema"
 import { ne, count } from "drizzle-orm"
 
 const STUB_USER_ID = "00000000-0000-0000-0000-000000000001"
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = db as any
 
 const D20Mini = () => (

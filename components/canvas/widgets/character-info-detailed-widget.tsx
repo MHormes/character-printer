@@ -2,6 +2,18 @@
 
 import { useCharacterStore } from "@/lib/store/character-store"
 
+const INK = "#1a1208"
+
+function ScrollEnd({ cx, cy }: { cx: number; cy: number }) {
+  return (
+    <>
+      <ellipse cx={cx} cy={cy} rx={7} ry={22} fill="#e0dbd0" stroke={INK} strokeWidth="0.8" />
+      <ellipse cx={cx} cy={cy} rx={4} ry={18} fill="none" stroke={INK} strokeWidth="0.4" opacity="0.5" />
+      <line x1={cx} y1={cy - 14} x2={cx} y2={cy + 14} stroke={INK} strokeWidth="0.3" opacity="0.4" />
+    </>
+  )
+}
+
 // viewBox 500×65 — wide, 2-row info block matching the detailed D&D sheet style
 export function CharacterInfoDetailedWidget() {
   const character = useCharacterStore((s) => s.character)
@@ -13,18 +25,7 @@ export function CharacterInfoDetailedWidget() {
   const subclasses = classes.length > 0 ? classes.map((c) => c.subclass || "—").join(" & ") : "—"
 
   const ff = "Georgia, 'Times New Roman', serif"
-  const ink = "#1a1208"
-
-  // scroll end decoration (right side)
-  function ScrollEnd({ cx, cy }: { cx: number; cy: number }) {
-    return (
-      <>
-        <ellipse cx={cx} cy={cy} rx={7} ry={22} fill="#e0dbd0" stroke={ink} strokeWidth="0.8" />
-        <ellipse cx={cx} cy={cy} rx={4} ry={18} fill="none" stroke={ink} strokeWidth="0.4" opacity="0.5" />
-        <line x1={cx} y1={cy - 14} x2={cx} y2={cy + 14} stroke={ink} strokeWidth="0.3" opacity="0.4" />
-      </>
-    )
-  }
+  const ink = INK
 
   return (
     <svg
