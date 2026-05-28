@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useRef, useMemo } from "react";
+import { use, useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { useCharacterStore } from "@/lib/store/character-store";
 import { loadCharacter, saveCharacter } from "@/lib/actions/character";
 import {
@@ -116,11 +116,8 @@ import type {
   ActionEntry,
   DamageEntry,
   DieType,
-  FeatureEntry,
   TrackerEntry,
   InventoryItem,
-  Characteristics,
-  Bio,
 } from "@/lib/types/character";
 
 import {
@@ -455,7 +452,7 @@ export default function ForgePage({
 
   // Keep a ref so the SRD effect can read the latest character without `character` being a dep.
   const characterRef = useRef(character);
-  characterRef.current = character;
+  useLayoutEffect(() => { characterRef.current = character; });
 
   // Single combined effect: apply race → class → background in sequence so each transform
   // sees the output of the previous. This prevents a race condition where separate effects
@@ -942,8 +939,6 @@ export default function ForgePage({
 
     const next = structuredClone(baseCharacter);
     const isWeapon = srdItem.equipmentCategory === "Weapon";
-    const isArmor =
-      srdItem.armorCategory !== null && srdItem.armorCategory !== "Shield";
 
     if (isWeapon && srdItem.damageDiceCount && srdItem.damageDieType) {
       const rawProperties = srdItem.properties;

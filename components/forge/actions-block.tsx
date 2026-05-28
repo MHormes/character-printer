@@ -74,7 +74,7 @@ export function ActionsBlock({
   }
 
   function toggleExpand(id: string) {
-    setExpandedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+    setExpandedIds(prev => { const next = new Set(prev); if (next.has(id)) { next.delete(id) } else { next.add(id) } return next })
   }
 
   function patchAction(id: string, patch: Partial<ActionEntry>) {
@@ -171,7 +171,7 @@ type SortableActionItemProps = {
 
 function SortableActionItem({
   action, expanded, spellDC, spellAttackBonus, headerLabel, damageLabel, calcAttackToHit,
-  onToggle, onPatch, onDelete, attributes, proficiencyBonus,
+  onToggle, onPatch, onDelete,
 }: SortableActionItemProps) {
   const { attributes: dndAttrs, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: action.id })
 

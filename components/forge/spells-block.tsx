@@ -41,14 +41,6 @@ function sign(n: number) { return n >= 0 ? `+${n}` : String(n) }
 
 // ─── Spell picker ─────────────────────────────────────────────────────────────
 
-type PickerState = {
-  level: number
-  query: string
-  classFilter: string
-  results: SpellRow[]
-  loading: boolean
-  addedIds: Set<string>
-}
 
 function SpellPicker({
   level,
@@ -242,7 +234,7 @@ export function SpellsBlock({
   }
 
   function toggleExpand(id: string) {
-    setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setExpandedIds(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id) } else { n.add(id) } return n })
   }
 
   function toggleSlotExpand(level: string) {
@@ -617,7 +609,7 @@ function SortableSpellRow(props: Omit<SpellRowProps, "dragHandle">) {
   )
 }
 
-function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, attrMod, proficiencyBonus, onToggle, onPatch, onDelete, onPatchDmg, onDeleteDmg, dragHandle }: SpellRowProps) {
+function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, attrMod, onToggle, onPatch, onDelete, onPatchDmg, onDeleteDmg, dragHandle }: SpellRowProps) {
   function resolvedAttack(): number {
     const globalMod = globalCastingStat ? attrMod(globalCastingStat) : 0
     const overrideMod = spell.castingStat ? attrMod(spell.castingStat) : globalMod

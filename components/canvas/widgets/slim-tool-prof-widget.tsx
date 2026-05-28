@@ -8,7 +8,6 @@ const C1 = 90;
 const C2 = 115;
 const RIGHT = 161;
 
-const HEADER_H = 14;
 const ROW_H = 13;
 
 const DIV_Y = 17; // 3 top margin + HEADER_H

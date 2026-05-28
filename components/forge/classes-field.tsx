@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { IntegerField } from "@/components/forge/integer-field"
 import { Button } from "@/components/ui/button"

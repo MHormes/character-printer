@@ -954,8 +954,7 @@ async function main() {
 
   // ── Starting equipment ────────────────────────────────────────────────────────
   console.log("Inserting class starting equipment...");
-  const equipByIndex = new Map(rawEquipment.map((e) => [e.index, e]));
-  const fixedEquipRows: (typeof sqliteClassStartingEquipment.$inferInsert)[] = [];
+const fixedEquipRows: (typeof sqliteClassStartingEquipment.$inferInsert)[] = [];
   const equipOptionRows: (typeof sqliteClassStartingEquipmentOptions.$inferInsert)[] = [];
 
   for (const cls of rawClasses) {

@@ -11,7 +11,6 @@ import {
   ChevronDown,
   ChevronRight,
   Lock,
-  Dot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
@@ -92,10 +91,6 @@ export function SaveBlock({
 
   function updateSource(id: string, source: string) {
     onStackChange(data.stack.map((m) => (m.id === id ? { ...m, source } : m)));
-  }
-
-  function updateValue(id: string, value: number) {
-    onStackChange(data.stack.map((m) => (m.id === id ? { ...m, value } : m)));
   }
 
   function toggleModifier(id: string) {

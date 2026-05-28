@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, AttributeData, SaveData, Edition } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, AttributeData, SaveData } from "@/lib/types/character"
 import { DEFAULT_CANVAS_COLS } from "@/lib/types/canvas"
 
 const ATTRIBUTE_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]

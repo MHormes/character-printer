@@ -7,7 +7,6 @@ import { DndFrame } from "./dnd-frame";
 const COL_DIV = 67;
 const RIGHT = 182;
 
-const HEADER_H = 14;
 const ROW_H = 11;
 
 const DIV_Y = 17; // 3 top margin + HEADER_H

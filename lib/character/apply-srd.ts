@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, BackgroundChoiceMade, LanguageChoiceMade, ToolChoiceMade, RaceToolChoiceMade, RaceCantripChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, DieType } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, DieType } from "@/lib/types/character"
 import type {
   RaceRow,
   SubraceRow,

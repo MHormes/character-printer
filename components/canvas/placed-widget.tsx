@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { RotateCw, Lock, Unlock, Trash2, Settings } from "lucide-react";
+import { Lock, Unlock, Trash2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 import type { CanvasWidget, WidgetType } from "@/lib/types/canvas";
@@ -134,7 +134,6 @@ export function PlacedWidget({
   selected,
   printMode,
   onSelect,
-  onRotate,
   onToggleLock,
   onDelete,
 }: Props) {
