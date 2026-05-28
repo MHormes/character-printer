@@ -4,10 +4,11 @@ import { createClient } from "@libsql/client";
 import { Pool } from "pg";
 import * as sqliteSchema from "./schema";
 
-const driver = process.env.DB_DRIVER;
-const url = process.env.DATABASE_URL!;
-
 function createDb() {
+  const driver = process.env.DB_DRIVER;
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set");
+
   if (driver === "postgres") {
     const pool = new Pool({ connectionString: url });
     return drizzlePg(pool, { schema: sqliteSchema });
