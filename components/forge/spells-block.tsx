@@ -326,7 +326,7 @@ export function SpellsBlock({
       fixedDC: null,
       saveStat: (spell.dcSaveStat as AttributeKey) ?? null,
       damageStack,
-      description: spell.description,
+      description: spell.description ?? "",
       upcastDescription: spell.upcastDesc ?? "",
       components: {
         verbal: spell.verbal,

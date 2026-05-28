@@ -436,7 +436,7 @@ function spellRowToEntry(row: SpellRow): SpellEntry {
     fixedDC: null,
     saveStat: row.dcSaveStat as AttributeKey | null,
     damageStack: [],
-    description: row.description,
+    description: row.description ?? "",
     upcastDescription: row.upcastDesc ?? "",
     components: {
       verbal: row.verbal,
