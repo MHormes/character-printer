@@ -10,6 +10,7 @@
     "start": "dotenv -e .env.production -- next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
+    "db:generate:pg": "dotenv -e .env.development -- drizzle-kit generate",
     "db:migrate:dev": "dotenv -e .env.local -- drizzle-kit migrate",
     "db:migrate:prod": "dotenv -e .env.production -- drizzle-kit migrate",
     "db:studio:dev": "dotenv -e .env.local -- drizzle-kit studio",
