@@ -14,6 +14,7 @@
     { "idx": 9,  "version": "7", "when": 1700000000009, "tag": "0009_race_bg_choice_columns",        "breakpoints": true },
     { "idx": 10, "version": "7", "when": 1700000000010, "tag": "0010_race_proficiencies",            "breakpoints": true },
     { "idx": 11, "version": "7", "when": 1700000000011, "tag": "0011_race_tool_cantrip_choices",     "breakpoints": true },
-    { "idx": 12, "version": "7", "when": 1780001755454, "tag": "0012_add_username",                  "breakpoints": true }
+    { "idx": 12, "version": "7", "when": 1780001755454, "tag": "0012_add_username",                  "breakpoints": true },
+    { "idx": 13, "version": "7", "when": 1780001755455, "tag": "0013_users_auth_columns",             "breakpoints": true }
   ]
 }
