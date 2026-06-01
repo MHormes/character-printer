@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db/client"
-import { sqliteCharacters, sqliteClasses } from "@/lib/db/schema"
+import { dbCharacters, dbClasses } from "@/lib/db/tables"
 import { normalizeCanvasPages } from "@/lib/canvas/page-utils"
 import { createDefaultCharacter } from "@/lib/character/defaults"
 import type { CharacterData, AttributeKey, Edition } from "@/lib/types/character"
@@ -27,10 +27,10 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
   const defaults = createDefaultCharacter(id)
   const dbClasses = await anyDb
     .select({
-      id: sqliteClasses.id,
-      name: sqliteClasses.name,
+      id: dbClasses.id,
+      name: dbClasses.name,
     })
-    .from(sqliteClasses)
+    .from(dbClasses)
 
   const classIdByName = new Map(
     dbClasses.map((dbClass: { id: string; name: string }) => [
@@ -114,7 +114,7 @@ export async function createCharacter(userId: string, edition: Edition = "2014")
   const id = randomUUID()
   const data = createDefaultCharacter(id, edition)
 
-  await anyDb.insert(sqliteCharacters).values({
+  await anyDb.insert(dbCharacters).values({
     id,
     userId,
     name: "",
@@ -129,29 +129,29 @@ export async function saveCharacter(id: string, data: CharacterData, autoSave?: 
   const session = await auth()
   if (!session?.user?.id) redirect("/login")
   const owned = await anyDb
-    .select({ id: sqliteCharacters.id })
-    .from(sqliteCharacters)
-    .where(and(eq(sqliteCharacters.id, id), eq(sqliteCharacters.userId, session.user.id)))
+    .select({ id: dbCharacters.id })
+    .from(dbCharacters)
+    .where(and(eq(dbCharacters.id, id), eq(dbCharacters.userId, session.user.id)))
     .limit(1)
   if (!owned[0]) return
   await anyDb
-    .update(sqliteCharacters)
+    .update(dbCharacters)
     .set({
       name: data.identity.name,
       data,
       ...(autoSave !== undefined ? { autoSave } : {}),
       updatedAt: new Date(),
     })
-    .where(eq(sqliteCharacters.id, id))
+    .where(eq(dbCharacters.id, id))
 }
 
 export async function loadCharacter(id: string): Promise<{ data: CharacterData; autoSave: boolean } | null> {
   const session = await auth()
   if (!session?.user?.id) redirect("/login")
   const rows = await anyDb
-    .select({ rawData: sql<string>`${sqliteCharacters.data}`, autoSave: sqliteCharacters.autoSave })
-    .from(sqliteCharacters)
-    .where(and(eq(sqliteCharacters.id, id), eq(sqliteCharacters.userId, session.user.id)))
+    .select({ rawData: sql<string>`${dbCharacters.data}`, autoSave: dbCharacters.autoSave })
+    .from(dbCharacters)
+    .where(and(eq(dbCharacters.id, id), eq(dbCharacters.userId, session.user.id)))
     .limit(1)
 
   if (!rows[0]) return null
@@ -181,14 +181,14 @@ export type CharacterSummary = {
 export async function listAllCharacters(userId: string): Promise<CharacterSummary[]> {
   const rows = await anyDb
     .select({
-      id: sqliteCharacters.id,
-      name: sqliteCharacters.name,
-      updatedAt: sqliteCharacters.updatedAt,
-      createdAt: sqliteCharacters.createdAt,
-      rawData: sql<string>`${sqliteCharacters.data}`,
+      id: dbCharacters.id,
+      name: dbCharacters.name,
+      updatedAt: dbCharacters.updatedAt,
+      createdAt: dbCharacters.createdAt,
+      rawData: sql<string>`${dbCharacters.data}`,
     })
-    .from(sqliteCharacters)
-    .where(eq(sqliteCharacters.userId, userId))
+    .from(dbCharacters)
+    .where(eq(dbCharacters.userId, userId))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return rows.map((row: any) => {
@@ -221,6 +221,6 @@ export async function listAllCharacters(userId: string): Promise<CharacterSummar
 }
 
 export async function deleteCharacter(id: string, userId: string): Promise<void> {
-  await anyDb.delete(sqliteCharacters).where(and(eq(sqliteCharacters.id, id), eq(sqliteCharacters.userId, userId)))
+  await anyDb.delete(dbCharacters).where(and(eq(dbCharacters.id, id), eq(dbCharacters.userId, userId)))
 }
 

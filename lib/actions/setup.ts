@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db/client"
-import { sqliteUsers, sqliteCharacters } from "@/lib/db/schema"
+import { dbUsers, dbCharacters } from "@/lib/db/tables"
 import { eq, ne, count } from "drizzle-orm"
 import { randomUUID } from "crypto"
 import { redirect } from "next/navigation"
@@ -23,8 +23,8 @@ export async function createUserAction(formData: FormData) {
   // Count existing real users (excluding the stub)
   const realUsers = await anyDb
     .select({ count: count() })
-    .from(sqliteUsers)
-    .where(ne(sqliteUsers.id, STUB_USER_ID))
+    .from(dbUsers)
+    .where(ne(dbUsers.id, STUB_USER_ID))
 
   const existingCount = realUsers[0]?.count ?? 0
 
@@ -39,13 +39,13 @@ export async function createUserAction(formData: FormData) {
   const id = randomUUID()
   const passwordHash = await bcrypt.hash(password, 12)
 
-  await anyDb.insert(sqliteUsers).values({ id, email, username, passwordHash, role })
+  await anyDb.insert(dbUsers).values({ id, email, username, passwordHash, role })
 
   // Migrate stub user's characters to this account (no-op after first run)
   await anyDb
-    .update(sqliteCharacters)
+    .update(dbCharacters)
     .set({ userId: id })
-    .where(eq(sqliteCharacters.userId, STUB_USER_ID))
+    .where(eq(dbCharacters.userId, STUB_USER_ID))
 
   redirect("/login")
 }
