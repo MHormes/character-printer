@@ -104,7 +104,7 @@ export function RaceField({
           </div>
 
           {raceOpen && availableRaces.length > 0 && (
-            <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
+            <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-y-auto max-h-64 rounded-md border border-border bg-popover shadow-md">
               <button
                 type="button"
                 onMouseDown={(e) => {
@@ -117,7 +117,7 @@ export function RaceField({
                 <span>{ignoreAutomation ? "Manual race entry active" : "Use manual race entry"}</span>
                 <span className="text-xs text-muted-foreground">No automation</span>
               </button>
-              {filteredRaces.slice(0, 12).map((row) => (
+              {filteredRaces.map((row) => (
                 <button
                   key={row.id}
                   type="button"
@@ -172,8 +172,8 @@ export function RaceField({
           </div>
 
           {subraceOpen && filteredSubraces.length > 0 && (
-            <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
-              {filteredSubraces.slice(0, 12).map((row) => (
+            <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-y-auto max-h-64 rounded-md border border-border bg-popover shadow-md">
+              {filteredSubraces.map((row) => (
                 <button
                   key={row.id}
                   type="button"

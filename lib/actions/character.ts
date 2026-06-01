@@ -140,7 +140,7 @@ export async function saveCharacter(id: string, data: CharacterData, autoSave?: 
       name: data.identity.name,
       data,
       ...(autoSave !== undefined ? { autoSave } : {}),
-      updatedAt: sql`now()`,
+      updatedAt: new Date(),
     })
     .where(eq(sqliteCharacters.id, id))
 }

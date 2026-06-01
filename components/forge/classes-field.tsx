@@ -151,7 +151,7 @@ export function ClassesField({
                 </div>
 
                 {isOpen && (
-                  <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
+                  <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-y-auto max-h-64 rounded-md border border-border bg-popover shadow-md">
                     <button
                       type="button"
                       onMouseDown={(e) => {
@@ -163,7 +163,7 @@ export function ClassesField({
                       <span>Use manual class entry</span>
                       <span className="text-xs text-muted-foreground">No automation</span>
                     </button>
-                    {filtered.slice(0, 10).map((dbClass) => (
+                    {filtered.map((dbClass) => (
                       <button
                         key={dbClass.id}
                         type="button"
@@ -232,8 +232,8 @@ export function ClassesField({
                   )}
                 </div>
                 {isSubclassOpen && (
-                  <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
-                    {filteredSubclasses.slice(0, 10).map((sc) => (
+                  <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-y-auto max-h-64 rounded-md border border-border bg-popover shadow-md">
+                    {filteredSubclasses.map((sc) => (
                       <button
                         key={sc.id}
                         type="button"
