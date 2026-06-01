@@ -368,7 +368,7 @@ function EquipmentChoicePicker({
 
   async function confirm() {
     if (selectedAlt === null) return
-    const sourceId = `class-start:${choice.classId}`
+    const sourceId = `class-choice:${choice.classId}:${choice.choiceIndex}`
 
     if (selectedAlt.type === "items") {
       const items = await Promise.all(
@@ -547,13 +547,18 @@ export function ClassChoicesPanel({
       return availableClasses.find((c) => c.id === classId)?.name ?? classId
     }
 
-    const autoGrants: GainedBenefit[] = charInventory
-      .filter((item) => item.sourceId?.startsWith("class-start:"))
-      .map((item) => {
-        const classId = item.sourceId!.replace("class-start:", "")
-        const qty = (item.quantity ?? 1) > 1 ? ` ×${item.quantity}` : ""
-        return { key: item.id, label: `${classNameFor(classId)}: ${item.name}${qty}` }
-      })
+    const autoGrantsByClass = new Map<string, string[]>()
+    for (const item of charInventory) {
+      if (!item.sourceId?.startsWith("class-start:")) continue
+      const classId = item.sourceId.replace("class-start:", "")
+      const qty = (item.quantity ?? 1) > 1 ? ` ×${item.quantity}` : ""
+      const existing = autoGrantsByClass.get(classId) ?? []
+      autoGrantsByClass.set(classId, [...existing, `${item.name}${qty}`])
+    }
+    const autoGrants: GainedBenefit[] = []
+    for (const [classId, names] of autoGrantsByClass) {
+      autoGrants.push({ key: `${classId}:fixed`, label: `${classNameFor(classId)}: ${names.join(", ")}` })
+    }
 
     const madeChoices: GainedBenefit[] = []
     const skillsByClass = new Map<string, string[]>()
@@ -583,7 +588,20 @@ export function ClassChoicesPanel({
 
     for (const ec of equipmentChoicesMade) {
       const cn = classNameFor(ec.classId)
-      madeChoices.push({ key: ec.id, label: `${cn}: Starting Equipment (option ${ec.choiceIndex + 1})` })
+      const choiceItems = charInventory.filter(
+        (item) => item.sourceId === `class-choice:${ec.classId}:${ec.choiceIndex}`,
+      )
+      if (choiceItems.length > 0) {
+        const itemsLabel = choiceItems
+          .map((item) => {
+            const qty = (item.quantity ?? 1) > 1 ? ` ×${item.quantity}` : ""
+            return `${item.name}${qty}`
+          })
+          .join(", ")
+        madeChoices.push({ key: ec.id, label: `${cn}: ${itemsLabel}` })
+      } else {
+        madeChoices.push({ key: ec.id, label: `${cn}: Starting Equipment (option ${ec.choiceIndex + 1})` })
+      }
     }
 
     const dismissedBenefits: DismissedBenefit[] = []
