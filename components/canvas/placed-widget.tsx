@@ -120,6 +120,7 @@ type Props = {
   cols: number;
   rows: number;
   selected: boolean;
+  isToolbarHost: boolean;
   printMode?: boolean;
   onSelect: (e: React.MouseEvent) => void;
   onRotate: () => void;
@@ -132,6 +133,7 @@ export function PlacedWidget({
   cols,
   rows,
   selected,
+  isToolbarHost,
   printMode,
   onSelect,
   onToggleLock,
@@ -234,7 +236,7 @@ export function PlacedWidget({
         )}
       </div>
 
-      {selected && (
+      {isToolbarHost && (
         <div className="absolute -top-7 left-0 z-20 flex items-center gap-0.5 rounded border border-border bg-card px-1 py-0.5 shadow-sm">
           <button
             type="button"

@@ -16,7 +16,8 @@ type CanvasStore = {
   pages: CanvasPage[]
   currentPageIndex: number
   widgets: CanvasWidget[]
-  selectedId: string | null
+  selectedIds: Set<string>
+  lastSelectedId: string | null
   setCanvasData: (pages: CanvasPage[]) => void
   setCols: (cols: number) => void
   addPage: () => void
@@ -26,10 +27,15 @@ type CanvasStore = {
   addWidgets: (ws: Omit<CanvasWidget, "id">[]) => void
   addWidgetsMultiPage: (pageWidgets: { cols?: number; widgets: Omit<CanvasWidget, "id">[] }[]) => void
   moveWidget: (id: string, col: number, row: number) => void
+  moveWidgets: (moves: { id: string; col: number; row: number }[]) => void
   rotateWidget: (id: string) => void
   toggleLock: (id: string) => void
   removeWidget: (id: string) => void
   setSelected: (id: string | null) => void
+  toggleSelected: (id: string) => void
+  clearSelected: () => void
+  removeSelected: () => void
+  toggleLockSelected: () => void
   updateWidgetData: (
     id: string,
     data: Partial<Pick<CanvasWidget, "spellId" | "featureId" | "statId" | "trackerId" | "textSource" | "w" | "h">>,
@@ -53,7 +59,8 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   pages: [{ id: crypto.randomUUID(), cols: DEFAULT_CANVAS_COLS, widgets: [] }],
   currentPageIndex: 0,
   widgets: [],
-  selectedId: null,
+  selectedIds: new Set<string>(),
+  lastSelectedId: null,
 
   setCanvasData: (pages) => {
     const safe = normalizeCanvasPages(pages, DEFAULT_CANVAS_COLS)
@@ -62,7 +69,8 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
       pages: safe,
       currentPageIndex: 0,
       widgets: safe[0].widgets,
-      selectedId: null,
+      selectedIds: new Set(),
+      lastSelectedId: null,
     })
   },
 
@@ -78,7 +86,8 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
       pages: next,
       currentPageIndex: next.length - 1,
       widgets: [],
-      selectedId: null,
+      selectedIds: new Set(),
+      lastSelectedId: null,
     }
   }),
 
@@ -91,7 +100,8 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
       pages: next,
       currentPageIndex: newIndex,
       widgets: next[newIndex].widgets,
-      selectedId: null,
+      selectedIds: new Set(),
+      lastSelectedId: null,
     }
   }),
 
@@ -101,7 +111,8 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
       cols: s.pages[i].cols,
       currentPageIndex: i,
       widgets: s.pages[i].widgets,
-      selectedId: null,
+      selectedIds: new Set(),
+      lastSelectedId: null,
     }
   }),
 
@@ -161,6 +172,17 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
     }))
   ),
 
+  moveWidgets: (moves) => set((s) => {
+    const moveMap = new Map(moves.map(m => [m.id, m]))
+    return patchPage(s.pages, s.currentPageIndex, (page) => ({
+      ...page,
+      widgets: page.widgets.map(w => {
+        const m = moveMap.get(w.id)
+        return m ? { ...w, col: m.col, row: m.row } : w
+      }),
+    }))
+  }),
+
   rotateWidget: (id) => set((s) => {
     const rows = Math.ceil((s.cols * 297) / 210)
     return patchPage(s.pages, s.currentPageIndex, (page) => ({
@@ -190,15 +212,58 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
     }))
   ),
 
-  removeWidget: (id) => set((s) => ({
-    ...patchPage(s.pages, s.currentPageIndex, (page) => ({
-      ...page,
-      widgets: page.widgets.filter((widget) => widget.id !== id),
-    })),
-    selectedId: s.selectedId === id ? null : s.selectedId,
-  })),
+  removeWidget: (id) => set((s) => {
+    const nextIds = new Set(s.selectedIds)
+    nextIds.delete(id)
+    return {
+      ...patchPage(s.pages, s.currentPageIndex, (page) => ({
+        ...page,
+        widgets: page.widgets.filter((widget) => widget.id !== id),
+      })),
+      selectedIds: nextIds,
+      lastSelectedId: s.lastSelectedId === id ? (nextIds.size > 0 ? [...nextIds][0] : null) : s.lastSelectedId,
+    }
+  }),
 
-  setSelected: (selectedId) => set({ selectedId }),
+  setSelected: (id) => set(id === null
+    ? { selectedIds: new Set(), lastSelectedId: null }
+    : { selectedIds: new Set([id]), lastSelectedId: id }
+  ),
+
+  toggleSelected: (id) => set((s) => {
+    const next = new Set(s.selectedIds)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+    return { selectedIds: next, lastSelectedId: next.size > 0 ? id : null }
+  }),
+
+  clearSelected: () => set({ selectedIds: new Set(), lastSelectedId: null }),
+
+  removeSelected: () => set((s) => {
+    const toRemove = new Set(
+      s.widgets.filter(w => s.selectedIds.has(w.id) && !w.locked).map(w => w.id)
+    )
+    return {
+      ...patchPage(s.pages, s.currentPageIndex, (page) => ({
+        ...page,
+        widgets: page.widgets.filter(w => !toRemove.has(w.id)),
+      })),
+      selectedIds: new Set(),
+      lastSelectedId: null,
+    }
+  }),
+
+  toggleLockSelected: () => set((s) =>
+    patchPage(s.pages, s.currentPageIndex, (page) => ({
+      ...page,
+      widgets: page.widgets.map(w =>
+        s.selectedIds.has(w.id) ? { ...w, locked: !w.locked } : w
+      ),
+    }))
+  ),
 
   updateWidgetData: (id, data) => set((s) =>
     patchPage(s.pages, s.currentPageIndex, (page) => ({
@@ -236,7 +301,8 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
       currentPageIndex: index,
       cols: DEFAULT_CANVAS_COLS,
       widgets: [],
-      selectedId: null,
+      selectedIds: new Set(),
+      lastSelectedId: null,
     }
   }),
 }))
