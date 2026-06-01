@@ -2,7 +2,7 @@ import { drizzle as drizzleLibsql } from "drizzle-orm/libsql";
 import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import { createClient } from "@libsql/client";
 import { Pool } from "pg";
-import * as sqliteSchema from "./schema";
+import * as fullSchema from "./schema";
 
 function createDb() {
   const driver = process.env.DB_DRIVER;
@@ -11,9 +11,11 @@ function createDb() {
 
   if (driver === "postgres") {
     const pool = new Pool({ connectionString: url });
-    return drizzlePg(pool, { schema: sqliteSchema });
+    const pgSchema = Object.fromEntries(Object.entries(fullSchema).filter(([k]) => k.startsWith("pg")));
+    return drizzlePg(pool, { schema: pgSchema });
   }
 
+  const sqliteSchema = Object.fromEntries(Object.entries(fullSchema).filter(([k]) => k.startsWith("sqlite")));
   const libsql = createClient({ url: url.startsWith("file:") ? url : `file:${url}` });
   return drizzleLibsql(libsql, { schema: sqliteSchema });
 }

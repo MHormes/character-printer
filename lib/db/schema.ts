@@ -11,6 +11,7 @@ import {
   pgTable,
   varchar,
   integer as pgInteger,
+  real as pgReal,
   jsonb,
   timestamp,
   boolean,
@@ -248,7 +249,7 @@ export const pgBackgrounds = pgTable("backgrounds", {
   featuresJson: jsonb("features_json"), // {name: string, description: string}[] — fixed features only
   fixedEquipmentJson: jsonb("fixed_equipment_json"), // {name: string, quantity: number}[]
   languageChoiceCount: pgInteger("language_choice_count"),
-  toolChoicesJson: pgText("tool_choices_json"),
+  toolChoicesJson: jsonb("tool_choices_json"),
   source: varchar("source", { length: 50 }).default("srd"),
   userId: varchar("user_id", { length: 36 }).references(() => pgUsers.id, { onDelete: "cascade" }),
 });
@@ -341,7 +342,7 @@ export const pgItems = pgTable("items", {
   name: varchar("name", { length: 255 }).notNull(),
   equipmentCategory: varchar("equipment_category", { length: 100 }).notNull(),
   description: varchar("description", { length: 10000 }),
-  weight: pgInteger("weight"),
+  weight: pgReal("weight"),
   cost: varchar("cost", { length: 50 }),
   weaponCategory: varchar("weapon_category", { length: 50 }),
   weaponRange: varchar("weapon_range", { length: 20 }),
@@ -648,5 +649,5 @@ export const pgClassStartingEquipmentOptions = pgTable("class_starting_equipment
   choiceIndex: pgInteger("choice_index").notNull(),
   description: varchar("description", { length: 1000 }).notNull(),
   chooseCount: pgInteger("choose_count").notNull().default(1),
-  optionsJson: varchar("options_json", { length: 10000 }).notNull(),
+  optionsJson: pgText("options_json").notNull(),
 });

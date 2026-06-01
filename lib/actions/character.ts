@@ -25,7 +25,7 @@ function toDate(v: unknown): Date | null {
 
 async function hydrateCharacter(id: string, data: CharacterData): Promise<CharacterData> {
   const defaults = createDefaultCharacter(id)
-  const dbClasses = await anyDb
+  const allClasses = await anyDb
     .select({
       id: dbClasses.id,
       name: dbClasses.name,
@@ -33,7 +33,7 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
     .from(dbClasses)
 
   const classIdByName = new Map(
-    dbClasses.map((dbClass: { id: string; name: string }) => [
+    allClasses.map((dbClass: { id: string; name: string }) => [
       dbClass.name.trim().toLowerCase(),
       dbClass.id,
     ]),

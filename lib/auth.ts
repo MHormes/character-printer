@@ -1,7 +1,7 @@
 import { getServerSession, type NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { db } from "@/lib/db/client"
-import { sqliteUsers } from "@/lib/db/schema"
+import { dbUsers } from "@/lib/db/tables"
 import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 
@@ -24,8 +24,8 @@ export const authOptions: NextAuthOptions = {
 
         const rows = await anyDb
           .select()
-          .from(sqliteUsers)
-          .where(eq(sqliteUsers.username, credentials.username))
+          .from(dbUsers)
+          .where(eq(dbUsers.username, credentials.username))
           .limit(1)
 
         const user = rows[0]
