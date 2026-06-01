@@ -1,5 +1,5 @@
-export default {
-  async fetch(request) {
+const maintenanceWorker = {
+  async fetch(_request) {
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -162,3 +162,5 @@ export default {
     });
   },
 };
+
+export default maintenanceWorker;
