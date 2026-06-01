@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
-import { ChevronDown, ChevronUp } from "lucide-react"
+import { ChevronDown, ChevronUp, X } from "lucide-react"
 import type { ClassChoiceMade, AttributeKey, InventoryItem, ModifierTarget } from "@/lib/types/character"
 import { getClassPendingChoiceKey, getEquipmentPendingChoiceKey, type PendingChoice, type EquipmentPendingChoice, type StartingEquipAlternative } from "@/lib/character/derive-pending-choices"
+import { getMulticlassWarningKey, type MulticlassWarning } from "@/lib/character/multiclass-prereqs"
 import { searchItems, type FeatRow, type ItemRow } from "@/lib/actions/5e-data"
 
 export type ResolvedEquipmentItem = {
@@ -498,6 +499,8 @@ type Props = {
   onDismissChoice: (choiceKey: string) => void
   onConfirmEquipmentChoice: (classId: string, choiceIndex: number, items: ResolvedEquipmentItem[]) => void
   onDismissEquipmentChoice: (choiceKey: string) => void
+  multiclassWarnings?: MulticlassWarning[]
+  onDismissMulticlassWarning?: (key: string) => void
 }
 
 export function ClassChoicesPanel({
@@ -508,68 +511,111 @@ export function ClassChoicesPanel({
   onDismissChoice,
   onConfirmEquipmentChoice,
   onDismissEquipmentChoice,
+  multiclassWarnings = [],
+  onDismissMulticlassWarning,
 }: Props) {
   const [open, setOpen] = useState(false)
 
   const totalPending = pendingChoices.length + equipmentPendingChoices.length
-  if (totalPending === 0) return null
+  if (totalPending === 0 && multiclassWarnings.length === 0) return null
 
   return (
-    <div className="space-y-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
-      >
-        {totalPending} pending {totalPending === 1 ? "choice" : "choices"}
-        {open ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-      </button>
+    <div className="space-y-2">
+      {totalPending > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
+          >
+            {totalPending} pending {totalPending === 1 ? "choice" : "choices"}
+            {open ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+          </button>
 
-      {open && (
-        <div className="mt-3 space-y-6 rounded-lg border border-border bg-muted/30 p-4">
-          {equipmentPendingChoices.map((ec) => (
-            <div key={`${ec.classId}:equip:${ec.choiceIndex}`} className="space-y-3">
-              <EquipmentChoicePicker
-                choice={ec}
-                onConfirm={(items) => onConfirmEquipmentChoice(ec.classId, ec.choiceIndex, items)}
-              />
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => onDismissEquipmentChoice(getEquipmentPendingChoiceKey(ec))}
-              >
-                Dismiss
-              </Button>
+          {open && (
+            <div className="mt-1 space-y-6 rounded-lg border border-border bg-muted/30 p-4">
+              {equipmentPendingChoices.map((ec) => (
+                <div key={`${ec.classId}:equip:${ec.choiceIndex}`} className="space-y-3">
+                  <EquipmentChoicePicker
+                    choice={ec}
+                    onConfirm={(items) => onConfirmEquipmentChoice(ec.classId, ec.choiceIndex, items)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onDismissEquipmentChoice(getEquipmentPendingChoiceKey(ec))}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              ))}
+              {pendingChoices.map((pc, i) => (
+                <div key={`${pc.classId}:${pc.type}:${pc.atLevel}:${i}`} className="space-y-3">
+                  {pc.type === "asi" ? (
+                    <AsiPicker
+                      classId={pc.classId}
+                      className={pc.className}
+                      atLevel={pc.atLevel}
+                      availableFeats={availableFeats}
+                      onConfirm={(c) => onConfirmChoice(c)}
+                    />
+                  ) : (
+                    <SkillPicker
+                      classId={pc.classId}
+                      className={pc.className}
+                      skillOptions={pc.skillOptions ?? []}
+                      skillsNeeded={pc.skillsNeeded ?? 1}
+                      onConfirm={(cs) => onConfirmChoice(cs)}
+                    />
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onDismissChoice(getClassPendingChoiceKey(pc))}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              ))}
             </div>
-          ))}
-          {pendingChoices.map((pc, i) => (
-            <div key={`${pc.classId}:${pc.type}:${pc.atLevel}:${i}`} className="space-y-3">
-              {pc.type === "asi" ? (
-                <AsiPicker
-                  classId={pc.classId}
-                  className={pc.className}
-                  atLevel={pc.atLevel}
-                  availableFeats={availableFeats}
-                  onConfirm={(c) => onConfirmChoice(c)}
-                />
-              ) : (
-                <SkillPicker
-                  classId={pc.classId}
-                  className={pc.className}
-                  skillOptions={pc.skillOptions ?? []}
-                  skillsNeeded={pc.skillsNeeded ?? 1}
-                  onConfirm={(cs) => onConfirmChoice(cs)}
-                />
-              )}
-              <Button
+          )}
+        </>
+      )}
+
+      {multiclassWarnings.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium uppercase tracking-wide text-destructive/70">
+            Multiclass Prerequisites
+          </p>
+          {multiclassWarnings.map((w) => (
+            <div
+              key={w.classId}
+              className="flex items-start justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2"
+            >
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium text-foreground">{w.className}</p>
+                <p className="text-xs text-muted-foreground">
+                  Requires {w.requirementText} —{" "}
+                  {w.failingAttrs.map((f, i) => (
+                    <span key={f.attr}>
+                      {i > 0 && ", "}
+                      <span className="font-medium text-destructive">
+                        {ATTR_LABELS[f.attr]} {f.have}
+                      </span>
+                    </span>
+                  ))}
+                </p>
+              </div>
+              <button
                 type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => onDismissChoice(getClassPendingChoiceKey(pc))}
+                aria-label="Dismiss warning"
+                onClick={() => onDismissMulticlassWarning?.(getMulticlassWarningKey(w.classId))}
+                className="shrink-0 text-muted-foreground hover:text-foreground"
               >
-                Dismiss
-              </Button>
+                <X className="size-3.5" />
+              </button>
             </div>
           ))}
         </div>

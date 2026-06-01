@@ -318,6 +318,7 @@ export type CharacterData = {
   selectionIgnores?: SelectionIgnores;
   dismissedClassChoiceKeys?: string[];
   dismissedRaceChoiceKeys?: string[];
+  dismissedMulticlassWarningKeys?: string[];
   dismissedEquipmentChoiceKeys?: string[];
   dismissedBackgroundChoiceKeys?: string[];
   identity: {

@@ -69,6 +69,7 @@ import {
   type EquipmentPendingChoice,
   type BackgroundPendingChoice,
 } from "@/lib/character/derive-pending-choices";
+import { deriveMulticlassWarnings, getMulticlassWarningKey, type MulticlassWarning } from "@/lib/character/multiclass-prereqs";
 import { StringField } from "@/components/forge/string-field";
 import { ClassesField } from "@/components/forge/classes-field";
 import { RaceField } from "@/components/forge/race-field";
@@ -639,6 +640,13 @@ export default function ForgePage({
     return deriveEquipmentPendingChoices(character, character.identity.classes, allClassStartEquipOptionRows);
   }, [character, allClassStartEquipOptionRows]);
 
+  const multiclassWarnings = useMemo<MulticlassWarning[]>(() => {
+    if (!character) return [];
+    const dismissed = character.dismissedMulticlassWarningKeys ?? [];
+    return deriveMulticlassWarnings(character.identity.classes, character.attributes)
+      .filter((w) => !dismissed.includes(getMulticlassWarningKey(w.classId)));
+  }, [character]);
+
   const racePendingChoices = useMemo<RacePendingChoice[]>(() => {
     if (!character || availableRaces.length === 0) return [];
     const matchedRace = character.identity.race
@@ -732,6 +740,17 @@ export default function ForgePage({
       dismissedRaceChoiceKeys: [
         ...(character.dismissedRaceChoiceKeys ?? []),
         choiceKey,
+      ],
+    });
+  }
+
+  function handleDismissMulticlassWarning(key: string) {
+    if (!character) return;
+    replaceCharacter({
+      ...character,
+      dismissedMulticlassWarningKeys: [
+        ...(character.dismissedMulticlassWarningKeys ?? []),
+        key,
       ],
     });
   }
@@ -1421,6 +1440,8 @@ export default function ForgePage({
                       onDismissChoice={handleDismissClassChoice}
                       onConfirmEquipmentChoice={handleConfirmEquipmentChoice}
                       onDismissEquipmentChoice={handleDismissEquipmentChoice}
+                      multiclassWarnings={multiclassWarnings}
+                      onDismissMulticlassWarning={handleDismissMulticlassWarning}
                     />
                   </div>
                 </div>
