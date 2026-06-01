@@ -1901,6 +1901,7 @@ export default function ForgePage({
                 showManualControls={isManualSectionVisible("spells")}
                 onSlotsChange={setSpellSlots}
                 onListChange={setSpellList}
+                onAddToAttacks={(action) => setActions([...actions, action])}
               />
             </ForgeSection>
           </div>

@@ -757,7 +757,9 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       }
 
       if (data.type === "TemplateSpellCards") {
-        const spells = character?.spells.list ?? [];
+        const spells = [...(character?.spells.list ?? [])].sort((a, b) =>
+          a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
+        );
         if (spells.length === 0) return;
 
         const CARD_W = SPELL_CARD_GRID_W;
@@ -918,6 +920,43 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
         if (currentPage.length > 0)
           pageWidgets.push({ cols: templateCols, widgets: currentPage });
+        addWidgetsMultiPage(pageWidgets);
+        return;
+      }
+
+      if (data.type === "FullPageSpells") {
+        const spells = [...(character?.spells.list ?? [])].sort((a, b) =>
+          a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
+        );
+        if (spells.length === 0) return;
+
+        const CARD_W = SPELL_CARD_GRID_W;
+        const CARD_H = SPELL_CARD_GRID_H;
+        const perRow = Math.floor(cols / CARD_W);
+        const rowsPerPage = Math.floor(rows / CARD_H);
+        const perPage = perRow * rowsPerPage;
+
+        const pageWidgets: {
+          cols?: number;
+          widgets: Omit<CanvasWidget, "id">[];
+        }[] = [];
+        for (let i = 0; i < spells.length; i += perPage) {
+          pageWidgets.push({
+            cols,
+            widgets: [{
+              type: "FullPageSpells" as WidgetType,
+              col: 0,
+              row: 0,
+              w: cols,
+              h: rows,
+              rotation: 0 as const,
+              locked: false,
+              printState: "Calculated" as const,
+              spellStartIndex: i,
+              spellCount: Math.min(perPage, spells.length - i),
+            }],
+          });
+        }
         addWidgetsMultiPage(pageWidgets);
         return;
       }

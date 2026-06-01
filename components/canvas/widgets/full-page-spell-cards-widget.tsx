@@ -3,11 +3,17 @@
 import { useCharacterStore } from "@/lib/store/character-store"
 import { SpellCardSvg } from "./spell-card-widget"
 
-export function FullPageSpellCardWidget() {
+export function FullPageSpellCardWidget({ startIndex, count }: { startIndex?: number; count?: number }) {
   const character = useCharacterStore((s) => s.character)
   if (!character) return null
 
-  const spells = character.spells.list
+  const sorted = [...character.spells.list].sort((a, b) =>
+    a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
+  )
+  const spells = startIndex !== undefined && count !== undefined
+    ? sorted.slice(startIndex, startIndex + count)
+    : sorted
+
   if (spells.length === 0) {
     return (
       <div className="h-full w-full flex items-center justify-center">
@@ -17,7 +23,7 @@ export function FullPageSpellCardWidget() {
   }
 
   return (
-    <div className="h-full w-full overflow-y-auto print:h-auto print:overflow-visible">
+    <div className="h-full w-full overflow-hidden">
       <div className="grid grid-cols-4 gap-x-0 gap-y-3">
         {spells.map((spell) => (
           <div key={spell.id} className="break-inside-avoid">
