@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
 import { ChevronDown, ChevronUp, X } from "lucide-react"
-import type { ClassChoiceMade, AttributeKey, InventoryItem, ModifierTarget } from "@/lib/types/character"
+import type { ClassChoiceMade, EquipmentChoiceMade, AttributeKey, InventoryItem, ModifierTarget } from "@/lib/types/character"
 import { getClassPendingChoiceKey, getEquipmentPendingChoiceKey, type PendingChoice, type EquipmentPendingChoice, type StartingEquipAlternative } from "@/lib/character/derive-pending-choices"
 import { getMulticlassWarningKey, type MulticlassWarning } from "@/lib/character/multiclass-prereqs"
-import { searchItems, type FeatRow, type ItemRow } from "@/lib/actions/5e-data"
+import { searchItems, type FeatRow, type ItemRow, type ClassRow } from "@/lib/actions/5e-data"
+import { GainedBenefitsSection, type GainedBenefit, type DismissedBenefit } from "@/components/forge/gained-benefits-section"
 
 export type ResolvedEquipmentItem = {
   inventoryItem: InventoryItem
@@ -491,6 +492,10 @@ function EquipmentChoicePicker({
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
+const ATTR_LABELS_LONG: Record<AttributeKey, string> = {
+  str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
+}
+
 type Props = {
   pendingChoices: PendingChoice[]
   equipmentPendingChoices: EquipmentPendingChoice[]
@@ -501,6 +506,16 @@ type Props = {
   onDismissEquipmentChoice: (choiceKey: string) => void
   multiclassWarnings?: MulticlassWarning[]
   onDismissMulticlassWarning?: (key: string) => void
+  // gained benefits
+  classChoices?: ClassChoiceMade[]
+  equipmentChoicesMade?: EquipmentChoiceMade[]
+  dismissedClassChoiceKeys?: string[]
+  dismissedEquipmentChoiceKeys?: string[]
+  charInventory?: InventoryItem[]
+  availableClasses?: ClassRow[]
+  gainedIsOpen?: boolean
+  onGainedToggle?: () => void
+  onRevertChoice?: (key: string) => void
 }
 
 export function ClassChoicesPanel({
@@ -513,11 +528,93 @@ export function ClassChoicesPanel({
   onDismissEquipmentChoice,
   multiclassWarnings = [],
   onDismissMulticlassWarning,
+  classChoices = [],
+  equipmentChoicesMade = [],
+  dismissedClassChoiceKeys = [],
+  dismissedEquipmentChoiceKeys = [],
+  charInventory = [],
+  availableClasses = [],
+  gainedIsOpen = false,
+  onGainedToggle,
+  onRevertChoice,
 }: Props) {
   const [open, setOpen] = useState(false)
 
   const totalPending = pendingChoices.length + equipmentPendingChoices.length
-  if (totalPending === 0 && multiclassWarnings.length === 0) return null
+
+  const { autoGrants, madeChoices, dismissedBenefits } = useMemo(() => {
+    function classNameFor(classId: string) {
+      return availableClasses.find((c) => c.id === classId)?.name ?? classId
+    }
+
+    const autoGrants: GainedBenefit[] = charInventory
+      .filter((item) => item.sourceId?.startsWith("class-start:"))
+      .map((item) => {
+        const classId = item.sourceId!.replace("class-start:", "")
+        const qty = (item.quantity ?? 1) > 1 ? ` ×${item.quantity}` : ""
+        return { key: item.id, label: `${classNameFor(classId)}: ${item.name}${qty}` }
+      })
+
+    const madeChoices: GainedBenefit[] = []
+    const skillsByClass = new Map<string, string[]>()
+
+    for (const c of classChoices) {
+      const cn = classNameFor(c.classId)
+      if (c.type === "asi" && c.improvements?.length) {
+        if (c.improvements.length === 1) {
+          const imp = c.improvements[0]
+          madeChoices.push({ key: c.id, label: `${cn} lvl ${c.atLevel}: ${ATTR_LABELS_LONG[imp.attr]} +${imp.bonus}` })
+        } else {
+          const parts = c.improvements.map((i) => `${ATTR_LABELS_LONG[i.attr]} +${i.bonus}`).join(" / ")
+          madeChoices.push({ key: c.id, label: `${cn} lvl ${c.atLevel}: ${parts}` })
+        }
+      } else if (c.type === "feat" && c.featName) {
+        madeChoices.push({ key: c.id, label: `${cn} lvl ${c.atLevel}: Feat — ${c.featName}` })
+      } else if (c.type === "skill" && c.skillKey) {
+        const existing = skillsByClass.get(c.classId) ?? []
+        skillsByClass.set(c.classId, [...existing, SKILL_LABELS[c.skillKey] ?? c.skillKey])
+      }
+    }
+
+    for (const [classId, skills] of skillsByClass) {
+      const cn = classNameFor(classId)
+      madeChoices.push({ key: `${classId}:skills`, label: `${cn}: Skills — ${skills.join(", ")}` })
+    }
+
+    for (const ec of equipmentChoicesMade) {
+      const cn = classNameFor(ec.classId)
+      madeChoices.push({ key: ec.id, label: `${cn}: Starting Equipment (option ${ec.choiceIndex + 1})` })
+    }
+
+    const dismissedBenefits: DismissedBenefit[] = []
+
+    for (const key of dismissedClassChoiceKeys) {
+      const parts = key.split(":")
+      if (parts.length >= 3) {
+        const classId = parts.slice(0, parts.length - 2).join(":")
+        const type = parts[parts.length - 2]
+        const level = parts[parts.length - 1]
+        const cn = classNameFor(classId)
+        if (type === "asi") {
+          dismissedBenefits.push({ key, label: `${cn} lvl ${level}: Ability Score Improvement` })
+        } else if (type === "skill") {
+          dismissedBenefits.push({ key, label: `${cn}: Starting Skills` })
+        }
+      }
+    }
+
+    for (const key of dismissedEquipmentChoiceKeys) {
+      const parts = key.split(":")
+      const idx = parts[parts.length - 1]
+      const classId = parts.slice(0, parts.length - 2).join(":")
+      const cn = classNameFor(classId)
+      dismissedBenefits.push({ key, label: `${cn}: Starting Equipment (option ${Number(idx) + 1})` })
+    }
+
+    return { autoGrants, madeChoices, dismissedBenefits }
+  }, [classChoices, equipmentChoicesMade, dismissedClassChoiceKeys, dismissedEquipmentChoiceKeys, charInventory, availableClasses])
+
+  if (totalPending === 0 && multiclassWarnings.length === 0 && autoGrants.length === 0 && madeChoices.length === 0 && dismissedBenefits.length === 0) return null
 
   return (
     <div className="space-y-2">
@@ -583,6 +680,15 @@ export function ClassChoicesPanel({
           )}
         </>
       )}
+
+      <GainedBenefitsSection
+        autoGrants={autoGrants}
+        madeChoices={madeChoices}
+        dismissedBenefits={dismissedBenefits}
+        isOpen={gainedIsOpen}
+        onToggle={() => onGainedToggle?.()}
+        onRevert={(key) => onRevertChoice?.(key)}
+      />
 
       {multiclassWarnings.length > 0 && (
         <div className="space-y-1.5">

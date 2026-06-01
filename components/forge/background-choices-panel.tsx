@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import type { BackgroundChoiceMade, LanguageChoiceMade, ToolChoiceMade, AttributeKey } from "@/lib/types/character"
@@ -10,10 +10,20 @@ import {
 } from "@/lib/character/derive-pending-choices"
 import { LanguagePicker } from "@/components/forge/language-picker"
 import { ToolPicker } from "@/components/forge/tool-picker"
-import type { LanguageRow, ItemRow } from "@/lib/actions/5e-data"
+import type { LanguageRow, ItemRow, BackgroundRow } from "@/lib/actions/5e-data"
+import { GainedBenefitsSection, type GainedBenefit, type DismissedBenefit } from "@/components/forge/gained-benefits-section"
 
 const ATTR_LABELS: Record<AttributeKey, string> = {
   str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
+}
+
+const SKILL_LABELS: Record<string, string> = {
+  acrobatics: "Acrobatics", animalHandling: "Animal Handling", arcana: "Arcana",
+  athletics: "Athletics", deception: "Deception", history: "History",
+  insight: "Insight", intimidation: "Intimidation", investigation: "Investigation",
+  medicine: "Medicine", nature: "Nature", perception: "Perception",
+  performance: "Performance", persuasion: "Persuasion", religion: "Religion",
+  sleightOfHand: "Sleight of Hand", stealth: "Stealth", survival: "Survival",
 }
 
 // ─── Background ASI picker (2024 edition) ─────────────────────────────────────
@@ -175,6 +185,15 @@ type Props = {
   onConfirmLanguage: (choices: LanguageChoiceMade[], backgroundId: string) => void
   onConfirmTool: (choice: ToolChoiceMade) => void
   onDismissChoice: (choiceKey: string) => void
+  // gained benefits
+  backgroundChoices?: BackgroundChoiceMade[]
+  languageChoices?: LanguageChoiceMade[]
+  toolChoices?: ToolChoiceMade[]
+  dismissedBackgroundChoiceKeys?: string[]
+  selectedBackground?: BackgroundRow
+  gainedIsOpen?: boolean
+  onGainedToggle?: () => void
+  onRevert?: (key: string) => void
 }
 
 export function BackgroundChoicesPanel({
@@ -188,21 +207,86 @@ export function BackgroundChoicesPanel({
   onConfirmLanguage,
   onConfirmTool,
   onDismissChoice,
+  backgroundChoices = [],
+  languageChoices = [],
+  toolChoices = [],
+  dismissedBackgroundChoiceKeys = [],
+  selectedBackground,
+  gainedIsOpen = false,
+  onGainedToggle,
+  onRevert,
 }: Props) {
-  if (pendingChoices.length === 0) return null
+  const { autoGrants, madeChoices, dismissedBenefits } = useMemo(() => {
+    const bgName = selectedBackground?.name ?? ""
+    const bgId = selectedBackground?.id ?? ""
+
+    const autoGrants: GainedBenefit[] = []
+    if (selectedBackground?.skillGrants) {
+      const grants: string[] = typeof selectedBackground.skillGrants === "string"
+        ? JSON.parse(selectedBackground.skillGrants)
+        : (selectedBackground.skillGrants as string[])
+      if (grants.length > 0) {
+        const labels = grants.map((k) => SKILL_LABELS[k] ?? k).join(", ")
+        autoGrants.push({ key: `${bgId}:skills`, label: `${bgName}: Skills — ${labels}` })
+      }
+    }
+
+    const madeChoices: GainedBenefit[] = []
+
+    for (const c of backgroundChoices) {
+      if (c.type === "asi" && c.improvements?.length) {
+        const parts = c.improvements.map((i) => `${ATTR_LABELS[i.attr]} +${i.bonus}`).join(", ")
+        madeChoices.push({ key: c.id, label: `${bgName}: ${parts}` })
+      }
+    }
+
+    for (const c of languageChoices) {
+      if (c.sourceId.startsWith("background:")) {
+        madeChoices.push({ key: c.id, label: `${bgName}: Language — ${c.languageName}` })
+      }
+    }
+
+    for (const c of toolChoices) {
+      if (!bgId || c.backgroundId === bgId) {
+        madeChoices.push({ key: c.id, label: `${bgName}: Tool — ${c.toolName}` })
+      }
+    }
+
+    const dismissedBenefits: DismissedBenefit[] = []
+
+    for (const key of dismissedBackgroundChoiceKeys) {
+      const parts = key.split(":")
+      const type = parts[parts.length - 1]
+      if (type === "asi") {
+        dismissedBenefits.push({ key, label: `${bgName}: ASI choice` })
+      } else if (type === "language") {
+        dismissedBenefits.push({ key, label: `${bgName}: Language choice` })
+      } else if (/^\d+$/.test(type)) {
+        dismissedBenefits.push({ key, label: `${bgName}: Tool choice (option ${Number(type) + 1})` })
+      } else {
+        dismissedBenefits.push({ key, label: `${bgName}: ${type}` })
+      }
+    }
+
+    return { autoGrants, madeChoices, dismissedBenefits }
+  }, [backgroundChoices, languageChoices, toolChoices, dismissedBackgroundChoiceKeys, selectedBackground])
+
+  if (pendingChoices.length === 0 && autoGrants.length === 0 && madeChoices.length === 0 && dismissedBenefits.length === 0) return null
 
   return (
-    <div className="space-y-0">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
-      >
-        {pendingChoices.length} pending background {pendingChoices.length === 1 ? "choice" : "choices"}
-        {isOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-      </button>
+    <div className="space-y-2">
+      {pendingChoices.length > 0 && (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20"
+        >
+          {pendingChoices.length} pending background {pendingChoices.length === 1 ? "choice" : "choices"}
+          {isOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+        </button>
+      )}
 
-      {isOpen && (
+      {pendingChoices.length > 0 && isOpen && (
         <div className="mt-3 space-y-6 rounded-lg border border-border bg-muted/30 p-4">
           {pendingChoices.map((pc, i) => {
             const key = getBackgroundPendingChoiceKey(pc as Parameters<typeof getBackgroundPendingChoiceKey>[0])
@@ -288,6 +372,15 @@ export function BackgroundChoicesPanel({
           })}
         </div>
       )}
+
+      <GainedBenefitsSection
+        autoGrants={autoGrants}
+        madeChoices={madeChoices}
+        dismissedBenefits={dismissedBenefits}
+        isOpen={gainedIsOpen}
+        onToggle={() => onGainedToggle?.()}
+        onRevert={(key) => onRevert?.(key)}
+      />
     </div>
   )
 }
