@@ -10,6 +10,9 @@ import {
 } from "@/lib/types/canvas"
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270]
+const MAX_HISTORY = 20
+
+type HistoryEntry = { pages: CanvasPage[]; currentPageIndex: number }
 
 type CanvasStore = {
   cols: number
@@ -18,6 +21,8 @@ type CanvasStore = {
   widgets: CanvasWidget[]
   selectedIds: Set<string>
   lastSelectedId: string | null
+  history: HistoryEntry[]
+  future: HistoryEntry[]
   setCanvasData: (pages: CanvasPage[]) => void
   setCols: (cols: number) => void
   addPage: () => void
@@ -36,6 +41,8 @@ type CanvasStore = {
   clearSelected: () => void
   removeSelected: () => void
   toggleLockSelected: () => void
+  undo: () => void
+  redo: () => void
   updateWidgetData: (
     id: string,
     data: Partial<Pick<CanvasWidget, "spellId" | "featureId" | "statId" | "trackerId" | "textSource" | "w" | "h">>,
@@ -54,6 +61,17 @@ function patchPage(
   return { pages: next, cols: next[index].cols, widgets: next[index].widgets }
 }
 
+function snapshot(s: CanvasStore): HistoryEntry {
+  return { pages: s.pages, currentPageIndex: s.currentPageIndex }
+}
+
+function pushHistory(s: CanvasStore): Pick<CanvasStore, "history" | "future"> {
+  return {
+    history: [...s.history.slice(-(MAX_HISTORY - 1)), snapshot(s)],
+    future: [],
+  }
+}
+
 export const useCanvasStore = create<CanvasStore>((set) => ({
   cols: DEFAULT_CANVAS_COLS,
   pages: [{ id: crypto.randomUUID(), cols: DEFAULT_CANVAS_COLS, widgets: [] }],
@@ -61,6 +79,8 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   widgets: [],
   selectedIds: new Set<string>(),
   lastSelectedId: null,
+  history: [],
+  future: [],
 
   setCanvasData: (pages) => {
     const safe = normalizeCanvasPages(pages, DEFAULT_CANVAS_COLS)
@@ -71,17 +91,21 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
       widgets: safe[0].widgets,
       selectedIds: new Set(),
       lastSelectedId: null,
+      history: [],
+      future: [],
     })
   },
 
-  setCols: (cols) => set((s) =>
-    patchPage(s.pages, s.currentPageIndex, (page) => ({ ...page, cols }))
-  ),
+  setCols: (cols) => set((s) => ({
+    ...pushHistory(s),
+    ...patchPage(s.pages, s.currentPageIndex, (page) => ({ ...page, cols })),
+  })),
 
   addPage: () => set((s) => {
     const newPage: CanvasPage = { id: crypto.randomUUID(), cols: DEFAULT_CANVAS_COLS, widgets: [] }
     const next = [...s.pages, newPage]
     return {
+      ...pushHistory(s),
       cols: newPage.cols,
       pages: next,
       currentPageIndex: next.length - 1,
@@ -96,6 +120,7 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
     const next = s.pages.filter((_, i) => i !== index)
     const newIndex = Math.min(s.currentPageIndex, next.length - 1)
     return {
+      ...pushHistory(s),
       cols: next[newIndex].cols,
       pages: next,
       currentPageIndex: newIndex,
@@ -116,22 +141,24 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
     }
   }),
 
-  addWidget: (w) => set((s) =>
-    patchPage(s.pages, s.currentPageIndex, (page) => ({
+  addWidget: (w) => set((s) => ({
+    ...pushHistory(s),
+    ...patchPage(s.pages, s.currentPageIndex, (page) => ({
       ...page,
       widgets: [...page.widgets, { ...w, id: crypto.randomUUID() }],
-    }))
-  ),
+    })),
+  })),
 
-  addWidgets: (newWidgets) => set((s) =>
-    patchPage(s.pages, s.currentPageIndex, (page) => ({
+  addWidgets: (newWidgets) => set((s) => ({
+    ...pushHistory(s),
+    ...patchPage(s.pages, s.currentPageIndex, (page) => ({
       ...page,
       widgets: [
         ...page.widgets,
         ...newWidgets.map((widget) => ({ ...widget, id: crypto.randomUUID() })),
       ],
-    }))
-  ),
+    })),
+  })),
 
   addWidgetsMultiPage: (pageWidgets) => set((s) => {
     if (pageWidgets.length === 0) return s
@@ -144,7 +171,7 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
         ...first.widgets.map((widget) => ({ ...widget, id: crypto.randomUUID() })),
       ],
     }))
-    if (rest.length === 0) return patched
+    if (rest.length === 0) return { ...pushHistory(s), ...patched }
 
     const insertAt = s.currentPageIndex + 1
     const newPages = rest.map((chunk) => ({
@@ -159,63 +186,73 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
     ]
 
     return {
+      ...pushHistory(s),
       cols: pages[s.currentPageIndex].cols,
       pages,
       widgets: pages[s.currentPageIndex].widgets,
     }
   }),
 
-  moveWidget: (id, col, row) => set((s) =>
-    patchPage(s.pages, s.currentPageIndex, (page) => ({
+  moveWidget: (id, col, row) => set((s) => ({
+    ...pushHistory(s),
+    ...patchPage(s.pages, s.currentPageIndex, (page) => ({
       ...page,
       widgets: page.widgets.map((widget) => (widget.id === id ? { ...widget, col, row } : widget)),
-    }))
-  ),
+    })),
+  })),
 
   moveWidgets: (moves) => set((s) => {
     const moveMap = new Map(moves.map(m => [m.id, m]))
-    return patchPage(s.pages, s.currentPageIndex, (page) => ({
-      ...page,
-      widgets: page.widgets.map(w => {
-        const m = moveMap.get(w.id)
-        return m ? { ...w, col: m.col, row: m.row } : w
-      }),
-    }))
+    return {
+      ...pushHistory(s),
+      ...patchPage(s.pages, s.currentPageIndex, (page) => ({
+        ...page,
+        widgets: page.widgets.map(w => {
+          const m = moveMap.get(w.id)
+          return m ? { ...w, col: m.col, row: m.row } : w
+        }),
+      })),
+    }
   }),
 
   rotateWidget: (id) => set((s) => {
     const rows = Math.ceil((s.cols * 297) / 210)
-    return patchPage(s.pages, s.currentPageIndex, (page) => ({
-      ...page,
-      widgets: page.widgets.map((widget) => {
-        if (widget.id !== id) return widget
-        const newW = widget.h
-        const newH = widget.w
-        return {
-          ...widget,
-          rotation: ROTATIONS[(ROTATIONS.indexOf(widget.rotation) + 1) % 4],
-          w: newW,
-          h: newH,
-          col: Math.min(widget.col, s.cols - newW),
-          row: Math.min(widget.row, rows - newH),
-        }
-      }),
-    }))
+    return {
+      ...pushHistory(s),
+      ...patchPage(s.pages, s.currentPageIndex, (page) => ({
+        ...page,
+        widgets: page.widgets.map((widget) => {
+          if (widget.id !== id) return widget
+          const newW = widget.h
+          const newH = widget.w
+          return {
+            ...widget,
+            rotation: ROTATIONS[(ROTATIONS.indexOf(widget.rotation) + 1) % 4],
+            w: newW,
+            h: newH,
+            col: Math.min(widget.col, s.cols - newW),
+            row: Math.min(widget.row, rows - newH),
+          }
+        }),
+      })),
+    }
   }),
 
-  toggleLock: (id) => set((s) =>
-    patchPage(s.pages, s.currentPageIndex, (page) => ({
+  toggleLock: (id) => set((s) => ({
+    ...pushHistory(s),
+    ...patchPage(s.pages, s.currentPageIndex, (page) => ({
       ...page,
       widgets: page.widgets.map((widget) =>
         widget.id === id ? { ...widget, locked: !widget.locked } : widget,
       ),
-    }))
-  ),
+    })),
+  })),
 
   removeWidget: (id) => set((s) => {
     const nextIds = new Set(s.selectedIds)
     nextIds.delete(id)
     return {
+      ...pushHistory(s),
       ...patchPage(s.pages, s.currentPageIndex, (page) => ({
         ...page,
         widgets: page.widgets.filter((widget) => widget.id !== id),
@@ -247,6 +284,7 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
       s.widgets.filter(w => s.selectedIds.has(w.id) && !w.locked).map(w => w.id)
     )
     return {
+      ...pushHistory(s),
       ...patchPage(s.pages, s.currentPageIndex, (page) => ({
         ...page,
         widgets: page.widgets.filter(w => !toRemove.has(w.id)),
@@ -256,36 +294,69 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
     }
   }),
 
-  toggleLockSelected: () => set((s) =>
-    patchPage(s.pages, s.currentPageIndex, (page) => ({
+  toggleLockSelected: () => set((s) => ({
+    ...pushHistory(s),
+    ...patchPage(s.pages, s.currentPageIndex, (page) => ({
       ...page,
       widgets: page.widgets.map(w =>
         s.selectedIds.has(w.id) ? { ...w, locked: !w.locked } : w
       ),
-    }))
-  ),
+    })),
+  })),
 
-  updateWidgetData: (id, data) => set((s) =>
-    patchPage(s.pages, s.currentPageIndex, (page) => ({
+  undo: () => set((s) => {
+    if (s.history.length === 0) return s
+    const prev = s.history[s.history.length - 1]
+    return {
+      history: s.history.slice(0, -1),
+      future: [snapshot(s), ...s.future].slice(0, MAX_HISTORY),
+      pages: prev.pages,
+      currentPageIndex: prev.currentPageIndex,
+      cols: prev.pages[prev.currentPageIndex].cols,
+      widgets: prev.pages[prev.currentPageIndex].widgets,
+      selectedIds: new Set(),
+      lastSelectedId: null,
+    }
+  }),
+
+  redo: () => set((s) => {
+    if (s.future.length === 0) return s
+    const next = s.future[0]
+    return {
+      history: [...s.history, snapshot(s)].slice(-MAX_HISTORY),
+      future: s.future.slice(1),
+      pages: next.pages,
+      currentPageIndex: next.currentPageIndex,
+      cols: next.pages[next.currentPageIndex].cols,
+      widgets: next.pages[next.currentPageIndex].widgets,
+      selectedIds: new Set(),
+      lastSelectedId: null,
+    }
+  }),
+
+  updateWidgetData: (id, data) => set((s) => ({
+    ...pushHistory(s),
+    ...patchPage(s.pages, s.currentPageIndex, (page) => ({
       ...page,
       widgets: page.widgets.map((widget) => (widget.id === id ? { ...widget, ...data } : widget)),
-    }))
-  ),
+    })),
+  })),
 
-  replaceCurrentPage: (cols, widgets) => set((s) =>
-    patchPage(s.pages, s.currentPageIndex, (page) => ({
+  replaceCurrentPage: (cols, widgets) => set((s) => ({
+    ...pushHistory(s),
+    ...patchPage(s.pages, s.currentPageIndex, (page) => ({
       ...page,
       cols,
       widgets: instantiateTemplateWidgets(widgets),
-    }))
-  ),
+    })),
+  })),
 
   reorderPages: (fromIndex, toIndex) => set((s) => {
     const pages = arrayMove(s.pages, fromIndex, toIndex)
-    // Follow the active page to its new position
     const movedId = s.pages[s.currentPageIndex].id
     const newCurrentIndex = pages.findIndex((p) => p.id === movedId)
     return {
+      ...pushHistory(s),
       pages,
       currentPageIndex: newCurrentIndex,
       cols: pages[newCurrentIndex].cols,
@@ -297,6 +368,7 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
     const newPage: CanvasPage = { id: crypto.randomUUID(), cols: DEFAULT_CANVAS_COLS, widgets: [] }
     const pages = [...s.pages.slice(0, index), newPage, ...s.pages.slice(index)]
     return {
+      ...pushHistory(s),
       pages,
       currentPageIndex: index,
       cols: DEFAULT_CANVAS_COLS,

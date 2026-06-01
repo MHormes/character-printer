@@ -324,6 +324,8 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     clearSelected,
     removeSelected,
     toggleLockSelected,
+    undo,
+    redo,
     addPage,
     deletePage,
     setPage,
@@ -334,24 +336,36 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const inInput =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable;
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        if (inInput) return;
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        if (inInput) return;
+        e.preventDefault();
+        redo();
+        return;
+      }
+
       if (selectedIds.size === 0) return;
 
       if (e.key === "Delete" || e.key === "Backspace") {
-        const target = e.target as HTMLElement;
-        if (
-          target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable
-        ) {
-          return;
-        }
+        if (inInput) return;
         removeSelected();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedIds, removeSelected]);
+  }, [selectedIds, removeSelected, undo, redo]);
 
   const character = useCharacterStore((s) => s.character);
   const toolCount =

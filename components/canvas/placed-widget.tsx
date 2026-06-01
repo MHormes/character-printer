@@ -234,6 +234,9 @@ export function PlacedWidget({
         {widget.locked && (
           <Lock className="absolute left-1 top-1 size-3 text-muted-foreground" />
         )}
+        {selected && (
+          <div className="pointer-events-none absolute inset-0 z-10 rounded bg-primary/15" />
+        )}
       </div>
 
       {isToolbarHost && (

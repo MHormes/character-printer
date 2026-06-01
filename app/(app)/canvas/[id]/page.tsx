@@ -14,6 +14,8 @@ import {
   Save,
   BookmarkPlus,
   X,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 import { buttonVariants, Button } from "@/components/ui/button";
 import { ToggleButton } from "@/components/ui/toggle-button";
@@ -56,6 +58,10 @@ export default function CanvasPage({
   const setCols = useCanvasStore((s) => s.setCols);
   const canvasPages = useCanvasStore((s) => s.pages);
   const setCanvasData = useCanvasStore((s) => s.setCanvasData);
+  const undo = useCanvasStore((s) => s.undo);
+  const redo = useCanvasStore((s) => s.redo);
+  const historyLength = useCanvasStore((s) => s.history.length);
+  const futureLength = useCanvasStore((s) => s.future.length);
 
   const setCharacter = useCharacterStore((s) => s.setCharacter);
   const clearCharacter = useCharacterStore((s) => s.clearCharacter);
@@ -299,6 +305,26 @@ export default function CanvasPage({
             <Hammer className="size-4" />
             Forge
           </Link>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={undo}
+            disabled={historyLength === 0}
+            title="Undo (Ctrl+Z)"
+            className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 disabled:opacity-30"
+          >
+            <Undo2 className="size-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={redo}
+            disabled={futureLength === 0}
+            title="Redo (Ctrl+Shift+Z)"
+            className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 disabled:opacity-30"
+          >
+            <Redo2 className="size-4" />
+          </Button>
           <Button
             size="sm"
             variant="secondary"
