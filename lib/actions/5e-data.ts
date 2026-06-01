@@ -2,29 +2,29 @@
 
 import { db } from "@/lib/db/client";
 import {
-  sqliteClasses,
-  sqliteSpells,
-  sqliteClassSpells,
-  sqliteClassSpellSlots,
-  sqliteRaces,
-  sqliteSubraces,
-  sqliteBackgrounds,
-  sqliteItems,
-  sqliteClassFeatures,
-  sqliteRaceTraits,
-  sqliteClassProficiencies,
-  sqliteClassSkillChoices,
-  sqliteLanguages,
-  sqliteSubclasses,
-  sqliteFeats,
-  sqliteRaceAbilityBonuses,
-  sqliteRaceAbilityBonusOptions,
-  sqliteRaceSkillChoices,
-  sqliteRaceLanguageChoices,
-  sqliteRaceProficiencies,
-  sqliteClassStartingEquipment,
-  sqliteClassStartingEquipmentOptions,
-} from "@/lib/db/schema";
+  dbClasses,
+  dbSpells,
+  dbClassSpells,
+  dbClassSpellSlots,
+  dbRaces,
+  dbSubraces,
+  dbBackgrounds,
+  dbItems,
+  dbClassFeatures,
+  dbRaceTraits,
+  dbClassProficiencies,
+  dbClassSkillChoices,
+  dbLanguages,
+  dbSubclasses,
+  dbFeats,
+  dbRaceAbilityBonuses,
+  dbRaceAbilityBonusOptions,
+  dbRaceSkillChoices,
+  dbRaceLanguageChoices,
+  dbRaceProficiencies,
+  dbClassStartingEquipment,
+  dbClassStartingEquipmentOptions,
+} from "@/lib/db/tables";
 import { eq, and, like, ilike, asc, min } from "drizzle-orm";
 
 const likeCI = process.env.DB_DRIVER === "postgres" ? ilike : like;
@@ -33,12 +33,12 @@ const likeCI = process.env.DB_DRIVER === "postgres" ? ilike : like;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = db as any;
 
-export type RaceAbilityBonusRow = typeof sqliteRaceAbilityBonuses.$inferSelect;
-export type RaceAbilityBonusOptionRow = typeof sqliteRaceAbilityBonusOptions.$inferSelect;
-export type RaceSkillChoiceRow = typeof sqliteRaceSkillChoices.$inferSelect;
-export type RaceLanguageChoiceRow = typeof sqliteRaceLanguageChoices.$inferSelect;
-export type RaceProficiencyRow = typeof sqliteRaceProficiencies.$inferSelect;
-export type ClassStartingEquipmentRow = typeof sqliteClassStartingEquipment.$inferSelect & {
+export type RaceAbilityBonusRow = typeof dbRaceAbilityBonuses.$inferSelect;
+export type RaceAbilityBonusOptionRow = typeof dbRaceAbilityBonusOptions.$inferSelect;
+export type RaceSkillChoiceRow = typeof dbRaceSkillChoices.$inferSelect;
+export type RaceLanguageChoiceRow = typeof dbRaceLanguageChoices.$inferSelect;
+export type RaceProficiencyRow = typeof dbRaceProficiencies.$inferSelect;
+export type ClassStartingEquipmentRow = typeof dbClassStartingEquipment.$inferSelect & {
   armorCategory: string | null;
   acBase: number | null;
   acDexBonus: boolean | null;
@@ -56,30 +56,30 @@ export type ClassStartingEquipmentRow = typeof sqliteClassStartingEquipment.$inf
   itemWeight: number | null;
   modifiersJson: string | null;
 };
-export type ClassStartingEquipmentOptionRow = typeof sqliteClassStartingEquipmentOptions.$inferSelect;
-export type ClassRow = typeof sqliteClasses.$inferSelect;
-export type ClassSkillChoiceRow = typeof sqliteClassSkillChoices.$inferSelect;
-export type ClassFeatureRow = typeof sqliteClassFeatures.$inferSelect;
-export type RaceTraitRow = typeof sqliteRaceTraits.$inferSelect;
-export type ClassProficiencyRow = typeof sqliteClassProficiencies.$inferSelect;
-export type LanguageRow = typeof sqliteLanguages.$inferSelect;
-export type SubclassRow = typeof sqliteSubclasses.$inferSelect;
-export type FeatRow = typeof sqliteFeats.$inferSelect;
-export type ItemRow = typeof sqliteItems.$inferSelect;
-export type SpellRow = typeof sqliteSpells.$inferSelect;
-export type SpellSlotRow = typeof sqliteClassSpellSlots.$inferSelect;
-export type RaceRow = typeof sqliteRaces.$inferSelect;
-export type SubraceRow = typeof sqliteSubraces.$inferSelect;
-export type BackgroundRow = typeof sqliteBackgrounds.$inferSelect;
+export type ClassStartingEquipmentOptionRow = typeof dbClassStartingEquipmentOptions.$inferSelect;
+export type ClassRow = typeof dbClasses.$inferSelect;
+export type ClassSkillChoiceRow = typeof dbClassSkillChoices.$inferSelect;
+export type ClassFeatureRow = typeof dbClassFeatures.$inferSelect;
+export type RaceTraitRow = typeof dbRaceTraits.$inferSelect;
+export type ClassProficiencyRow = typeof dbClassProficiencies.$inferSelect;
+export type LanguageRow = typeof dbLanguages.$inferSelect;
+export type SubclassRow = typeof dbSubclasses.$inferSelect;
+export type FeatRow = typeof dbFeats.$inferSelect;
+export type ItemRow = typeof dbItems.$inferSelect;
+export type SpellRow = typeof dbSpells.$inferSelect;
+export type SpellSlotRow = typeof dbClassSpellSlots.$inferSelect;
+export type RaceRow = typeof dbRaces.$inferSelect;
+export type SubraceRow = typeof dbSubraces.$inferSelect;
+export type BackgroundRow = typeof dbBackgrounds.$inferSelect;
 
 // ─── Backgrounds ─────────────────────────────────────────────────────────────
 
 export async function getBackgrounds(system = "dnd5e"): Promise<BackgroundRow[]> {
   return anyDb
     .select()
-    .from(sqliteBackgrounds)
-    .where(eq(sqliteBackgrounds.system, system))
-    .orderBy(asc(sqliteBackgrounds.name));
+    .from(dbBackgrounds)
+    .where(eq(dbBackgrounds.system, system))
+    .orderBy(asc(dbBackgrounds.name));
 }
 
 // ─── Races ────────────────────────────────────────────────────────────────────
@@ -87,20 +87,20 @@ export async function getBackgrounds(system = "dnd5e"): Promise<BackgroundRow[]>
 export async function getRaces(system = "dnd5e"): Promise<RaceRow[]> {
   return anyDb
     .select()
-    .from(sqliteRaces)
-    .where(eq(sqliteRaces.system, system))
-    .orderBy(asc(sqliteRaces.name));
+    .from(dbRaces)
+    .where(eq(dbRaces.system, system))
+    .orderBy(asc(dbRaces.name));
 }
 
 export async function getSubraces(raceId?: string, system = "dnd5e"): Promise<SubraceRow[]> {
   const conditions = raceId
-    ? and(eq(sqliteSubraces.system, system), eq(sqliteSubraces.raceId, raceId))
-    : eq(sqliteSubraces.system, system);
+    ? and(eq(dbSubraces.system, system), eq(dbSubraces.raceId, raceId))
+    : eq(dbSubraces.system, system);
   return anyDb
     .select()
-    .from(sqliteSubraces)
+    .from(dbSubraces)
     .where(conditions)
-    .orderBy(asc(sqliteSubraces.name));
+    .orderBy(asc(dbSubraces.name));
 }
 
 // ─── Classes ──────────────────────────────────────────────────────────────────
@@ -108,30 +108,30 @@ export async function getSubraces(raceId?: string, system = "dnd5e"): Promise<Su
 export async function getClasses(system = "dnd5e"): Promise<ClassRow[]> {
   return anyDb
     .select()
-    .from(sqliteClasses)
-    .where(eq(sqliteClasses.system, system))
-    .orderBy(asc(sqliteClasses.name));
+    .from(dbClasses)
+    .where(eq(dbClasses.system, system))
+    .orderBy(asc(dbClasses.name));
 }
 
 export async function getClassSpellSlots(system = "dnd5e"): Promise<SpellSlotRow[]> {
   return anyDb
     .select({
-      classId: sqliteClassSpellSlots.classId,
-      level: sqliteClassSpellSlots.level,
-      slot1: sqliteClassSpellSlots.slot1,
-      slot2: sqliteClassSpellSlots.slot2,
-      slot3: sqliteClassSpellSlots.slot3,
-      slot4: sqliteClassSpellSlots.slot4,
-      slot5: sqliteClassSpellSlots.slot5,
-      slot6: sqliteClassSpellSlots.slot6,
-      slot7: sqliteClassSpellSlots.slot7,
-      slot8: sqliteClassSpellSlots.slot8,
-      slot9: sqliteClassSpellSlots.slot9,
+      classId: dbClassSpellSlots.classId,
+      level: dbClassSpellSlots.level,
+      slot1: dbClassSpellSlots.slot1,
+      slot2: dbClassSpellSlots.slot2,
+      slot3: dbClassSpellSlots.slot3,
+      slot4: dbClassSpellSlots.slot4,
+      slot5: dbClassSpellSlots.slot5,
+      slot6: dbClassSpellSlots.slot6,
+      slot7: dbClassSpellSlots.slot7,
+      slot8: dbClassSpellSlots.slot8,
+      slot9: dbClassSpellSlots.slot9,
     })
-    .from(sqliteClassSpellSlots)
-    .innerJoin(sqliteClasses, eq(sqliteClasses.id, sqliteClassSpellSlots.classId))
-    .where(eq(sqliteClasses.system, system))
-    .orderBy(asc(sqliteClassSpellSlots.classId), asc(sqliteClassSpellSlots.level));
+    .from(dbClassSpellSlots)
+    .innerJoin(dbClasses, eq(dbClasses.id, dbClassSpellSlots.classId))
+    .where(eq(dbClasses.system, system))
+    .orderBy(asc(dbClassSpellSlots.classId), asc(dbClassSpellSlots.level));
 }
 
 // ─── Spell slots for a class at a given level ─────────────────────────────────
@@ -142,11 +142,11 @@ export async function getSpellSlots(
 ): Promise<SpellSlotRow | null> {
   const rows = await anyDb
     .select()
-    .from(sqliteClassSpellSlots)
+    .from(dbClassSpellSlots)
     .where(
       and(
-        eq(sqliteClassSpellSlots.classId, classId),
-        eq(sqliteClassSpellSlots.level, level),
+        eq(dbClassSpellSlots.classId, classId),
+        eq(dbClassSpellSlots.level, level),
       ),
     )
     .limit(1);
@@ -158,8 +158,8 @@ export async function getSpellSlots(
 export async function getSpell(id: string): Promise<SpellRow | null> {
   const rows = await anyDb
     .select()
-    .from(sqliteSpells)
-    .where(eq(sqliteSpells.id, id))
+    .from(dbSpells)
+    .where(eq(dbSpells.id, id))
     .limit(1);
   return rows[0] ?? null;
 }
@@ -235,14 +235,14 @@ export async function searchItems(params: ItemSearchParams): Promise<ItemRow[]> 
   const system = params.system ?? "dnd5e";
   const rows = await anyDb
     .select()
-    .from(sqliteItems)
+    .from(dbItems)
     .where(
       and(
-        eq(sqliteItems.system, system),
-        params.name ? likeCI(sqliteItems.name, `%${params.name}%`) : undefined,
+        eq(dbItems.system, system),
+        params.name ? likeCI(dbItems.name, `%${params.name}%`) : undefined,
       ),
     )
-    .orderBy(asc(sqliteItems.name))
+    .orderBy(asc(dbItems.name))
     .limit(params.equipmentCategory ? 300 : 60);
 
   return rows
@@ -253,8 +253,8 @@ export async function searchItems(params: ItemSearchParams): Promise<ItemRow[]> 
 export async function getItem(id: string): Promise<ItemRow | null> {
   const rows = await anyDb
     .select()
-    .from(sqliteItems)
-    .where(eq(sqliteItems.id, id))
+    .from(dbItems)
+    .where(eq(dbItems.id, id))
     .limit(1);
   return rows[0] ?? null;
 }
@@ -269,11 +269,11 @@ export async function getRaceTraits(
 ): Promise<RaceTraitRow[]> {
   return anyDb
     .select()
-    .from(sqliteRaceTraits)
+    .from(dbRaceTraits)
     .where(
-      and(eq(sqliteRaceTraits.raceId, raceId), eq(sqliteRaceTraits.system, system)),
+      and(eq(dbRaceTraits.raceId, raceId), eq(dbRaceTraits.system, system)),
     )
-    .orderBy(asc(sqliteRaceTraits.name));
+    .orderBy(asc(dbRaceTraits.name));
 }
 
 export async function getSubraceTraits(
@@ -282,11 +282,11 @@ export async function getSubraceTraits(
 ): Promise<RaceTraitRow[]> {
   return anyDb
     .select()
-    .from(sqliteRaceTraits)
+    .from(dbRaceTraits)
     .where(
-      and(eq(sqliteRaceTraits.subraceId, subraceId), eq(sqliteRaceTraits.system, system)),
+      and(eq(dbRaceTraits.subraceId, subraceId), eq(dbRaceTraits.system, system)),
     )
-    .orderBy(asc(sqliteRaceTraits.name));
+    .orderBy(asc(dbRaceTraits.name));
 }
 
 // ─── Class proficiencies ──────────────────────────────────────────────────────
@@ -297,11 +297,11 @@ export async function getClassProficiencies(
 ): Promise<ClassProficiencyRow[]> {
   return anyDb
     .select()
-    .from(sqliteClassProficiencies)
+    .from(dbClassProficiencies)
     .where(
-      and(eq(sqliteClassProficiencies.classId, classId), eq(sqliteClassProficiencies.system, system)),
+      and(eq(dbClassProficiencies.classId, classId), eq(dbClassProficiencies.system, system)),
     )
-    .orderBy(asc(sqliteClassProficiencies.profType), asc(sqliteClassProficiencies.name));
+    .orderBy(asc(dbClassProficiencies.profType), asc(dbClassProficiencies.name));
 }
 
 // ─── Languages ────────────────────────────────────────────────────────────────
@@ -309,19 +309,19 @@ export async function getClassProficiencies(
 export async function getLanguages(system = "dnd5e"): Promise<LanguageRow[]> {
   return anyDb
     .select()
-    .from(sqliteLanguages)
-    .where(eq(sqliteLanguages.system, system))
-    .orderBy(asc(sqliteLanguages.name));
+    .from(dbLanguages)
+    .where(eq(dbLanguages.system, system))
+    .orderBy(asc(dbLanguages.name));
 }
 
 export async function getTools(system = "dnd5e"): Promise<ItemRow[]> {
   return anyDb
     .select()
-    .from(sqliteItems)
+    .from(dbItems)
     .where(
-      and(eq(sqliteItems.system, system), eq(sqliteItems.equipmentCategory, "Tools")),
+      and(eq(dbItems.system, system), eq(dbItems.equipmentCategory, "Tools")),
     )
-    .orderBy(asc(sqliteItems.name));
+    .orderBy(asc(dbItems.name));
 }
 
 // ─── Other proficiency search ─────────────────────────────────────────────────
@@ -343,14 +343,14 @@ export async function searchOtherProficiencies(params: {
   if (!category || category === "Language") {
     const rows = await anyDb
       .select()
-      .from(sqliteLanguages)
+      .from(dbLanguages)
       .where(
         and(
-          eq(sqliteLanguages.system, system),
-          name ? likeCI(sqliteLanguages.name, `%${name}%`) : undefined,
+          eq(dbLanguages.system, system),
+          name ? likeCI(dbLanguages.name, `%${name}%`) : undefined,
         ),
       )
-      .orderBy(asc(sqliteLanguages.name))
+      .orderBy(asc(dbLanguages.name))
       .limit(30);
     results.push(...rows.map((r: LanguageRow) => ({ name: r.name, category: "Language" as const })));
   }
@@ -358,15 +358,15 @@ export async function searchOtherProficiencies(params: {
   if (!category || category === "Tool") {
     const rows = await anyDb
       .select()
-      .from(sqliteItems)
+      .from(dbItems)
       .where(
         and(
-          eq(sqliteItems.system, system),
-          eq(sqliteItems.equipmentCategory, "Tools"),
-          name ? likeCI(sqliteItems.name, `%${name}%`) : undefined,
+          eq(dbItems.system, system),
+          eq(dbItems.equipmentCategory, "Tools"),
+          name ? likeCI(dbItems.name, `%${name}%`) : undefined,
         ),
       )
-      .orderBy(asc(sqliteItems.name))
+      .orderBy(asc(dbItems.name))
       .limit(30);
     results.push(...rows.map((r: ItemRow) => ({ name: r.name, category: "Tool" as const })));
   }
@@ -374,15 +374,15 @@ export async function searchOtherProficiencies(params: {
   if (!category || category === "Weapon") {
     const rows = await anyDb
       .select()
-      .from(sqliteItems)
+      .from(dbItems)
       .where(
         and(
-          eq(sqliteItems.system, system),
-          eq(sqliteItems.equipmentCategory, "Weapon"),
-          name ? likeCI(sqliteItems.name, `%${name}%`) : undefined,
+          eq(dbItems.system, system),
+          eq(dbItems.equipmentCategory, "Weapon"),
+          name ? likeCI(dbItems.name, `%${name}%`) : undefined,
         ),
       )
-      .orderBy(asc(sqliteItems.name))
+      .orderBy(asc(dbItems.name))
       .limit(30);
     results.push(...rows.map((r: ItemRow) => ({ name: r.name, category: "Weapon" as const })));
   }
@@ -390,15 +390,15 @@ export async function searchOtherProficiencies(params: {
   if (!category || category === "Armor") {
     const rows = await anyDb
       .select()
-      .from(sqliteItems)
+      .from(dbItems)
       .where(
         and(
-          eq(sqliteItems.system, system),
-          eq(sqliteItems.equipmentCategory, "Armor"),
-          name ? likeCI(sqliteItems.name, `%${name}%`) : undefined,
+          eq(dbItems.system, system),
+          eq(dbItems.equipmentCategory, "Armor"),
+          name ? likeCI(dbItems.name, `%${name}%`) : undefined,
         ),
       )
-      .orderBy(asc(sqliteItems.name))
+      .orderBy(asc(dbItems.name))
       .limit(30);
     results.push(...rows.map((r: ItemRow) => ({ name: r.name, category: "Armor" as const })));
   }
@@ -414,13 +414,13 @@ export async function getSubclasses(
 ): Promise<SubclassRow[]> {
   return anyDb
     .select()
-    .from(sqliteSubclasses)
+    .from(dbSubclasses)
     .where(
       classId
-        ? and(eq(sqliteSubclasses.classId, classId), eq(sqliteSubclasses.system, system))
-        : eq(sqliteSubclasses.system, system),
+        ? and(eq(dbSubclasses.classId, classId), eq(dbSubclasses.system, system))
+        : eq(dbSubclasses.system, system),
     )
-    .orderBy(asc(sqliteSubclasses.name));
+    .orderBy(asc(dbSubclasses.name));
 }
 
 // ─── Feats ────────────────────────────────────────────────────────────────────
@@ -431,14 +431,14 @@ export async function searchFeats(
 ): Promise<FeatRow[]> {
   return anyDb
     .select()
-    .from(sqliteFeats)
+    .from(dbFeats)
     .where(
       and(
-        eq(sqliteFeats.system, system),
-        name ? likeCI(sqliteFeats.name, `%${name}%`) : undefined,
+        eq(dbFeats.system, system),
+        name ? likeCI(dbFeats.name, `%${name}%`) : undefined,
       ),
     )
-    .orderBy(asc(sqliteFeats.name))
+    .orderBy(asc(dbFeats.name))
     .limit(60);
 }
 
@@ -460,32 +460,32 @@ export async function searchSrdFeatures(
   const [feats, classFeatures, raceTraits] = await Promise.all([
     anyDb
       .select()
-      .from(sqliteFeats)
-      .where(and(eq(sqliteFeats.system, system), nameFilter ? likeCI(sqliteFeats.name, nameFilter) : undefined))
-      .orderBy(asc(sqliteFeats.name))
+      .from(dbFeats)
+      .where(and(eq(dbFeats.system, system), nameFilter ? likeCI(dbFeats.name, nameFilter) : undefined))
+      .orderBy(asc(dbFeats.name))
       .limit(20),
     anyDb
       .select()
-      .from(sqliteClassFeatures)
-      .where(and(eq(sqliteClassFeatures.system, system), nameFilter ? likeCI(sqliteClassFeatures.name, nameFilter) : undefined))
-      .orderBy(asc(sqliteClassFeatures.name))
+      .from(dbClassFeatures)
+      .where(and(eq(dbClassFeatures.system, system), nameFilter ? likeCI(dbClassFeatures.name, nameFilter) : undefined))
+      .orderBy(asc(dbClassFeatures.name))
       .limit(20),
     anyDb
       .select({
-        id: min(sqliteRaceTraits.id),
-        name: sqliteRaceTraits.name,
-        description: min(sqliteRaceTraits.description),
+        id: min(dbRaceTraits.id),
+        name: dbRaceTraits.name,
+        description: min(dbRaceTraits.description),
       })
-      .from(sqliteRaceTraits)
-      .where(and(eq(sqliteRaceTraits.system, system), nameFilter ? likeCI(sqliteRaceTraits.name, nameFilter) : undefined))
-      .groupBy(sqliteRaceTraits.name)
-      .orderBy(asc(sqliteRaceTraits.name))
+      .from(dbRaceTraits)
+      .where(and(eq(dbRaceTraits.system, system), nameFilter ? likeCI(dbRaceTraits.name, nameFilter) : undefined))
+      .groupBy(dbRaceTraits.name)
+      .orderBy(asc(dbRaceTraits.name))
       .limit(20),
   ])
 
   return [
-    ...feats.map((f: typeof sqliteFeats.$inferSelect) => ({ id: f.id, name: f.name, description: f.description, category: "Feat" as const })),
-    ...classFeatures.map((f: typeof sqliteClassFeatures.$inferSelect) => ({ id: f.id, name: f.name, description: f.description, category: "Class Feature" as const })),
+    ...feats.map((f: typeof dbFeats.$inferSelect) => ({ id: f.id, name: f.name, description: f.description, category: "Feat" as const })),
+    ...classFeatures.map((f: typeof dbClassFeatures.$inferSelect) => ({ id: f.id, name: f.name, description: f.description, category: "Class Feature" as const })),
     ...raceTraits.map((f: { id: string | null; name: string; description: string | null }) => ({ id: f.id ?? "", name: f.name, description: f.description ?? "", category: "Race Trait" as const })),
   ].sort((a, b) => a.name.localeCompare(b.name))
 }
@@ -498,84 +498,84 @@ export async function getClassFeatures(
 ): Promise<ClassFeatureRow[]> {
   return anyDb
     .select()
-    .from(sqliteClassFeatures)
+    .from(dbClassFeatures)
     .where(
       and(
-        eq(sqliteClassFeatures.classId, classId),
-        eq(sqliteClassFeatures.system, system),
+        eq(dbClassFeatures.classId, classId),
+        eq(dbClassFeatures.system, system),
       ),
     )
-    .orderBy(asc(sqliteClassFeatures.level), asc(sqliteClassFeatures.name));
+    .orderBy(asc(dbClassFeatures.level), asc(dbClassFeatures.name));
 }
 
 export async function getAllClassFeatures(system = "dnd5e"): Promise<ClassFeatureRow[]> {
   return anyDb
     .select()
-    .from(sqliteClassFeatures)
-    .where(eq(sqliteClassFeatures.system, system))
-    .orderBy(asc(sqliteClassFeatures.classId), asc(sqliteClassFeatures.level), asc(sqliteClassFeatures.name));
+    .from(dbClassFeatures)
+    .where(eq(dbClassFeatures.system, system))
+    .orderBy(asc(dbClassFeatures.classId), asc(dbClassFeatures.level), asc(dbClassFeatures.name));
 }
 
 export async function getAllClassProficiencies(system = "dnd5e"): Promise<ClassProficiencyRow[]> {
   return anyDb
     .select()
-    .from(sqliteClassProficiencies)
-    .where(eq(sqliteClassProficiencies.system, system))
-    .orderBy(asc(sqliteClassProficiencies.classId), asc(sqliteClassProficiencies.profType));
+    .from(dbClassProficiencies)
+    .where(eq(dbClassProficiencies.system, system))
+    .orderBy(asc(dbClassProficiencies.classId), asc(dbClassProficiencies.profType));
 }
 
 export async function getAllRaceTraits(system = "dnd5e"): Promise<RaceTraitRow[]> {
   return anyDb
     .select()
-    .from(sqliteRaceTraits)
-    .where(eq(sqliteRaceTraits.system, system))
-    .orderBy(asc(sqliteRaceTraits.raceId), asc(sqliteRaceTraits.name));
+    .from(dbRaceTraits)
+    .where(eq(dbRaceTraits.system, system))
+    .orderBy(asc(dbRaceTraits.raceId), asc(dbRaceTraits.name));
 }
 
 export async function getAllClassSkillChoices(system = "dnd5e"): Promise<ClassSkillChoiceRow[]> {
   return anyDb
     .select()
-    .from(sqliteClassSkillChoices)
-    .where(eq(sqliteClassSkillChoices.system, system))
-    .orderBy(asc(sqliteClassSkillChoices.classId), asc(sqliteClassSkillChoices.skillKey));
+    .from(dbClassSkillChoices)
+    .where(eq(dbClassSkillChoices.system, system))
+    .orderBy(asc(dbClassSkillChoices.classId), asc(dbClassSkillChoices.skillKey));
 }
 
 export async function getAllRaceAbilityBonuses(system = "dnd5e"): Promise<RaceAbilityBonusRow[]> {
   return anyDb
     .select()
-    .from(sqliteRaceAbilityBonuses)
-    .where(eq(sqliteRaceAbilityBonuses.system, system))
-    .orderBy(asc(sqliteRaceAbilityBonuses.raceId), asc(sqliteRaceAbilityBonuses.abilityScore));
+    .from(dbRaceAbilityBonuses)
+    .where(eq(dbRaceAbilityBonuses.system, system))
+    .orderBy(asc(dbRaceAbilityBonuses.raceId), asc(dbRaceAbilityBonuses.abilityScore));
 }
 
 export async function getAllRaceAbilityBonusOptions(system = "dnd5e"): Promise<RaceAbilityBonusOptionRow[]> {
   return anyDb
     .select()
-    .from(sqliteRaceAbilityBonusOptions)
-    .where(eq(sqliteRaceAbilityBonusOptions.system, system))
-    .orderBy(asc(sqliteRaceAbilityBonusOptions.raceId), asc(sqliteRaceAbilityBonusOptions.abilityScore));
+    .from(dbRaceAbilityBonusOptions)
+    .where(eq(dbRaceAbilityBonusOptions.system, system))
+    .orderBy(asc(dbRaceAbilityBonusOptions.raceId), asc(dbRaceAbilityBonusOptions.abilityScore));
 }
 
 export async function getAllRaceSkillChoices(system = "dnd5e"): Promise<RaceSkillChoiceRow[]> {
   return anyDb
     .select()
-    .from(sqliteRaceSkillChoices)
-    .where(eq(sqliteRaceSkillChoices.system, system))
-    .orderBy(asc(sqliteRaceSkillChoices.raceId), asc(sqliteRaceSkillChoices.skillKey));
+    .from(dbRaceSkillChoices)
+    .where(eq(dbRaceSkillChoices.system, system))
+    .orderBy(asc(dbRaceSkillChoices.raceId), asc(dbRaceSkillChoices.skillKey));
 }
 
 export async function getAllRaceLanguageChoices(system = "dnd5e"): Promise<RaceLanguageChoiceRow[]> {
   return anyDb
     .select()
-    .from(sqliteRaceLanguageChoices)
-    .where(eq(sqliteRaceLanguageChoices.system, system));
+    .from(dbRaceLanguageChoices)
+    .where(eq(dbRaceLanguageChoices.system, system));
 }
 
 export async function getAllRaceProficiencies(system = "dnd5e"): Promise<RaceProficiencyRow[]> {
   return anyDb
     .select()
-    .from(sqliteRaceProficiencies)
-    .where(eq(sqliteRaceProficiencies.system, system));
+    .from(dbRaceProficiencies)
+    .where(eq(dbRaceProficiencies.system, system));
 }
 
 // ─── Class starting equipment ─────────────────────────────────────────────────
@@ -583,44 +583,44 @@ export async function getAllRaceProficiencies(system = "dnd5e"): Promise<RacePro
 export async function getAllClassStartingEquipment(system = "dnd5e"): Promise<ClassStartingEquipmentRow[]> {
   const rows = await anyDb
     .select({
-      id: sqliteClassStartingEquipment.id,
-      system: sqliteClassStartingEquipment.system,
-      classId: sqliteClassStartingEquipment.classId,
-      itemId: sqliteClassStartingEquipment.itemId,
-      itemName: sqliteClassStartingEquipment.itemName,
-      quantity: sqliteClassStartingEquipment.quantity,
-      equipmentCategory: sqliteClassStartingEquipment.equipmentCategory,
-      weight: sqliteClassStartingEquipment.weight,
-      armorCategory: sqliteItems.armorCategory,
-      acBase: sqliteItems.acBase,
-      acDexBonus: sqliteItems.acDexBonus,
-      acMaxDex: sqliteItems.acMaxDex,
-      stealthDisadvantage: sqliteItems.stealthDisadvantage,
-      strMinimum: sqliteItems.strMinimum,
-      weaponCategory: sqliteItems.weaponCategory,
-      weaponRange: sqliteItems.weaponRange,
-      damageDiceCount: sqliteItems.damageDiceCount,
-      damageDieType: sqliteItems.damageDieType,
-      damageType: sqliteItems.damageType,
-      properties: sqliteItems.properties,
-      rangeNormal: sqliteItems.rangeNormal,
-      rangeLong: sqliteItems.rangeLong,
-      itemWeight: sqliteItems.weight,
-      modifiersJson: sqliteItems.modifiersJson,
+      id: dbClassStartingEquipment.id,
+      system: dbClassStartingEquipment.system,
+      classId: dbClassStartingEquipment.classId,
+      itemId: dbClassStartingEquipment.itemId,
+      itemName: dbClassStartingEquipment.itemName,
+      quantity: dbClassStartingEquipment.quantity,
+      equipmentCategory: dbClassStartingEquipment.equipmentCategory,
+      weight: dbClassStartingEquipment.weight,
+      armorCategory: dbItems.armorCategory,
+      acBase: dbItems.acBase,
+      acDexBonus: dbItems.acDexBonus,
+      acMaxDex: dbItems.acMaxDex,
+      stealthDisadvantage: dbItems.stealthDisadvantage,
+      strMinimum: dbItems.strMinimum,
+      weaponCategory: dbItems.weaponCategory,
+      weaponRange: dbItems.weaponRange,
+      damageDiceCount: dbItems.damageDiceCount,
+      damageDieType: dbItems.damageDieType,
+      damageType: dbItems.damageType,
+      properties: dbItems.properties,
+      rangeNormal: dbItems.rangeNormal,
+      rangeLong: dbItems.rangeLong,
+      itemWeight: dbItems.weight,
+      modifiersJson: dbItems.modifiersJson,
     })
-    .from(sqliteClassStartingEquipment)
-    .leftJoin(sqliteItems, eq(sqliteClassStartingEquipment.itemId, sqliteItems.id))
-    .where(eq(sqliteClassStartingEquipment.system, system))
-    .orderBy(asc(sqliteClassStartingEquipment.classId));
+    .from(dbClassStartingEquipment)
+    .leftJoin(dbItems, eq(dbClassStartingEquipment.itemId, dbItems.id))
+    .where(eq(dbClassStartingEquipment.system, system))
+    .orderBy(asc(dbClassStartingEquipment.classId));
   return rows as ClassStartingEquipmentRow[];
 }
 
 export async function getAllClassStartingEquipmentOptions(system = "dnd5e"): Promise<ClassStartingEquipmentOptionRow[]> {
   return anyDb
     .select()
-    .from(sqliteClassStartingEquipmentOptions)
-    .where(eq(sqliteClassStartingEquipmentOptions.system, system))
-    .orderBy(asc(sqliteClassStartingEquipmentOptions.classId), asc(sqliteClassStartingEquipmentOptions.choiceIndex));
+    .from(dbClassStartingEquipmentOptions)
+    .where(eq(dbClassStartingEquipmentOptions.system, system))
+    .orderBy(asc(dbClassStartingEquipmentOptions.classId), asc(dbClassStartingEquipmentOptions.choiceIndex));
 }
 
 // ─── Spell search ─────────────────────────────────────────────────────────────
@@ -632,59 +632,59 @@ export async function searchSpells(
 
   if (params.classId) {
     const rows = await anyDb
-      .select({ spell: sqliteSpells })
-      .from(sqliteSpells)
+      .select({ spell: dbSpells })
+      .from(dbSpells)
       .innerJoin(
-        sqliteClassSpells,
-        eq(sqliteClassSpells.spellId, sqliteSpells.id),
+        dbClassSpells,
+        eq(dbClassSpells.spellId, dbSpells.id),
       )
       .where(
         and(
-          eq(sqliteSpells.system, system),
-          eq(sqliteClassSpells.classId, params.classId),
+          eq(dbSpells.system, system),
+          eq(dbClassSpells.classId, params.classId),
           params.level !== undefined
-            ? eq(sqliteSpells.level, params.level)
+            ? eq(dbSpells.level, params.level)
             : undefined,
-          params.school ? eq(sqliteSpells.school, params.school) : undefined,
+          params.school ? eq(dbSpells.school, params.school) : undefined,
           params.name
-            ? likeCI(sqliteSpells.name, `%${params.name}%`)
+            ? likeCI(dbSpells.name, `%${params.name}%`)
             : undefined,
         ),
       )
-      .orderBy(asc(sqliteSpells.level), asc(sqliteSpells.name))
+      .orderBy(asc(dbSpells.level), asc(dbSpells.name))
       .limit(60);
     return rows.map((r: { spell: SpellRow }) => r.spell);
   }
 
   return anyDb
     .select()
-    .from(sqliteSpells)
+    .from(dbSpells)
     .where(
       and(
-        eq(sqliteSpells.system, system),
+        eq(dbSpells.system, system),
         params.level !== undefined
-          ? eq(sqliteSpells.level, params.level)
+          ? eq(dbSpells.level, params.level)
           : undefined,
-        params.school ? eq(sqliteSpells.school, params.school) : undefined,
-        params.name ? likeCI(sqliteSpells.name, `%${params.name}%`) : undefined,
+        params.school ? eq(dbSpells.school, params.school) : undefined,
+        params.name ? likeCI(dbSpells.name, `%${params.name}%`) : undefined,
       ),
     )
-    .orderBy(asc(sqliteSpells.level), asc(sqliteSpells.name))
+    .orderBy(asc(dbSpells.level), asc(dbSpells.name))
     .limit(60);
 }
 
 export async function getCantripsByClass(classId: string, system = "dnd5e"): Promise<SpellRow[]> {
   const rows = await anyDb
-    .select({ spell: sqliteSpells })
-    .from(sqliteSpells)
-    .innerJoin(sqliteClassSpells, eq(sqliteClassSpells.spellId, sqliteSpells.id))
+    .select({ spell: dbSpells })
+    .from(dbSpells)
+    .innerJoin(dbClassSpells, eq(dbClassSpells.spellId, dbSpells.id))
     .where(
       and(
-        eq(sqliteSpells.system, system),
-        eq(sqliteClassSpells.classId, classId),
-        eq(sqliteSpells.level, 0),
+        eq(dbSpells.system, system),
+        eq(dbClassSpells.classId, classId),
+        eq(dbSpells.level, 0),
       ),
     )
-    .orderBy(asc(sqliteSpells.name));
+    .orderBy(asc(dbSpells.name));
   return rows.map((r: { spell: SpellRow }) => r.spell);
 }

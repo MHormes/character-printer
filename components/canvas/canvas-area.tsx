@@ -312,14 +312,20 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     pages,
     currentPageIndex,
     widgets,
-    selectedId,
+    selectedIds,
+    lastSelectedId,
     addWidget,
     addWidgetsMultiPage,
     moveWidget,
+    moveWidgets,
     rotateWidget,
-    toggleLock,
-    removeWidget,
     setSelected,
+    toggleSelected,
+    clearSelected,
+    removeSelected,
+    toggleLockSelected,
+    undo,
+    redo,
     addPage,
     deletePage,
     setPage,
@@ -330,28 +336,36 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!selectedId) return;
+      const target = e.target as HTMLElement;
+      const inInput =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable;
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        if (inInput) return;
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        if (inInput) return;
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      if (selectedIds.size === 0) return;
 
       if (e.key === "Delete" || e.key === "Backspace") {
-        const target = e.target as HTMLElement;
-        if (
-          target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable
-        ) {
-          return;
-        }
-
-        const widget = widgets.find((w) => w.id === selectedId);
-        if (widget && !widget.locked) {
-          removeWidget(selectedId);
-        }
+        if (inInput) return;
+        removeSelected();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedId, widgets, removeWidget]);
+  }, [selectedIds, removeSelected, undo, redo]);
 
   const character = useCharacterStore((s) => s.character);
   const toolCount =
@@ -406,7 +420,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     ),
   );
   const trackersH = Math.max(
-    2,
+    trackersCount <= 2 ? 4 : 2,
     Math.round(
       (trackerSvgH(trackersCount) * 6 * rows * 210) / (cols * 297 * 171),
     ),
@@ -506,7 +520,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     { type: "Equipment" as const, label: "Equipment", w: 9, h: equipmentH },
     // Trackers & features
     { type: "Trackers" as const, label: "Trackers", w: 6, h: trackersH },
-    { type: "TrackerCard" as const, label: "Tracker Card", w: 3, h: 3 },
+    { type: "TrackerCard" as const, label: "Tracker Card", w: 3, h: 4 },
     { type: "Features" as const, label: "Features", w: 6, h: featuresH },
     { type: "FeatureCard" as const, label: "Feature Card", w: 9, h: 5 },
 
@@ -600,6 +614,13 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     w: number;
     h: number;
   } | null>(null);
+  const [groupDropPreviews, setGroupDropPreviews] = useState<{
+    id: string;
+    col: number;
+    row: number;
+    w: number;
+    h: number;
+  }[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -616,13 +637,19 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
   );
 
   function handleDragStart(e: DragStartEvent) {
-    setActiveData(e.active.data.current as ActiveData);
+    const data = e.active.data.current as ActiveData;
+    setActiveData(data);
     setDropPreview(null);
+    setGroupDropPreviews([]);
+    if (data.source === "canvas" && data.widgetId && !selectedIds.has(data.widgetId)) {
+      setSelected(data.widgetId);
+    }
   }
 
   function handleDragEnd(e: DragEndEvent) {
     setActiveData(null);
     setDropPreview(null);
+    setGroupDropPreviews([]);
     const { active, delta } = e;
     const data = active.data.current as ActiveData;
     if (!gridDomRef.current) return;
@@ -730,7 +757,9 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       }
 
       if (data.type === "TemplateSpellCards") {
-        const spells = character?.spells.list ?? [];
+        const spells = [...(character?.spells.list ?? [])].sort((a, b) =>
+          a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
+        );
         if (spells.length === 0) return;
 
         const CARD_W = SPELL_CARD_GRID_W;
@@ -895,6 +924,43 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         return;
       }
 
+      if (data.type === "FullPageSpells") {
+        const spells = [...(character?.spells.list ?? [])].sort((a, b) =>
+          a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
+        );
+        if (spells.length === 0) return;
+
+        const CARD_W = SPELL_CARD_GRID_W;
+        const CARD_H = SPELL_CARD_GRID_H;
+        const perRow = Math.floor(cols / CARD_W);
+        const rowsPerPage = Math.floor(rows / CARD_H);
+        const perPage = perRow * rowsPerPage;
+
+        const pageWidgets: {
+          cols?: number;
+          widgets: Omit<CanvasWidget, "id">[];
+        }[] = [];
+        for (let i = 0; i < spells.length; i += perPage) {
+          pageWidgets.push({
+            cols,
+            widgets: [{
+              type: "FullPageSpells" as WidgetType,
+              col: 0,
+              row: 0,
+              w: cols,
+              h: rows,
+              rotation: 0 as const,
+              locked: false,
+              printState: "Calculated" as const,
+              spellStartIndex: i,
+              spellCount: Math.min(perPage, spells.length - i),
+            }],
+          });
+        }
+        addWidgetsMultiPage(pageWidgets);
+        return;
+      }
+
       if (data.fullPage) {
         addWidget({
           type: data.type as WidgetType,
@@ -954,19 +1020,29 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         ),
       );
     } else if (data.source === "canvas" && data.widgetId) {
-      const widget = widgets.find((w) => w.id === data.widgetId);
-      if (!widget || widget.locked) return;
-      const deltaCols = Math.round(delta.x / cellW);
-      const deltaRows = Math.round(delta.y / cellH);
-      const newCol = Math.max(
-        0,
-        Math.min(widget.col + deltaCols, cols - widget.w),
-      );
-      const newRow = Math.max(
-        0,
-        Math.min(widget.row + deltaRows, rows - widget.h),
-      );
-      moveWidget(widget.id, newCol, newRow);
+      const draggedId = data.widgetId;
+      const isGroupDrag = selectedIds.has(draggedId) && selectedIds.size > 1;
+
+      if (isGroupDrag) {
+        const selected = widgets.filter(w => selectedIds.has(w.id));
+        if (selected.some(w => w.locked)) return;
+        const deltaCols = Math.round(delta.x / cellW);
+        const deltaRows = Math.round(delta.y / cellH);
+        const moves = selected.map(w => ({
+          id: w.id,
+          col: Math.max(0, Math.min(w.col + deltaCols, cols - w.w)),
+          row: Math.max(0, Math.min(w.row + deltaRows, rows - w.h)),
+        }));
+        moveWidgets(moves);
+      } else {
+        const widget = widgets.find((w) => w.id === draggedId);
+        if (!widget || widget.locked) return;
+        const deltaCols = Math.round(delta.x / cellW);
+        const deltaRows = Math.round(delta.y / cellH);
+        const newCol = Math.max(0, Math.min(widget.col + deltaCols, cols - widget.w));
+        const newRow = Math.max(0, Math.min(widget.row + deltaRows, rows - widget.h));
+        moveWidget(widget.id, newCol, newRow);
+      }
     }
   }
 
@@ -1011,25 +1087,50 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         h,
       });
     } else if (data.source === "canvas" && data.widgetId) {
-      const widget = widgets.find((w) => w.id === data.widgetId);
-      if (!widget || widget.locked) {
+      const draggedId = data.widgetId;
+      const isGroupDrag = selectedIds.has(draggedId) && selectedIds.size > 1;
+
+      if (isGroupDrag) {
+        const selected = widgets.filter(w => selectedIds.has(w.id));
+        if (selected.some(w => w.locked)) {
+          setDropPreview(null);
+          setGroupDropPreviews([]);
+          return;
+        }
+        const deltaCols = Math.round(delta.x / cellW);
+        const deltaRows = Math.round(delta.y / cellH);
+        const previews = selected.map(w => ({
+          id: w.id,
+          col: Math.max(0, Math.min(w.col + deltaCols, cols - w.w)),
+          row: Math.max(0, Math.min(w.row + deltaRows, rows - w.h)),
+          w: w.w,
+          h: w.h,
+        }));
         setDropPreview(null);
-        return;
+        setGroupDropPreviews(previews);
+      } else {
+        const widget = widgets.find((w) => w.id === draggedId);
+        if (!widget || widget.locked) {
+          setDropPreview(null);
+          return;
+        }
+        setGroupDropPreviews([]);
+        setDropPreview({
+          col: Math.max(
+            0,
+            Math.min(widget.col + Math.round(delta.x / cellW), cols - widget.w),
+          ),
+          row: Math.max(
+            0,
+            Math.min(widget.row + Math.round(delta.y / cellH), rows - widget.h),
+          ),
+          w: widget.w,
+          h: widget.h,
+        });
       }
-      setDropPreview({
-        col: Math.max(
-          0,
-          Math.min(widget.col + Math.round(delta.x / cellW), cols - widget.w),
-        ),
-        row: Math.max(
-          0,
-          Math.min(widget.row + Math.round(delta.y / cellH), rows - widget.h),
-        ),
-        w: widget.w,
-        h: widget.h,
-      });
     } else {
       setDropPreview(null);
+      setGroupDropPreviews([]);
     }
   }
 
@@ -1138,7 +1239,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
           {!overviewMode && (
             <div
               className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center bg-muted/30 p-8"
-              onClick={() => setSelected(null)}
+              onClick={() => clearSelected()}
             >
               <div
                 className="relative aspect-[210/297] w-full max-w-5xl bg-card shadow-lg py-[4mm] px-[2.828mm] box-border"
@@ -1148,6 +1249,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                   id="canvas-editor"
                   ref={setGridRef}
                   className="relative h-full w-full overflow-visible"
+                  onClick={() => clearSelected()}
                   style={{
                     backgroundImage: [
                       "linear-gradient(to right, var(--color-border) 1px, transparent 1px)",
@@ -1162,14 +1264,19 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                       widget={widget}
                       cols={cols}
                       rows={rows}
-                      selected={selectedId === widget.id}
+                      selected={selectedIds.has(widget.id)}
+                      isToolbarHost={lastSelectedId === widget.id}
                       onSelect={(e) => {
                         e.stopPropagation();
-                        setSelected(widget.id);
+                        if (e.ctrlKey || e.metaKey) {
+                          toggleSelected(widget.id);
+                        } else {
+                          setSelected(widget.id);
+                        }
                       }}
                       onRotate={() => rotateWidget(widget.id)}
-                      onToggleLock={() => toggleLock(widget.id)}
-                      onDelete={() => removeWidget(widget.id)}
+                      onToggleLock={() => toggleLockSelected()}
+                      onDelete={() => removeSelected()}
                     />
                   ))}
                   {dropPreview && (
@@ -1183,6 +1290,18 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                       }}
                     />
                   )}
+                  {groupDropPreviews.map((p) => (
+                    <div
+                      key={p.id}
+                      className="pointer-events-none absolute z-20 rounded border-2 border-primary bg-primary/10"
+                      style={{
+                        left: `${(p.col / cols) * 100}%`,
+                        top: `${(p.row / rows) * 100}%`,
+                        width: `${(p.w / cols) * 100}%`,
+                        height: `${(p.h / rows) * 100}%`,
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -1234,6 +1353,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                           cols={page.cols}
                           rows={pageRows}
                           selected={false}
+                          isToolbarHost={false}
                           printMode
                           onSelect={() => {}}
                           onRotate={() => {}}
@@ -1256,6 +1376,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                             cols={page.cols}
                             rows={pageRows}
                             selected={false}
+                            isToolbarHost={false}
                             printMode
                             onSelect={() => {}}
                             onRotate={() => {}}

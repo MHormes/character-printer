@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db/client"
-import { sqliteUsers } from "@/lib/db/schema"
+import { dbUsers } from "@/lib/db/tables"
 import { eq } from "drizzle-orm"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -11,13 +11,13 @@ const STUB_USER_ID = "00000000-0000-0000-0000-000000000001"
 export async function getOrCreateStubUser() {
   const existing = await anyDb
     .select()
-    .from(sqliteUsers)
-    .where(eq(sqliteUsers.id, STUB_USER_ID))
+    .from(dbUsers)
+    .where(eq(dbUsers.id, STUB_USER_ID))
     .limit(1)
 
   if (existing[0]) return existing[0]
 
-  await anyDb.insert(sqliteUsers).values({
+  await anyDb.insert(dbUsers).values({
     id: STUB_USER_ID,
     email: "stub@local",
     name: "Local User",

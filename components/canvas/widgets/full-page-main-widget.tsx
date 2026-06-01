@@ -33,37 +33,91 @@ export function FullPageMainWidget() {
 
   const equipH = Math.max(
     4,
-    Math.round((equipmentSvgH(character.inventory.length) * 12 * R * 210) / (C * 297 * 176)),
+    Math.round(
+      (equipmentSvgH(character.inventory.length) * 12 * R * 210) /
+        (C * 297 * 176),
+    ),
   );
 
   return (
     <div className="h-full w-full relative overflow-hidden">
-      <div style={slot(0, 0, 3, 18)}><CoreStatsWidget /></div>
-      <div style={slot(3, 0, 7, 2)}><InspirationWidget /></div>
-      <div style={slot(3, 2, 7, 2)}><ProficiencyWidget /></div>
-      <div style={slot(3, 4, 5, 4)}><SavingThrowsWidget /></div>
-      <div style={slot(3, 8, 7, 13)}><SkillsWidget /></div>
-      <div style={slot(0, 21, 8, 2, 180)}><PassivePerceptionWidget /></div>
-      <div style={slot(0, 23, 10, 3)}><SlimToolProfWidget /></div>
-      <div style={slot(0, 26, 10, 4)}><SlimOtherProfWidget /></div>
-      <div style={slot(10, 0, 3, 4)}><ArmorClassWidget /></div>
-      <div style={slot(13, 0, 3, 4)}><InitiativeWidget /></div>
-      <div style={slot(16, 0, 3, 4)}><SpeedWidget /></div>
-      <div style={slot(19, 0, 6, 7)}><TrackerWidget /></div>
-      <div style={slot(10, 4, 4, 4)}><CurrentHpWidget /></div>
-      <div style={slot(15, 4, 4, 4)}><TempHpWidget /></div>
-      <div style={slot(10, 8, 4, 4)}><HitDiceWidget /></div>
-      <div style={slot(15, 8, 4, 4)}><DeathSavesWidget /></div>
-      <div style={slot(10, 12, 9, 3)}><SlimAttacksWidget /></div>
-      <div style={slot(19, 7, 6, 19)}><FeaturesWidget /></div>
-      <div style={slot(10, 15, 9, equipH)}><EquipmentWidget /></div>
-      <div style={slot(25, 0, 3, 4)}><StatBoxWidget statId={character.statBoxes?.[0]?.id} /></div>
-      <div style={slot(25, 4, 3, 4)}><StatBoxWidget statId={character.statBoxes?.[1]?.id} /></div>
-      <div style={slot(25, 8, 3, 4)}><StatBoxWidget statId={character.statBoxes?.[2]?.id} /></div>    </div>
+      <div style={slot(0, 0, 3, 18)}>
+        <CoreStatsWidget />
+      </div>
+      <div style={slot(3, 0, 7, 2)}>
+        <InspirationWidget />
+      </div>
+      <div style={slot(3, 2, 7, 2)}>
+        <ProficiencyWidget />
+      </div>
+      <div style={slot(3, 4, 5, 4)}>
+        <SavingThrowsWidget />
+      </div>
+      <div style={slot(3, 8, 7, 13)}>
+        <SkillsWidget />
+      </div>
+      <div style={slot(0, 21, 8, 2, 0)}>
+        <PassivePerceptionWidget />
+      </div>
+      <div style={slot(0, 23, 10, 3)}>
+        <SlimToolProfWidget />
+      </div>
+      <div style={slot(0, 26, 10, 4)}>
+        <SlimOtherProfWidget />
+      </div>
+      <div style={slot(10, 0, 3, 4)}>
+        <ArmorClassWidget />
+      </div>
+      <div style={slot(13, 0, 3, 4)}>
+        <InitiativeWidget />
+      </div>
+      <div style={slot(16, 0, 3, 4)}>
+        <SpeedWidget />
+      </div>
+      <div style={slot(19, 0, 6, 7)}>
+        <TrackerWidget />
+      </div>
+      <div style={slot(10, 4, 4, 4)}>
+        <CurrentHpWidget />
+      </div>
+      <div style={slot(15, 4, 4, 4)}>
+        <TempHpWidget />
+      </div>
+      <div style={slot(10, 8, 4, 4)}>
+        <HitDiceWidget />
+      </div>
+      <div style={slot(15, 8, 4, 4)}>
+        <DeathSavesWidget />
+      </div>
+      <div style={slot(10, 12, 9, 3)}>
+        <SlimAttacksWidget />
+      </div>
+      <div style={slot(19, 7, 6, 19)}>
+        <FeaturesWidget />
+      </div>
+      <div style={slot(10, 15, 9, equipH)}>
+        <EquipmentWidget />
+      </div>
+      <div style={slot(25, 0, 3, 4)}>
+        <StatBoxWidget statId={character.statBoxes?.[0]?.id} />
+      </div>
+      <div style={slot(25, 4, 3, 4)}>
+        <StatBoxWidget statId={character.statBoxes?.[1]?.id} />
+      </div>
+      <div style={slot(25, 8, 3, 4)}>
+        <StatBoxWidget statId={character.statBoxes?.[2]?.id} />
+      </div>{" "}
+    </div>
   );
 }
 
-function slot(col: number, row: number, w: number, h: number, rotation: number = 0): CSSProperties {
+function slot(
+  col: number,
+  row: number,
+  w: number,
+  h: number,
+  rotation: number = 0,
+): CSSProperties {
   return {
     position: "absolute",
     left: `${(col / C) * 100}%`,

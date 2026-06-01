@@ -17,7 +17,8 @@ import {
 } from "@/lib/character/derive-pending-choices"
 import { LanguagePicker } from "@/components/forge/language-picker"
 import { ToolPicker } from "@/components/forge/tool-picker"
-import type { LanguageRow, ItemRow, SpellRow } from "@/lib/actions/5e-data"
+import type { LanguageRow, ItemRow, SpellRow, RaceAbilityBonusRow, RaceRow, SubraceRow } from "@/lib/actions/5e-data"
+import { GainedBenefitsSection, type GainedBenefit, type DismissedBenefit } from "@/components/forge/gained-benefits-section"
 
 const ATTR_LABELS: Record<AttributeKey, string> = {
   str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
@@ -271,6 +272,20 @@ type Props = {
   onConfirmToolChoice: (choice: RaceToolChoiceMade) => void
   onConfirmCantripChoice: (choice: RaceCantripChoiceMade) => void
   onDismissChoice: (choiceKey: string) => void
+  // gained benefits
+  raceChoices?: RaceChoiceMade[]
+  languageChoices?: LanguageChoiceMade[]
+  raceToolChoices?: RaceToolChoiceMade[]
+  raceCantripChoices?: RaceCantripChoiceMade[]
+  dismissedRaceChoiceKeys?: string[]
+  allRaceAsiBonusRows?: RaceAbilityBonusRow[]
+  availableRaces?: RaceRow[]
+  availableSubraces?: SubraceRow[]
+  currentRaceId?: string
+  currentSubraceId?: string
+  gainedIsOpen?: boolean
+  onGainedToggle?: () => void
+  onRevert?: (key: string) => void
 }
 
 export function RaceChoicesPanel({
@@ -289,22 +304,122 @@ export function RaceChoicesPanel({
   onConfirmToolChoice,
   onConfirmCantripChoice,
   onDismissChoice,
+  raceChoices = [],
+  languageChoices = [],
+  raceToolChoices = [],
+  raceCantripChoices = [],
+  dismissedRaceChoiceKeys = [],
+  allRaceAsiBonusRows = [],
+  availableRaces = [],
+  availableSubraces = [],
+  currentRaceId,
+  currentSubraceId,
+  gainedIsOpen = false,
+  onGainedToggle,
+  onRevert,
 }: Props) {
   const total = pendingChoices.length + languagePendingChoices.length + toolPendingChoices.length + cantripPendingChoices.length
-  if (total === 0) return null
+
+  const { autoGrants, madeChoices, dismissedBenefits } = useMemo(() => {
+    function raceNameFor(id: string) {
+      return availableRaces.find((r) => r.id === id)?.name
+        ?? availableSubraces.find((s) => s.id === id)?.name
+        ?? id
+    }
+
+    const autoGrants: GainedBenefit[] = allRaceAsiBonusRows
+      .filter((r) =>
+        (currentRaceId && r.raceId === currentRaceId) ||
+        (currentSubraceId && r.subraceId === currentSubraceId),
+      )
+      .map((r) => {
+        const sourceName = r.subraceId ? raceNameFor(r.subraceId) : raceNameFor(r.raceId ?? "")
+        return {
+          key: r.id,
+          label: `${sourceName}: ${ATTR_LABELS[r.abilityScore as AttributeKey] ?? r.abilityScore} +${r.bonus}`,
+        }
+      })
+
+    const madeChoices: GainedBenefit[] = []
+
+    for (const c of raceChoices) {
+      const raceName = raceNameFor(c.raceId)
+      if (c.type === "asi" && c.abilityScore) {
+        madeChoices.push({ key: c.id, label: `${raceName}: ${ATTR_LABELS[c.abilityScore] ?? c.abilityScore} +${c.bonus}` })
+      } else if (c.type === "skill" && c.skillKey) {
+        madeChoices.push({ key: c.id, label: `${raceName}: Skill — ${SKILL_LABELS[c.skillKey] ?? c.skillKey}` })
+      }
+    }
+
+    for (const c of languageChoices) {
+      if (c.sourceId.startsWith("race:") || c.sourceId.startsWith("subrace:")) {
+        const sourceId = c.sourceId.slice(c.sourceId.indexOf(":") + 1)
+        const sourceName = raceNameFor(sourceId)
+        madeChoices.push({ key: c.id, label: `${sourceName}: Language — ${c.languageName}` })
+      }
+    }
+
+    for (const c of raceToolChoices) {
+      const sourceId = c.sourceId.slice(c.sourceId.indexOf(":") + 1)
+      const sourceName = raceNameFor(sourceId)
+      madeChoices.push({ key: c.id, label: `${sourceName}: Tool — ${c.toolName}` })
+    }
+
+    for (const c of raceCantripChoices) {
+      const sourceId = c.sourceId.slice(c.sourceId.indexOf(":") + 1)
+      const sourceName = raceNameFor(sourceId)
+      madeChoices.push({ key: c.id, label: `${sourceName}: Cantrip — ${c.spellName}` })
+    }
+
+    const dismissedBenefits: DismissedBenefit[] = []
+
+    for (const key of dismissedRaceChoiceKeys) {
+      if (key.includes(":language")) {
+        const sourceId = key.replace(":language", "").replace(/^(race|subrace):/, "")
+        const sourceName = raceNameFor(sourceId)
+        dismissedBenefits.push({ key, label: `${sourceName}: Language choice` })
+      } else if (key.includes(":cantrip")) {
+        const sourceId = key.replace(":cantrip", "").replace(/^(race|subrace):/, "")
+        const sourceName = raceNameFor(sourceId)
+        dismissedBenefits.push({ key, label: `${sourceName}: Cantrip choice` })
+      } else if (key.includes(":tool:")) {
+        const sourceId = key.replace(/:tool:\d+$/, "").replace(/^(race|subrace):/, "")
+        const sourceName = raceNameFor(sourceId)
+        dismissedBenefits.push({ key, label: `${sourceName}: Tool choice` })
+      } else {
+        const parts = key.split(":")
+        const type = parts[parts.length - 1]
+        const raceId = parts.slice(0, parts.length - 1).join(":")
+        const raceName = raceNameFor(raceId)
+        if (type === "asi") {
+          dismissedBenefits.push({ key, label: `${raceName}: ASI choice` })
+        } else if (type === "skill") {
+          dismissedBenefits.push({ key, label: `${raceName}: Skill choice` })
+        } else {
+          dismissedBenefits.push({ key, label: `${raceName}: ${type}` })
+        }
+      }
+    }
+
+    return { autoGrants, madeChoices, dismissedBenefits }
+  }, [raceChoices, languageChoices, raceToolChoices, raceCantripChoices, dismissedRaceChoiceKeys, allRaceAsiBonusRows, availableRaces, availableSubraces, currentRaceId, currentSubraceId])
+
+  if (total === 0 && autoGrants.length === 0 && madeChoices.length === 0 && dismissedBenefits.length === 0) return null
 
   return (
-    <div className="space-y-0">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
-      >
-        {total} pending {total === 1 ? "choice" : "choices"}
-        {isOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-      </button>
+    <div className="space-y-2">
+      {total > 0 && (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20"
+        >
+          {total} pending {total === 1 ? "choice" : "choices"}
+          {isOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+        </button>
+      )}
 
-      {isOpen && (
+      {total > 0 && isOpen && (
         <div className="mt-3 space-y-6 rounded-lg border border-border bg-muted/30 p-4">
           {pendingChoices.map((pc, i) => (
             <div key={`${pc.raceId}:${pc.type}:${i}`} className="space-y-3">
@@ -412,6 +527,15 @@ export function RaceChoicesPanel({
           ))}
         </div>
       )}
+
+      <GainedBenefitsSection
+        autoGrants={autoGrants}
+        madeChoices={madeChoices}
+        dismissedBenefits={dismissedBenefits}
+        isOpen={gainedIsOpen}
+        onToggle={() => onGainedToggle?.()}
+        onRevert={(key) => onRevert?.(key)}
+      />
     </div>
   )
 }

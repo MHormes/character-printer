@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
-import { ChevronDown, ChevronUp } from "lucide-react"
-import type { ClassChoiceMade, AttributeKey, InventoryItem, ModifierTarget } from "@/lib/types/character"
+import { ChevronDown, ChevronUp, X } from "lucide-react"
+import type { ClassChoiceMade, EquipmentChoiceMade, AttributeKey, InventoryItem, ModifierTarget } from "@/lib/types/character"
 import { getClassPendingChoiceKey, getEquipmentPendingChoiceKey, type PendingChoice, type EquipmentPendingChoice, type StartingEquipAlternative } from "@/lib/character/derive-pending-choices"
-import { searchItems, type FeatRow, type ItemRow } from "@/lib/actions/5e-data"
+import { getMulticlassWarningKey, type MulticlassWarning } from "@/lib/character/multiclass-prereqs"
+import { searchItems, type FeatRow, type ItemRow, type ClassRow } from "@/lib/actions/5e-data"
+import { GainedBenefitsSection, type GainedBenefit, type DismissedBenefit } from "@/components/forge/gained-benefits-section"
 
 export type ResolvedEquipmentItem = {
   inventoryItem: InventoryItem
@@ -366,7 +368,7 @@ function EquipmentChoicePicker({
 
   async function confirm() {
     if (selectedAlt === null) return
-    const sourceId = `class-start:${choice.classId}`
+    const sourceId = `class-choice:${choice.classId}:${choice.choiceIndex}`
 
     if (selectedAlt.type === "items") {
       const items = await Promise.all(
@@ -490,6 +492,10 @@ function EquipmentChoicePicker({
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
+const ATTR_LABELS_LONG: Record<AttributeKey, string> = {
+  str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA",
+}
+
 type Props = {
   pendingChoices: PendingChoice[]
   equipmentPendingChoices: EquipmentPendingChoice[]
@@ -498,6 +504,18 @@ type Props = {
   onDismissChoice: (choiceKey: string) => void
   onConfirmEquipmentChoice: (classId: string, choiceIndex: number, items: ResolvedEquipmentItem[]) => void
   onDismissEquipmentChoice: (choiceKey: string) => void
+  multiclassWarnings?: MulticlassWarning[]
+  onDismissMulticlassWarning?: (key: string) => void
+  // gained benefits
+  classChoices?: ClassChoiceMade[]
+  equipmentChoicesMade?: EquipmentChoiceMade[]
+  dismissedClassChoiceKeys?: string[]
+  dismissedEquipmentChoiceKeys?: string[]
+  charInventory?: InventoryItem[]
+  availableClasses?: ClassRow[]
+  gainedIsOpen?: boolean
+  onGainedToggle?: () => void
+  onRevertChoice?: (key: string) => void
 }
 
 export function ClassChoicesPanel({
@@ -508,68 +526,220 @@ export function ClassChoicesPanel({
   onDismissChoice,
   onConfirmEquipmentChoice,
   onDismissEquipmentChoice,
+  multiclassWarnings = [],
+  onDismissMulticlassWarning,
+  classChoices = [],
+  equipmentChoicesMade = [],
+  dismissedClassChoiceKeys = [],
+  dismissedEquipmentChoiceKeys = [],
+  charInventory = [],
+  availableClasses = [],
+  gainedIsOpen = false,
+  onGainedToggle,
+  onRevertChoice,
 }: Props) {
   const [open, setOpen] = useState(false)
 
   const totalPending = pendingChoices.length + equipmentPendingChoices.length
-  if (totalPending === 0) return null
+
+  const { autoGrants, madeChoices, dismissedBenefits } = useMemo(() => {
+    function classNameFor(classId: string) {
+      return availableClasses.find((c) => c.id === classId)?.name ?? classId
+    }
+
+    const autoGrantsByClass = new Map<string, string[]>()
+    for (const item of charInventory) {
+      if (!item.sourceId?.startsWith("class-start:")) continue
+      const classId = item.sourceId.replace("class-start:", "")
+      const qty = (item.quantity ?? 1) > 1 ? ` ×${item.quantity}` : ""
+      const existing = autoGrantsByClass.get(classId) ?? []
+      autoGrantsByClass.set(classId, [...existing, `${item.name}${qty}`])
+    }
+    const autoGrants: GainedBenefit[] = []
+    for (const [classId, names] of autoGrantsByClass) {
+      autoGrants.push({ key: `${classId}:fixed`, label: `${classNameFor(classId)}: ${names.join(", ")}` })
+    }
+
+    const madeChoices: GainedBenefit[] = []
+    const skillsByClass = new Map<string, string[]>()
+
+    for (const c of classChoices) {
+      const cn = classNameFor(c.classId)
+      if (c.type === "asi" && c.improvements?.length) {
+        if (c.improvements.length === 1) {
+          const imp = c.improvements[0]
+          madeChoices.push({ key: c.id, label: `${cn} lvl ${c.atLevel}: ${ATTR_LABELS_LONG[imp.attr]} +${imp.bonus}` })
+        } else {
+          const parts = c.improvements.map((i) => `${ATTR_LABELS_LONG[i.attr]} +${i.bonus}`).join(" / ")
+          madeChoices.push({ key: c.id, label: `${cn} lvl ${c.atLevel}: ${parts}` })
+        }
+      } else if (c.type === "feat" && c.featName) {
+        madeChoices.push({ key: c.id, label: `${cn} lvl ${c.atLevel}: Feat — ${c.featName}` })
+      } else if (c.type === "skill" && c.skillKey) {
+        const existing = skillsByClass.get(c.classId) ?? []
+        skillsByClass.set(c.classId, [...existing, SKILL_LABELS[c.skillKey] ?? c.skillKey])
+      }
+    }
+
+    for (const [classId, skills] of skillsByClass) {
+      const cn = classNameFor(classId)
+      madeChoices.push({ key: `${classId}:skills`, label: `${cn}: Skills — ${skills.join(", ")}` })
+    }
+
+    for (const ec of equipmentChoicesMade) {
+      const cn = classNameFor(ec.classId)
+      const choiceItems = charInventory.filter(
+        (item) => item.sourceId === `class-choice:${ec.classId}:${ec.choiceIndex}`,
+      )
+      if (choiceItems.length > 0) {
+        const itemsLabel = choiceItems
+          .map((item) => {
+            const qty = (item.quantity ?? 1) > 1 ? ` ×${item.quantity}` : ""
+            return `${item.name}${qty}`
+          })
+          .join(", ")
+        madeChoices.push({ key: ec.id, label: `${cn}: ${itemsLabel}` })
+      } else {
+        madeChoices.push({ key: ec.id, label: `${cn}: Starting Equipment (option ${ec.choiceIndex + 1})` })
+      }
+    }
+
+    const dismissedBenefits: DismissedBenefit[] = []
+
+    for (const key of dismissedClassChoiceKeys) {
+      const parts = key.split(":")
+      if (parts.length >= 3) {
+        const classId = parts.slice(0, parts.length - 2).join(":")
+        const type = parts[parts.length - 2]
+        const level = parts[parts.length - 1]
+        const cn = classNameFor(classId)
+        if (type === "asi") {
+          dismissedBenefits.push({ key, label: `${cn} lvl ${level}: Ability Score Improvement` })
+        } else if (type === "skill") {
+          dismissedBenefits.push({ key, label: `${cn}: Starting Skills` })
+        }
+      }
+    }
+
+    for (const key of dismissedEquipmentChoiceKeys) {
+      const parts = key.split(":")
+      const idx = parts[parts.length - 1]
+      const classId = parts.slice(0, parts.length - 2).join(":")
+      const cn = classNameFor(classId)
+      dismissedBenefits.push({ key, label: `${cn}: Starting Equipment (option ${Number(idx) + 1})` })
+    }
+
+    return { autoGrants, madeChoices, dismissedBenefits }
+  }, [classChoices, equipmentChoicesMade, dismissedClassChoiceKeys, dismissedEquipmentChoiceKeys, charInventory, availableClasses])
+
+  if (totalPending === 0 && multiclassWarnings.length === 0 && autoGrants.length === 0 && madeChoices.length === 0 && dismissedBenefits.length === 0) return null
 
   return (
-    <div className="space-y-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
-      >
-        {totalPending} pending {totalPending === 1 ? "choice" : "choices"}
-        {open ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-      </button>
+    <div className="space-y-2">
+      {totalPending > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="flex items-center gap-1.5 rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
+          >
+            {totalPending} pending {totalPending === 1 ? "choice" : "choices"}
+            {open ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+          </button>
 
-      {open && (
-        <div className="mt-3 space-y-6 rounded-lg border border-border bg-muted/30 p-4">
-          {equipmentPendingChoices.map((ec) => (
-            <div key={`${ec.classId}:equip:${ec.choiceIndex}`} className="space-y-3">
-              <EquipmentChoicePicker
-                choice={ec}
-                onConfirm={(items) => onConfirmEquipmentChoice(ec.classId, ec.choiceIndex, items)}
-              />
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => onDismissEquipmentChoice(getEquipmentPendingChoiceKey(ec))}
-              >
-                Dismiss
-              </Button>
+          {open && (
+            <div className="mt-1 space-y-6 rounded-lg border border-border bg-muted/30 p-4">
+              {equipmentPendingChoices.map((ec) => (
+                <div key={`${ec.classId}:equip:${ec.choiceIndex}`} className="space-y-3">
+                  <EquipmentChoicePicker
+                    choice={ec}
+                    onConfirm={(items) => onConfirmEquipmentChoice(ec.classId, ec.choiceIndex, items)}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onDismissEquipmentChoice(getEquipmentPendingChoiceKey(ec))}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              ))}
+              {pendingChoices.map((pc, i) => (
+                <div key={`${pc.classId}:${pc.type}:${pc.atLevel}:${i}`} className="space-y-3">
+                  {pc.type === "asi" ? (
+                    <AsiPicker
+                      classId={pc.classId}
+                      className={pc.className}
+                      atLevel={pc.atLevel}
+                      availableFeats={availableFeats}
+                      onConfirm={(c) => onConfirmChoice(c)}
+                    />
+                  ) : (
+                    <SkillPicker
+                      classId={pc.classId}
+                      className={pc.className}
+                      skillOptions={pc.skillOptions ?? []}
+                      skillsNeeded={pc.skillsNeeded ?? 1}
+                      onConfirm={(cs) => onConfirmChoice(cs)}
+                    />
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onDismissChoice(getClassPendingChoiceKey(pc))}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              ))}
             </div>
-          ))}
-          {pendingChoices.map((pc, i) => (
-            <div key={`${pc.classId}:${pc.type}:${pc.atLevel}:${i}`} className="space-y-3">
-              {pc.type === "asi" ? (
-                <AsiPicker
-                  classId={pc.classId}
-                  className={pc.className}
-                  atLevel={pc.atLevel}
-                  availableFeats={availableFeats}
-                  onConfirm={(c) => onConfirmChoice(c)}
-                />
-              ) : (
-                <SkillPicker
-                  classId={pc.classId}
-                  className={pc.className}
-                  skillOptions={pc.skillOptions ?? []}
-                  skillsNeeded={pc.skillsNeeded ?? 1}
-                  onConfirm={(cs) => onConfirmChoice(cs)}
-                />
-              )}
-              <Button
+          )}
+        </>
+      )}
+
+      <GainedBenefitsSection
+        autoGrants={autoGrants}
+        madeChoices={madeChoices}
+        dismissedBenefits={dismissedBenefits}
+        isOpen={gainedIsOpen}
+        onToggle={() => onGainedToggle?.()}
+        onRevert={(key) => onRevertChoice?.(key)}
+      />
+
+      {multiclassWarnings.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium uppercase tracking-wide text-destructive/70">
+            Multiclass Prerequisites
+          </p>
+          {multiclassWarnings.map((w) => (
+            <div
+              key={w.classId}
+              className="flex items-start justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2"
+            >
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium text-foreground">{w.className}</p>
+                <p className="text-xs text-muted-foreground">
+                  Requires {w.requirementText} —{" "}
+                  {w.failingAttrs.map((f, i) => (
+                    <span key={f.attr}>
+                      {i > 0 && ", "}
+                      <span className="font-medium text-destructive">
+                        {ATTR_LABELS[f.attr]} {f.have}
+                      </span>
+                    </span>
+                  ))}
+                </p>
+              </div>
+              <button
                 type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => onDismissChoice(getClassPendingChoiceKey(pc))}
+                aria-label="Dismiss warning"
+                onClick={() => onDismissMulticlassWarning?.(getMulticlassWarningKey(w.classId))}
+                className="shrink-0 text-muted-foreground hover:text-foreground"
               >
-                Dismiss
-              </Button>
+                <X className="size-3.5" />
+              </button>
             </div>
           ))}
         </div>

@@ -16,11 +16,11 @@ const RESET_BADGE: Record<TrackerEntry["reset"], string> = {
   Special: "C",
 };
 
-const CARD_W = 80;
-const CARD_H = 90;
-const COL_GAP = 5;
-const ROW_GAP = 5;
-const MARGIN = 3;
+export const CARD_W = 80;
+export const CARD_H = 107;
+export const COL_GAP = 5;
+export const ROW_GAP = 5;
+export const MARGIN = 3;
 const COLS = 2;
 const SVG_W = MARGIN * 2 + COLS * CARD_W + (COLS - 1) * COL_GAP; // 171
 
@@ -42,7 +42,7 @@ function resolveDisplay(t: TrackerEntry, character: CharacterData): string {
   return String(base + sumStack(t.stack));
 }
 
-function TrackerCard({
+export function TrackerCard({
   t,
   ox,
   oy,
@@ -106,15 +106,15 @@ function TrackerCard({
       {/* Bottom divider + label */}
       <line
         x1={ox + 3}
-        y1={oy + 75}
+        y1={oy + Math.round(75 / 90 * CARD_H)}
         x2={ox + 77}
-        y2={oy + 75}
+        y2={oy + Math.round(75 / 90 * CARD_H)}
         stroke="#1a1208"
         strokeWidth="0.5"
       />
       <text
         x={ox + 40}
-        y={oy + 83}
+        y={oy + Math.round(83 / 90 * CARD_H)}
         textAnchor="middle"
         dominantBaseline="middle"
         fontSize="5"

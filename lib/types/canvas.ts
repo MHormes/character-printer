@@ -38,6 +38,8 @@ export type CanvasWidget = {
   locked: boolean
   printState: PrintState
   spellId?: string
+  spellStartIndex?: number
+  spellCount?: number
   featureId?: string
   statId?: string
   trackerId?: string

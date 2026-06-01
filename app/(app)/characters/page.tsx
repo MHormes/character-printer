@@ -9,9 +9,10 @@ import {
   deleteCharacter,
 } from "@/lib/actions/character";
 import { auth } from "@/lib/auth";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Pencil, Trash2, Scroll } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { Pencil, Scroll } from "lucide-react";
 import { NewCharacterDialog } from "@/components/characters/new-character-dialog";
+import { DeleteCharacterButton } from "@/components/characters/delete-character-button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import type { Edition } from "@/lib/types/character";
 
@@ -120,12 +121,11 @@ export default async function CharactersPage() {
                     >
                       <Pencil className="size-3.5 text-primary-foreground/70" />
                     </Link>
-                    <form action={deleteAction}>
-                      <input type="hidden" name="id" value={char.id} />
-                      <Button variant="ghost" size="icon-sm" type="submit">
-                        <Trash2 className="size-3.5 text-primary-foreground/70" />
-                      </Button>
-                    </form>
+                    <DeleteCharacterButton
+                      charId={char.id}
+                      charName={char.name || undefined}
+                      deleteAction={deleteAction}
+                    />
                   </div>
                 </div>
 

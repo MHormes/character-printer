@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle, Search, Loader2, Lock } from "lucide-react"
+import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle, Search, Loader2, Lock, Sword } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import type { SpellEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry, CharacterData } from "@/lib/types/character"
+import type { SpellEntry, ActionEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry, CharacterData } from "@/lib/types/character"
 import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack, sumStack } from "@/lib/character/calculations"
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import type { DragEndEvent } from "@dnd-kit/core"
@@ -29,6 +29,7 @@ type SpellsBlockProps = {
   showManualControls: boolean
   onSlotsChange: (slots: Record<string, SlotData>) => void
   onListChange: (list: SpellEntry[]) => void
+  onAddToAttacks?: (action: ActionEntry) => void
 }
 
 const SCHOOLS = ["Abjuration", "Conjuration", "Divination", "Enchantment", "Evocation", "Illusion", "Necromancy", "Transmutation"]
@@ -38,6 +39,24 @@ const DIE_TYPES: DieType[] = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"]
 const LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 function sign(n: number) { return n >= 0 ? `+${n}` : String(n) }
+
+function spellToAction(spell: SpellEntry): ActionEntry {
+  return {
+    id: crypto.randomUUID(),
+    name: spell.name,
+    mode: spell.mode,
+    attackStat: null,
+    attackProficient: true,
+    attackBonus: 0,
+    fixedDC: spell.fixedDC,
+    damageStack: spell.damageStack.map(d => ({ ...d })),
+    notes: [
+      spell.level === 0 ? "Cantrip" : `Level ${spell.level}`,
+      spell.castingTime,
+      spell.range,
+    ].filter(Boolean).join(" · "),
+  }
+}
 
 // ─── Spell picker ─────────────────────────────────────────────────────────────
 
@@ -202,7 +221,7 @@ export function SpellsBlock({
   availableClasses = [],
   characterClasses = [],
   showManualControls,
-  onSlotsChange, onListChange,
+  onSlotsChange, onListChange, onAddToAttacks,
 }: SpellsBlockProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [expandedSlotLevels, setExpandedSlotLevels] = useState<Set<string>>(new Set())
@@ -526,6 +545,7 @@ export function SpellsBlock({
                       onDelete={() => onListChange(list.filter(s => s.id !== spell.id))}
                       onPatchDmg={(idx, u) => patchSpell(spell.id, { damageStack: spell.damageStack.map((d, i) => i === idx ? { ...d, ...u } : d) })}
                       onDeleteDmg={idx => patchSpell(spell.id, { damageStack: spell.damageStack.filter((_, i) => i !== idx) })}
+                      onAddToAttacks={onAddToAttacks ? () => onAddToAttacks(spellToAction(spell)) : undefined}
                     />
                   ))}
                 </SortableContext>
@@ -585,6 +605,7 @@ type SpellRowProps = {
   onDelete: () => void
   onPatchDmg: (idx: number, u: Partial<DamageEntry>) => void
   onDeleteDmg: (idx: number) => void
+  onAddToAttacks?: () => void
   dragHandle?: React.ReactNode
 }
 
@@ -609,7 +630,9 @@ function SortableSpellRow(props: Omit<SpellRowProps, "dragHandle">) {
   )
 }
 
-function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, attrMod, onToggle, onPatch, onDelete, onPatchDmg, onDeleteDmg, dragHandle }: SpellRowProps) {
+function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, attrMod, onToggle, onPatch, onDelete, onPatchDmg, onDeleteDmg, onAddToAttacks, dragHandle }: SpellRowProps) {
+  const [addedToAttacks, setAddedToAttacks] = useState(false)
+
   function resolvedAttack(): number {
     const globalMod = globalCastingStat ? attrMod(globalCastingStat) : 0
     const overrideMod = spell.castingStat ? attrMod(spell.castingStat) : globalMod
@@ -917,6 +940,36 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
                 rows={2}
                 className="w-full resize-y rounded-md border border-input bg-background p-2 text-xs focus:outline-none focus:border-ring"
               />
+            </div>
+          )}
+
+          {onAddToAttacks && spell.mode !== "Plain" && (
+            <div className="flex justify-end pt-1 border-t border-border">
+              <button
+                type="button"
+                disabled={addedToAttacks}
+                onClick={() => { onAddToAttacks(); setAddedToAttacks(true) }}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors",
+                  addedToAttacks
+                    ? "border-green-500/50 bg-green-500/10 text-green-600 cursor-default"
+                    : "border-input bg-background text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+                )}
+              >
+                {addedToAttacks ? (
+                  <>
+                    <svg className="size-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="2,6 5,9 10,3" />
+                    </svg>
+                    Added
+                  </>
+                ) : (
+                  <>
+                    <Sword className="size-3" />
+                    Add to attacks list
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>

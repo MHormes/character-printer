@@ -3,7 +3,7 @@
 import { DeleteObjectCommand } from "@aws-sdk/client-s3"
 import { eq } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { sqliteCharacters } from "@/lib/db/schema"
+import { dbCharacters } from "@/lib/db/tables"
 import {
   characterImageKey,
   deleteLocalObject,
@@ -49,9 +49,9 @@ function assertCharacterImageKey(characterId: string, key: string) {
 
 async function assertCharacterExists(characterId: string) {
   const rows = await anyDb
-    .select({ id: sqliteCharacters.id })
-    .from(sqliteCharacters)
-    .where(eq(sqliteCharacters.id, characterId))
+    .select({ id: dbCharacters.id })
+    .from(dbCharacters)
+    .where(eq(dbCharacters.id, characterId))
     .limit(1)
 
   if (!rows[0]) throw new Error("Character not found")

@@ -3,7 +3,7 @@
 import { randomUUID } from "crypto"
 import { and, desc, eq } from "drizzle-orm"
 import { db } from "@/lib/db/client"
-import { sqliteCanvasTemplates } from "@/lib/db/schema"
+import { dbCanvasTemplates } from "@/lib/db/tables"
 import type { CanvasTemplate, CanvasTemplateWidget } from "@/lib/types/canvas"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,17 +18,17 @@ type CreateCanvasTemplateInput = {
 export async function listCanvasTemplates(userId: string): Promise<CanvasTemplate[]> {
   return anyDb
     .select({
-      id: sqliteCanvasTemplates.id,
-      userId: sqliteCanvasTemplates.userId,
-      name: sqliteCanvasTemplates.name,
-      cols: sqliteCanvasTemplates.cols,
-      widgets: sqliteCanvasTemplates.widgets,
-      createdAt: sqliteCanvasTemplates.createdAt,
-      updatedAt: sqliteCanvasTemplates.updatedAt,
+      id: dbCanvasTemplates.id,
+      userId: dbCanvasTemplates.userId,
+      name: dbCanvasTemplates.name,
+      cols: dbCanvasTemplates.cols,
+      widgets: dbCanvasTemplates.widgets,
+      createdAt: dbCanvasTemplates.createdAt,
+      updatedAt: dbCanvasTemplates.updatedAt,
     })
-    .from(sqliteCanvasTemplates)
-    .where(eq(sqliteCanvasTemplates.userId, userId))
-    .orderBy(desc(sqliteCanvasTemplates.updatedAt))
+    .from(dbCanvasTemplates)
+    .where(eq(dbCanvasTemplates.userId, userId))
+    .orderBy(desc(dbCanvasTemplates.updatedAt))
 }
 
 export async function createCanvasTemplate(
@@ -41,11 +41,11 @@ export async function createCanvasTemplate(
   }
 
   const existing = await anyDb
-    .select({ id: sqliteCanvasTemplates.id })
-    .from(sqliteCanvasTemplates)
+    .select({ id: dbCanvasTemplates.id })
+    .from(dbCanvasTemplates)
     .where(and(
-      eq(sqliteCanvasTemplates.userId, userId),
-      eq(sqliteCanvasTemplates.name, name),
+      eq(dbCanvasTemplates.userId, userId),
+      eq(dbCanvasTemplates.name, name),
     ))
     .limit(1)
 
@@ -54,7 +54,7 @@ export async function createCanvasTemplate(
   }
 
   const id = randomUUID()
-  await anyDb.insert(sqliteCanvasTemplates).values({
+  await anyDb.insert(dbCanvasTemplates).values({
     id,
     userId,
     name,
@@ -64,16 +64,16 @@ export async function createCanvasTemplate(
 
   const rows = await anyDb
     .select({
-      id: sqliteCanvasTemplates.id,
-      userId: sqliteCanvasTemplates.userId,
-      name: sqliteCanvasTemplates.name,
-      cols: sqliteCanvasTemplates.cols,
-      widgets: sqliteCanvasTemplates.widgets,
-      createdAt: sqliteCanvasTemplates.createdAt,
-      updatedAt: sqliteCanvasTemplates.updatedAt,
+      id: dbCanvasTemplates.id,
+      userId: dbCanvasTemplates.userId,
+      name: dbCanvasTemplates.name,
+      cols: dbCanvasTemplates.cols,
+      widgets: dbCanvasTemplates.widgets,
+      createdAt: dbCanvasTemplates.createdAt,
+      updatedAt: dbCanvasTemplates.updatedAt,
     })
-    .from(sqliteCanvasTemplates)
-    .where(eq(sqliteCanvasTemplates.id, id))
+    .from(dbCanvasTemplates)
+    .where(eq(dbCanvasTemplates.id, id))
     .limit(1)
 
   return rows[0]
@@ -81,9 +81,9 @@ export async function createCanvasTemplate(
 
 export async function deleteCanvasTemplate(userId: string, templateId: string): Promise<void> {
   await anyDb
-    .delete(sqliteCanvasTemplates)
+    .delete(dbCanvasTemplates)
     .where(and(
-      eq(sqliteCanvasTemplates.id, templateId),
-      eq(sqliteCanvasTemplates.userId, userId),
+      eq(dbCanvasTemplates.id, templateId),
+      eq(dbCanvasTemplates.userId, userId),
     ))
 }

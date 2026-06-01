@@ -75,7 +75,7 @@ export function BackgroundField({
         </div>
 
         {open && availableBackgrounds.length > 0 && (
-          <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
+          <div className="absolute left-0 top-full z-50 mt-0.5 w-full overflow-y-auto max-h-64 rounded-md border border-border bg-popover shadow-md">
             <button
               type="button"
               onMouseDown={(e) => {
@@ -88,7 +88,7 @@ export function BackgroundField({
               <span>{ignoreAutomation ? "Manual background entry active" : "Use manual background entry"}</span>
               <span className="text-xs text-muted-foreground">No automation</span>
             </button>
-            {filtered.slice(0, 12).map((row) => (
+            {filtered.map((row) => (
               <button
                 key={row.id}
                 type="button"

@@ -42,6 +42,7 @@ export function createDefaultCharacter(id: string, edition: CharacterData["editi
     },
     dismissedClassChoiceKeys: [],
     dismissedRaceChoiceKeys: [],
+    dismissedMulticlassWarningKeys: [],
     dismissedEquipmentChoiceKeys: [],
     identity: {
       name: "",

@@ -69,6 +69,7 @@ import {
   type EquipmentPendingChoice,
   type BackgroundPendingChoice,
 } from "@/lib/character/derive-pending-choices";
+import { deriveMulticlassWarnings, getMulticlassWarningKey, type MulticlassWarning } from "@/lib/character/multiclass-prereqs";
 import { StringField } from "@/components/forge/string-field";
 import { ClassesField } from "@/components/forge/classes-field";
 import { RaceField } from "@/components/forge/race-field";
@@ -315,6 +316,7 @@ export default function ForgePage({
     "basics" | "characteristics" | "bio"
   >("basics");
   const [openChoicePanel, setOpenChoicePanel] = useState<"race" | "background" | null>(null);
+  const [openGainedPanel, setOpenGainedPanel] = useState<"race" | "background" | "class" | null>(null);
 
   const srdSystem = character ? getRuleSet(character.edition).srdSystem : null;
 
@@ -639,6 +641,13 @@ export default function ForgePage({
     return deriveEquipmentPendingChoices(character, character.identity.classes, allClassStartEquipOptionRows);
   }, [character, allClassStartEquipOptionRows]);
 
+  const multiclassWarnings = useMemo<MulticlassWarning[]>(() => {
+    if (!character) return [];
+    const dismissed = character.dismissedMulticlassWarningKeys ?? [];
+    return deriveMulticlassWarnings(character.identity.classes, character.attributes)
+      .filter((w) => !dismissed.includes(getMulticlassWarningKey(w.classId)));
+  }, [character]);
+
   const racePendingChoices = useMemo<RacePendingChoice[]>(() => {
     if (!character || availableRaces.length === 0) return [];
     const matchedRace = character.identity.race
@@ -732,6 +741,17 @@ export default function ForgePage({
       dismissedRaceChoiceKeys: [
         ...(character.dismissedRaceChoiceKeys ?? []),
         choiceKey,
+      ],
+    });
+  }
+
+  function handleDismissMulticlassWarning(key: string) {
+    if (!character) return;
+    replaceCharacter({
+      ...character,
+      dismissedMulticlassWarningKeys: [
+        ...(character.dismissedMulticlassWarningKeys ?? []),
+        key,
       ],
     });
   }
@@ -920,6 +940,31 @@ export default function ForgePage({
         ...(character.dismissedEquipmentChoiceKeys ?? []),
         choiceKey,
       ],
+    });
+  }
+
+  function handleRevertClassChoice(key: string) {
+    if (!character) return;
+    replaceCharacter({
+      ...character,
+      dismissedClassChoiceKeys: character.dismissedClassChoiceKeys?.filter((k) => k !== key),
+      dismissedEquipmentChoiceKeys: character.dismissedEquipmentChoiceKeys?.filter((k) => k !== key),
+    });
+  }
+
+  function handleRevertRaceChoice(key: string) {
+    if (!character) return;
+    replaceCharacter({
+      ...character,
+      dismissedRaceChoiceKeys: character.dismissedRaceChoiceKeys?.filter((k) => k !== key),
+    });
+  }
+
+  function handleRevertBackgroundChoice(key: string) {
+    if (!character) return;
+    replaceCharacter({
+      ...character,
+      dismissedBackgroundChoiceKeys: character.dismissedBackgroundChoiceKeys?.filter((k) => k !== key),
     });
   }
 
@@ -1334,6 +1379,19 @@ export default function ForgePage({
                       onConfirmToolChoice={handleConfirmRaceToolChoice}
                       onConfirmCantripChoice={handleConfirmRaceCantripChoice}
                       onDismissChoice={handleDismissRaceChoice}
+                      raceChoices={character.raceChoices ?? []}
+                      languageChoices={character.languageChoices ?? []}
+                      raceToolChoices={character.raceToolChoices ?? []}
+                      raceCantripChoices={character.raceCantripChoices ?? []}
+                      dismissedRaceChoiceKeys={character.dismissedRaceChoiceKeys ?? []}
+                      allRaceAsiBonusRows={allRaceAsiBonusRows}
+                      availableRaces={availableRaces}
+                      availableSubraces={availableSubraces}
+                      currentRaceId={availableRaces.find((r) => r.name.toLowerCase() === identity.race.toLowerCase())?.id}
+                      currentSubraceId={availableSubraces.find((s) => s.name.toLowerCase() === (identity.subrace ?? "").toLowerCase())?.id}
+                      gainedIsOpen={openGainedPanel === "race"}
+                      onGainedToggle={() => setOpenGainedPanel((v) => v === "race" ? null : "race")}
+                      onRevert={handleRevertRaceChoice}
                     />
                   </div>
                   <div className="space-y-2">
@@ -1364,6 +1422,16 @@ export default function ForgePage({
                       onConfirmLanguage={handleConfirmBackgroundLanguage}
                       onConfirmTool={handleConfirmBackgroundTool}
                       onDismissChoice={handleDismissBackgroundChoice}
+                      backgroundChoices={character.backgroundChoices ?? []}
+                      languageChoices={character.languageChoices ?? []}
+                      toolChoices={character.toolChoices ?? []}
+                      dismissedBackgroundChoiceKeys={character.dismissedBackgroundChoiceKeys ?? []}
+                      selectedBackground={availableBackgrounds.find(
+                        (b) => b.name.toLowerCase() === identity.background.toLowerCase(),
+                      )}
+                      gainedIsOpen={openGainedPanel === "background"}
+                      onGainedToggle={() => setOpenGainedPanel((v) => v === "background" ? null : "background")}
+                      onRevert={handleRevertBackgroundChoice}
                     />
                   </div>
                   <StringField
@@ -1421,6 +1489,17 @@ export default function ForgePage({
                       onDismissChoice={handleDismissClassChoice}
                       onConfirmEquipmentChoice={handleConfirmEquipmentChoice}
                       onDismissEquipmentChoice={handleDismissEquipmentChoice}
+                      multiclassWarnings={multiclassWarnings}
+                      onDismissMulticlassWarning={handleDismissMulticlassWarning}
+                      classChoices={character.classChoices ?? []}
+                      equipmentChoicesMade={character.equipmentChoicesMade ?? []}
+                      dismissedClassChoiceKeys={character.dismissedClassChoiceKeys ?? []}
+                      dismissedEquipmentChoiceKeys={character.dismissedEquipmentChoiceKeys ?? []}
+                      charInventory={character.inventory}
+                      availableClasses={availableClasses}
+                      gainedIsOpen={openGainedPanel === "class"}
+                      onGainedToggle={() => setOpenGainedPanel((v) => v === "class" ? null : "class")}
+                      onRevertChoice={handleRevertClassChoice}
                     />
                   </div>
                 </div>
@@ -1822,6 +1901,7 @@ export default function ForgePage({
                 showManualControls={isManualSectionVisible("spells")}
                 onSlotsChange={setSpellSlots}
                 onListChange={setSpellList}
+                onAddToAttacks={(action) => setActions([...actions, action])}
               />
             </ForgeSection>
           </div>

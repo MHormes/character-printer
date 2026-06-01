@@ -56,7 +56,7 @@ import { CharacteristicCardWidget, characteristicCardSvgH, CHAR_CARD_SOURCES } f
 import { BioTextWidget, bioTextSvgH, BIO_SOURCES } from "@/components/canvas/widgets/bio-text-widget";
 import { FullPageBioWidget } from "@/components/canvas/widgets/full-page-bio-widget";
 
-function WidgetContent({ type, spellId, featureId, statId, trackerId, textSource }: { type: WidgetType; spellId?: string; featureId?: string; statId?: string; trackerId?: string; textSource?: string }) {
+function WidgetContent({ type, spellId, spellStartIndex, spellCount, featureId, statId, trackerId, textSource }: { type: WidgetType; spellId?: string; spellStartIndex?: number; spellCount?: number; featureId?: string; statId?: string; trackerId?: string; textSource?: string }) {
   if (type === "CoreStats") return <CoreStatsWidget />;
   if (type === "Inspiration") return <InspirationWidget />;
   if (type === "Proficiency") return <ProficiencyWidget />;
@@ -82,7 +82,7 @@ function WidgetContent({ type, spellId, featureId, statId, trackerId, textSource
   if (type === "FeatureCard") return <FeatureCardWidget featureId={featureId} />;
   if (type === "FullPageMain")        return <FullPageMainWidget />;
   if (type === "FullPageFeatures")   return <FullPageFeaturesWidget />;
-  if (type === "FullPageSpells")     return <FullPageSpellCardWidget />;
+  if (type === "FullPageSpells")     return <FullPageSpellCardWidget startIndex={spellStartIndex} count={spellCount} />;
   if (type === "SpellcastingInfo")   return <SpellcastingInfoWidget />;
   if (type === "SpellLevel0")        return <SpellLevel0Widget />;
   if (type === "SpellLevel1")        return <SpellLevel1Widget />;
@@ -120,6 +120,7 @@ type Props = {
   cols: number;
   rows: number;
   selected: boolean;
+  isToolbarHost: boolean;
   printMode?: boolean;
   onSelect: (e: React.MouseEvent) => void;
   onRotate: () => void;
@@ -132,6 +133,7 @@ export function PlacedWidget({
   cols,
   rows,
   selected,
+  isToolbarHost,
   printMode,
   onSelect,
   onToggleLock,
@@ -200,11 +202,11 @@ export function PlacedWidget({
       widget.type === "FullPageSpellSheet" ||
       widget.type === "FullPageBio"
     ) {
-      return <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} trackerId={widget.trackerId} textSource={widget.textSource} />;
+      return <WidgetContent type={widget.type} spellId={widget.spellId} spellStartIndex={widget.spellStartIndex} spellCount={widget.spellCount} featureId={widget.featureId} statId={widget.statId} trackerId={widget.trackerId} textSource={widget.textSource} />;
     }
     return (
       <div style={posStyle} className="overflow-hidden">
-        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} trackerId={widget.trackerId} textSource={widget.textSource} />
+        <WidgetContent type={widget.type} spellId={widget.spellId} spellStartIndex={widget.spellStartIndex} spellCount={widget.spellCount} featureId={widget.featureId} statId={widget.statId} trackerId={widget.trackerId} textSource={widget.textSource} />
       </div>
     );
   }
@@ -228,13 +230,16 @@ export function PlacedWidget({
           !widget.locked && "cursor-grab active:cursor-grabbing",
         )}
       >
-        <WidgetContent type={widget.type} spellId={widget.spellId} featureId={widget.featureId} statId={widget.statId} trackerId={widget.trackerId} textSource={widget.textSource} />
+        <WidgetContent type={widget.type} spellId={widget.spellId} spellStartIndex={widget.spellStartIndex} spellCount={widget.spellCount} featureId={widget.featureId} statId={widget.statId} trackerId={widget.trackerId} textSource={widget.textSource} />
         {widget.locked && (
           <Lock className="absolute left-1 top-1 size-3 text-muted-foreground" />
         )}
+        {selected && (
+          <div className="pointer-events-none absolute inset-0 z-10 rounded bg-primary/15" />
+        )}
       </div>
 
-      {selected && (
+      {isToolbarHost && (
         <div className="absolute -top-7 left-0 z-20 flex items-center gap-0.5 rounded border border-border bg-card px-1 py-0.5 shadow-sm">
           <button
             type="button"
