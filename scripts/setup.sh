@@ -33,48 +33,15 @@ export AISTOR_VOLUME_NAME="character_printer_${PROFILE}_aistor_data"
 # Load env vars into shell for bucket init below
 export $(grep -v '^#' "$ENV_FILE" | xargs)
 
-toggle_maintenance() {
-  local action=$1
-  if [ "$PROFILE" = "production" ] && [ -n "$CLOUDFLARE_ZONE_ID" ]; then
-    local TARGET_DOMAIN
-    TARGET_DOMAIN=$(echo "$NEXTAUTH_URL" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
-    local WORKER_NAME="${CLOUDFLARE_WORKER_NAME:-character-printer-maintenance}"
-
-    if [ "$action" = "on" ]; then
-      echo "Enabling maintenance mode for $TARGET_DOMAIN..."
-      RESPONSE=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/workers/routes" \
-        -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-        -H "Content-Type: application/json" \
-        --data "{\"pattern\":\"$TARGET_DOMAIN/*\",\"script\":\"$WORKER_NAME\"}")
-      SUCCESS=$(echo "$RESPONSE" | jq -r '.success')
-      if [ "$SUCCESS" = "true" ]; then
-        echo "Maintenance mode active."
-      else
-        echo "Cloudflare error: $RESPONSE"
-      fi
-    else
-      echo "Disabling maintenance mode..."
-      ROUTE_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/workers/routes" \
-        -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | \
-        jq -r ".result[] | select(.pattern==\"$TARGET_DOMAIN/*\") | .id")
-      if [ -n "$ROUTE_ID" ] && [ "$ROUTE_ID" != "null" ]; then
-        curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/workers/routes/$ROUTE_ID" \
-          -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" > /dev/null
-        echo "Site is live."
-      else
-        echo "No active maintenance route found for $TARGET_DOMAIN."
-      fi
-    fi
-  fi
-}
-
 echo "Using profile: $PROFILE"
 echo "Environment: $ENV_FILE"
 
 docker volume create "$POSTGRES_VOLUME_NAME" >/dev/null
 docker volume create "$AISTOR_VOLUME_NAME" >/dev/null
 
-toggle_maintenance "on"
+if [ "$PROFILE" = "production" ]; then
+  bash "$(dirname "$0")/maintenance-on.sh"
+fi
 
 echo "Stopping existing containers..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down
@@ -100,7 +67,9 @@ docker exec "$AISTOR_CONTAINER" sh -c "
   mc anonymous set none local/'${S3_BUCKET_NAME}'
 "
 
-toggle_maintenance "off"
+if [ "$PROFILE" = "production" ]; then
+  bash "$(dirname "$0")/maintenance-off.sh"
+fi
 
 echo "System is starting for profile '$PROFILE'."
 echo "App: http://localhost:${APP_PORT:-3000}"

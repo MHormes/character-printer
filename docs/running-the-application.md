@@ -175,9 +175,9 @@ Shell aliases are configured on both the laptop and the server to speed up commo
 
 | Alias | Description |
 | --- | --- |
-| `char-connect` | Open an SSH connection to the Character Printer server. |
-| `char-data` | Copies the latest backup from the server to the desktop. Optionally stages it for a local Docker seed. |
-| `char-start` | Build and start the local Docker stack (PostgreSQL + AIStor). |
+| `char-connect` | Open an SSH connection to the Character Printer VM. |
+| `char-data` | Runs `scripts/copy_backup.sh` — SSHs in, finds the latest backup, confirms, downloads it to `~/Desktop/CharacterPrinterBackups/`. Optionally stages `csv/` into `database/data/` and `storage/` into `database/storage/` for a local Docker seed. |
+| `char-up` | Build and start the local Docker stack (PostgreSQL + AIStor) via `scripts/setup.sh development`. |
 
 ### Server Aliases
 
@@ -187,9 +187,39 @@ Shell aliases are configured on both the laptop and the server to speed up commo
 | `char-deploy` | Run `setup.sh` and deploy the current pull. |
 | `char-backup` | Run `backup.sh` — exports all database tables to CSV and mirrors the AIStor bucket, then removes the oldest backup keeping the 3 most recent. |
 
-### Server Cron Job
+### VM OS Updates
 
-`backup.sh` runs automatically every night at **02:00** via a server cron job.
+`scripts/vm-update.sh` automates the monthly OS update cycle. Run it from the project root on the server:
+
+```bash
+sudo bash scripts/vm-update.sh
+```
+
+It runs `apt update && apt upgrade -y`. If a kernel update requires a reboot, it automatically enables the Cloudflare maintenance page via `scripts/maintenance-on.sh` before rebooting. If no reboot is needed, it exits cleanly with zero downtime.
+
+After a reboot the Docker containers come back up automatically (`restart: unless-stopped`). The `@reboot` cron entry below re-disables maintenance mode once the system is back.
+
+### Cloudflare Maintenance Scripts
+
+Three helper scripts in `scripts/` manage the Cloudflare maintenance page independently of deployment:
+
+| Script | Purpose |
+| --- | --- |
+| `scripts/maintenance-on.sh` | Creates a Cloudflare Worker route that serves the maintenance page |
+| `scripts/maintenance-off.sh` | Deletes the Worker route, restoring normal traffic |
+| `scripts/utils.sh` | Sourced by the above; loads `.env.production` and derives domain + worker name |
+
+These are also called by `scripts/setup.sh production` around the build/restart cycle.
+
+### Server Cron Jobs
+
+```cron
+# Nightly database and storage backup at 02:00
+0 2 * * * /path/to/character-printer/scripts/backup.sh
+
+# Re-enable site after a VM reboot triggered by vm-update.sh
+@reboot sleep 30 && /path/to/character-printer/scripts/maintenance-off.sh
+```
 
 Each backup creates a timestamped folder under `backups/` containing:
 
