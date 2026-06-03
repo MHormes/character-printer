@@ -1,8 +1,8 @@
 #!/bin/bash
 
-REMOTE_HOST="${1:-character-printer}"
+REMOTE_HOST="${1:-printer}"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REMOTE_BACKUPS_DIR="/home/character-printer/character-printer/backups"
+REMOTE_BACKUPS_DIR="/home/printer/character-printer/backups"
 LOCAL_DEST="$HOME/Desktop/CharacterPrinterBackups"
 
 echo "Checking latest backup on $REMOTE_HOST..."
