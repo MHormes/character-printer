@@ -233,6 +233,7 @@ export const sqliteBackgrounds = sqliteTable("backgrounds", {
   featGrant: text("feat_grant"),     // feat name granted at creation — 2024 backgrounds only
   featuresJson: text("features_json"), // JSON: [{name, description}] — fixed (non-choice) features only
   fixedEquipmentJson: text("fixed_equipment_json"), // JSON: [{name, quantity}] — auto-added to inventory
+  fixedProficienciesJson: text("fixed_proficiencies_json"), // JSON: [{name, category}] — fixed prof grants (tools, vehicles, etc.)
   languageChoiceCount: integer("language_choice_count"), // how many languages to pick
   toolChoicesJson: text("tool_choices_json"), // JSON: [{count, category, label}] — choosable tool profs
   source: text("source").default("srd"),
@@ -248,6 +249,7 @@ export const pgBackgrounds = pgTable("backgrounds", {
   featGrant: varchar("feat_grant", { length: 255 }), // feat name — 2024 backgrounds only
   featuresJson: jsonb("features_json"), // {name: string, description: string}[] — fixed features only
   fixedEquipmentJson: jsonb("fixed_equipment_json"), // {name: string, quantity: number}[]
+  fixedProficienciesJson: jsonb("fixed_proficiencies_json"), // {name: string, category: string}[] — fixed prof grants
   languageChoiceCount: pgInteger("language_choice_count"),
   toolChoicesJson: jsonb("tool_choices_json"),
   source: varchar("source", { length: 50 }).default("srd"),

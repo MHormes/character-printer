@@ -1,0 +1,1 @@
+ALTER TABLE "backgrounds" ADD COLUMN "fixed_proficiencies_json" jsonb;

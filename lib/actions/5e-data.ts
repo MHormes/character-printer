@@ -186,6 +186,16 @@ function normalizeGroupCategory(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function groupToSqlCategory(group: string): string | null {
+  const normalized = normalizeGroupCategory(group);
+  if (normalized.includes("weapon")) return "Weapon";
+  if (normalized === "musical instruments") return "Tools";
+  if (normalized === "arcane foci") return "Adventuring Gear";
+  if (normalized === "druidic foci") return "Adventuring Gear";
+  if (normalized === "holy symbols") return "Adventuring Gear";
+  return group;
+}
+
 function matchesStartingEquipmentGroup(item: ItemRow, group?: string): boolean {
   if (!group) return true;
 
@@ -233,6 +243,7 @@ function matchesStartingEquipmentGroup(item: ItemRow, group?: string): boolean {
 
 export async function searchItems(params: ItemSearchParams): Promise<ItemRow[]> {
   const system = params.system ?? "dnd5e";
+  const sqlCat = params.equipmentCategory ? groupToSqlCategory(params.equipmentCategory) : null;
   const rows = await anyDb
     .select()
     .from(dbItems)
@@ -240,6 +251,7 @@ export async function searchItems(params: ItemSearchParams): Promise<ItemRow[]> 
       and(
         eq(dbItems.system, system),
         params.name ? likeCI(dbItems.name, `%${params.name}%`) : undefined,
+        sqlCat ? eq(dbItems.equipmentCategory, sqlCat) : undefined,
       ),
     )
     .orderBy(asc(dbItems.name))

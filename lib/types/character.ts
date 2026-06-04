@@ -131,6 +131,7 @@ export type ActionEntry = {
   fixedDC: number | null;
   damageStack: DamageEntry[];
   notes: string;
+  sourceId?: string; // inventory item id or spell entry id — set means system-managed, read-only in UI unless manual mode
 };
 
 export type FeatureEntry = {

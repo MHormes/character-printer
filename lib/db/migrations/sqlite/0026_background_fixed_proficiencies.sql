@@ -1,0 +1,1 @@
+ALTER TABLE `backgrounds` ADD `fixed_proficiencies_json` text;

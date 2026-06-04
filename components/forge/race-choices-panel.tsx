@@ -17,7 +17,7 @@ import {
 } from "@/lib/character/derive-pending-choices"
 import { LanguagePicker } from "@/components/forge/language-picker"
 import { ToolPicker } from "@/components/forge/tool-picker"
-import type { LanguageRow, ItemRow, SpellRow, RaceAbilityBonusRow, RaceRow, SubraceRow } from "@/lib/actions/5e-data"
+import type { LanguageRow, ItemRow, SpellRow, RaceAbilityBonusRow, RaceProficiencyRow, RaceRow, SubraceRow } from "@/lib/actions/5e-data"
 import { GainedBenefitsSection, type GainedBenefit, type DismissedBenefit } from "@/components/forge/gained-benefits-section"
 
 const ATTR_LABELS: Record<AttributeKey, string> = {
@@ -279,6 +279,7 @@ type Props = {
   raceCantripChoices?: RaceCantripChoiceMade[]
   dismissedRaceChoiceKeys?: string[]
   allRaceAsiBonusRows?: RaceAbilityBonusRow[]
+  allRaceProficiencyRows?: RaceProficiencyRow[]
   availableRaces?: RaceRow[]
   availableSubraces?: SubraceRow[]
   currentRaceId?: string
@@ -310,6 +311,7 @@ export function RaceChoicesPanel({
   raceCantripChoices = [],
   dismissedRaceChoiceKeys = [],
   allRaceAsiBonusRows = [],
+  allRaceProficiencyRows = [],
   availableRaces = [],
   availableSubraces = [],
   currentRaceId,
@@ -327,18 +329,33 @@ export function RaceChoicesPanel({
         ?? id
     }
 
-    const autoGrants: GainedBenefit[] = allRaceAsiBonusRows
-      .filter((r) =>
-        (currentRaceId && r.raceId === currentRaceId) ||
-        (currentSubraceId && r.subraceId === currentSubraceId),
-      )
-      .map((r) => {
-        const sourceName = r.subraceId ? raceNameFor(r.subraceId) : raceNameFor(r.raceId ?? "")
-        return {
-          key: r.id,
-          label: `${sourceName}: ${ATTR_LABELS[r.abilityScore as AttributeKey] ?? r.abilityScore} +${r.bonus}`,
-        }
-      })
+    const asiBySource = new Map<string, string[]>()
+    for (const r of allRaceAsiBonusRows.filter((r) =>
+      (currentRaceId && r.raceId === currentRaceId) ||
+      (currentSubraceId && r.subraceId === currentSubraceId),
+    )) {
+      const sourceName = r.subraceId ? raceNameFor(r.subraceId) : raceNameFor(r.raceId ?? "")
+      const part = `${ATTR_LABELS[r.abilityScore as AttributeKey] ?? r.abilityScore} +${r.bonus}`
+      asiBySource.set(sourceName, [...(asiBySource.get(sourceName) ?? []), part])
+    }
+    const autoGrants: GainedBenefit[] = []
+    for (const [sourceName, parts] of asiBySource) {
+      autoGrants.push({ key: `race:asi:${sourceName}`, label: `${sourceName}: ${parts.join(", ")}` })
+    }
+
+    const profBySourceAndType = new Map<string, string[]>()
+    for (const p of allRaceProficiencyRows.filter(
+      (r) => (currentRaceId && r.raceId === currentRaceId && !r.subraceId) ||
+              (currentSubraceId && r.subraceId === currentSubraceId),
+    )) {
+      const sourceName = p.subraceId ? raceNameFor(p.subraceId) : raceNameFor(p.raceId ?? "")
+      const groupKey = `${sourceName}::${p.profType}`
+      profBySourceAndType.set(groupKey, [...(profBySourceAndType.get(groupKey) ?? []), p.name])
+    }
+    for (const [groupKey, names] of profBySourceAndType) {
+      const [sourceName, profType] = groupKey.split("::")
+      autoGrants.push({ key: `race:prof:${groupKey}`, label: `${sourceName}: ${profType} — ${names.join(", ")}` })
+    }
 
     const madeChoices: GainedBenefit[] = []
 
@@ -402,7 +419,7 @@ export function RaceChoicesPanel({
     }
 
     return { autoGrants, madeChoices, dismissedBenefits }
-  }, [raceChoices, languageChoices, raceToolChoices, raceCantripChoices, dismissedRaceChoiceKeys, allRaceAsiBonusRows, availableRaces, availableSubraces, currentRaceId, currentSubraceId])
+  }, [raceChoices, languageChoices, raceToolChoices, raceCantripChoices, dismissedRaceChoiceKeys, allRaceAsiBonusRows, allRaceProficiencyRows, availableRaces, availableSubraces, currentRaceId, currentSubraceId])
 
   if (total === 0 && autoGrants.length === 0 && madeChoices.length === 0 && dismissedBenefits.length === 0) return null
 

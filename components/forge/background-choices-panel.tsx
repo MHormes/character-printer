@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp } from "lucide-react"
-import type { BackgroundChoiceMade, LanguageChoiceMade, ToolChoiceMade, AttributeKey } from "@/lib/types/character"
+import type { BackgroundChoiceMade, LanguageChoiceMade, ToolChoiceMade, AttributeKey, InventoryItem } from "@/lib/types/character"
 import {
   getBackgroundPendingChoiceKey,
   type BackgroundPendingChoice,
@@ -191,6 +191,7 @@ type Props = {
   toolChoices?: ToolChoiceMade[]
   dismissedBackgroundChoiceKeys?: string[]
   selectedBackground?: BackgroundRow
+  charInventory?: InventoryItem[]
   gainedIsOpen?: boolean
   onGainedToggle?: () => void
   onRevert?: (key: string) => void
@@ -212,6 +213,7 @@ export function BackgroundChoicesPanel({
   toolChoices = [],
   dismissedBackgroundChoiceKeys = [],
   selectedBackground,
+  charInventory = [],
   gainedIsOpen = false,
   onGainedToggle,
   onRevert,
@@ -228,6 +230,36 @@ export function BackgroundChoicesPanel({
       if (grants.length > 0) {
         const labels = grants.map((k) => SKILL_LABELS[k] ?? k).join(", ")
         autoGrants.push({ key: `${bgId}:skills`, label: `${bgName}: Skills — ${labels}` })
+      }
+    }
+
+    // Narrative features (e.g. "By Popular Demand", "Researcher")
+    if (selectedBackground?.featuresJson) {
+      const features: { name: string; description: string }[] = typeof selectedBackground.featuresJson === "string"
+        ? JSON.parse(selectedBackground.featuresJson)
+        : (selectedBackground.featuresJson as { name: string; description: string }[])
+      for (const f of features) {
+        autoGrants.push({ key: `${bgId}:feature:${f.name}`, label: `${bgName}: Feature — ${f.name}` })
+      }
+    }
+
+    // Fixed proficiency grants (tools, vehicles, etc. from fixedProficienciesJson)
+    if (selectedBackground?.fixedProficienciesJson) {
+      const profs: { name: string; category: string }[] = typeof selectedBackground.fixedProficienciesJson === "string"
+        ? JSON.parse(selectedBackground.fixedProficienciesJson)
+        : (selectedBackground.fixedProficienciesJson as { name: string; category: string }[])
+      for (const p of profs) {
+        autoGrants.push({ key: `${bgId}:fixedprof:${p.name}`, label: `${bgName}: ${p.category} — ${p.name}` })
+      }
+    }
+
+    // Fixed starting equipment (items added to inventory with sourceId "bg-start:<bgId>")
+    if (bgId) {
+      const bgEquipKey = `bg-start:${bgId}`
+      const bgItems = charInventory.filter((i) => i.sourceId === bgEquipKey)
+      if (bgItems.length > 0) {
+        const names = bgItems.map((i) => `${i.name}${(i.quantity ?? 1) > 1 ? ` ×${i.quantity}` : ""}`).join(", ")
+        autoGrants.push({ key: bgEquipKey, label: `${bgName}: Starting gear — ${names}` })
       }
     }
 
@@ -269,7 +301,7 @@ export function BackgroundChoicesPanel({
     }
 
     return { autoGrants, madeChoices, dismissedBenefits }
-  }, [backgroundChoices, languageChoices, toolChoices, dismissedBackgroundChoiceKeys, selectedBackground])
+  }, [backgroundChoices, languageChoices, toolChoices, dismissedBackgroundChoiceKeys, selectedBackground, charInventory])
 
   if (pendingChoices.length === 0 && autoGrants.length === 0 && madeChoices.length === 0 && dismissedBenefits.length === 0) return null
 
@@ -328,6 +360,24 @@ export function BackgroundChoicesPanel({
                     backgroundName={pc.backgroundName}
                     options={pc.options}
                     label={pc.label}
+                    onConfirm={(toolName) => {
+                      onConfirmTool({
+                        id: crypto.randomUUID(),
+                        backgroundId: pc.backgroundId,
+                        choiceIndex: pc.choiceIndex,
+                        toolName,
+                      })
+                    }}
+                    onDismiss={() => onDismissChoice(key)}
+                  />
+                )}
+                {pc.type === "tool" && pc.inventoryOnly && !pc.options && (
+                  <ToolPicker
+                    tools={tools}
+                    category={pc.category ?? ""}
+                    label={pc.label}
+                    sourceName={pc.backgroundName}
+                    profLabel="Starting Equipment"
                     onConfirm={(toolName) => {
                       onConfirmTool({
                         id: crypto.randomUUID(),

@@ -264,7 +264,17 @@ export const useCharacterStore = create<CharacterStore>()(
     setInventory: (list) =>
       set((state) => {
         if (!state.character) return;
+        const removedIds = new Set(
+          state.character.inventory
+            .filter(old => !list.some(n => n.id === old.id))
+            .map(old => old.id)
+        );
         state.character.inventory = list;
+        if (removedIds.size > 0) {
+          state.character.actions = state.character.actions.filter(
+            a => !a.sourceId || !removedIds.has(a.sourceId)
+          );
+        }
         syncInventoryToStacks(state.character as unknown as CharacterData, list);
         state.isDirty = true;
       }),
@@ -315,7 +325,17 @@ export const useCharacterStore = create<CharacterStore>()(
     setSpellList: (list) =>
       set((state) => {
         if (!state.character) return;
+        const removedIds = new Set(
+          state.character.spells.list
+            .filter(old => !list.some(n => n.id === old.id))
+            .map(old => old.id)
+        );
         state.character.spells.list = list;
+        if (removedIds.size > 0) {
+          state.character.actions = state.character.actions.filter(
+            a => !a.sourceId || !removedIds.has(a.sourceId)
+          );
+        }
         state.isDirty = true;
       }),
 

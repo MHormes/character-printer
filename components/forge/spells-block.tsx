@@ -55,6 +55,7 @@ function spellToAction(spell: SpellEntry): ActionEntry {
       spell.castingTime,
       spell.range,
     ].filter(Boolean).join(" · "),
+    sourceId: spell.id,
   }
 }
 
