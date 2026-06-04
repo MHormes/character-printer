@@ -156,10 +156,11 @@ type OtherProficienciesBlockProps = {
   attributes: Record<AttributeKey, AttributeData>
   proficiencyBonus: number
   system?: string
+  showManualControls?: boolean
   onChange: (list: OtherProficiency[]) => void
 }
 
-export function OtherProficienciesBlock({ proficiencies, attributes, proficiencyBonus, system, onChange }: OtherProficienciesBlockProps) {
+export function OtherProficienciesBlock({ proficiencies, attributes, proficiencyBonus, system, showManualControls = false, onChange }: OtherProficienciesBlockProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const [showSearch, setShowSearch] = useState(false)
 
@@ -229,6 +230,7 @@ export function OtherProficienciesBlock({ proficiencies, attributes, proficiency
               prof={prof}
               attributes={attributes}
               proficiencyBonus={proficiencyBonus}
+              manualMode={showManualControls}
               onUpdate={(patch) => update(prof.id, patch)}
               onRemove={() => remove(prof.id)}
               onCategoryChange={(cat) => handleCategoryChange(prof, cat)}
@@ -279,6 +281,7 @@ type SortableProfItemProps = {
   prof: OtherProficiency
   attributes: Record<AttributeKey, AttributeData>
   proficiencyBonus: number
+  manualMode?: boolean
   onUpdate: (patch: Partial<OtherProficiency>) => void
   onRemove: () => void
   onCategoryChange: (cat: OtherProficiency["category"]) => void
@@ -286,7 +289,7 @@ type SortableProfItemProps = {
   onOverrideChange: (raw: string) => void
 }
 
-function SortableProfItem({ prof, attributes, proficiencyBonus, onUpdate, onRemove, onCategoryChange, onToggleTraining, onOverrideChange }: SortableProfItemProps) {
+function SortableProfItem({ prof, attributes, proficiencyBonus, manualMode = false, onUpdate, onRemove, onCategoryChange, onToggleTraining, onOverrideChange }: SortableProfItemProps) {
   const { attributes: dndAttrs, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: prof.id })
   const roll = hasRoll(prof.category)
   const calc = calcModifier(prof, attributes, proficiencyBonus)
@@ -319,7 +322,7 @@ function SortableProfItem({ prof, attributes, proficiencyBonus, onUpdate, onRemo
             className="h-7 min-w-0 flex-1 text-xs"
           />
         )}
-        {isManaged ? (
+        {isManaged && !manualMode ? (
           <Lock className="size-3 shrink-0 text-muted-foreground/50" />
         ) : (
           <button

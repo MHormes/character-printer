@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, ChevronRight, GripVertical, X, Plus, CircleDot, Circle, RotateCcw } from "lucide-react"
+import { ChevronDown, ChevronRight, GripVertical, X, Plus, CircleDot, Circle, RotateCcw, Lock } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
@@ -29,12 +29,13 @@ type ActionsBlockProps = {
   proficiencyBonus: number
   attackStack: ModifierEntry[]
   dcStack: ModifierEntry[]
+  showManualControls?: boolean
   onChange: (list: ActionEntry[]) => void
   onCastingStatChange: (stat: AttributeKey | null) => void
 }
 
 export function ActionsBlock({
-  actions, castingStat, attributes, proficiencyBonus, attackStack, dcStack, onChange, onCastingStatChange,
+  actions, castingStat, attributes, proficiencyBonus, attackStack, dcStack, showManualControls = false, onChange, onCastingStatChange,
 }: ActionsBlockProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -134,6 +135,7 @@ export function ActionsBlock({
                 headerLabel={headerLabel(action)}
                 damageLabel={calcDamageLabel(action)}
                 calcAttackToHit={calcAttackToHit(action)}
+                manualMode={showManualControls}
                 onToggle={() => toggleExpand(action.id)}
                 onPatch={(p) => patchAction(action.id, p)}
                 onDelete={() => onChange(actions.filter(a => a.id !== action.id))}
@@ -162,6 +164,7 @@ type SortableActionItemProps = {
   headerLabel: string
   damageLabel: string
   calcAttackToHit: number
+  manualMode?: boolean
   onToggle: () => void
   onPatch: (p: Partial<ActionEntry>) => void
   onDelete: () => void
@@ -171,9 +174,10 @@ type SortableActionItemProps = {
 
 function SortableActionItem({
   action, expanded, spellDC, spellAttackBonus, headerLabel, damageLabel, calcAttackToHit,
-  onToggle, onPatch, onDelete,
+  manualMode = false, onToggle, onPatch, onDelete,
 }: SortableActionItemProps) {
   const { attributes: dndAttrs, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: action.id })
+  const isManaged = !!action.sourceId
 
   return (
     <div
@@ -190,13 +194,17 @@ function SortableActionItem({
           className="shrink-0 text-muted-foreground transition-colors hover:text-foreground">
           {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
         </button>
-        <Input
-          type="text"
-          value={action.name}
-          placeholder="Action name"
-          onChange={(e) => onPatch({ name: e.target.value })}
-          className="h-6 min-w-0 flex-1 text-xs"
-        />
+        {isManaged ? (
+          <span className="h-6 min-w-0 flex-1 truncate px-2 text-xs text-card-foreground flex items-center">{action.name}</span>
+        ) : (
+          <Input
+            type="text"
+            value={action.name}
+            placeholder="Action name"
+            onChange={(e) => onPatch({ name: e.target.value })}
+            className="h-6 min-w-0 flex-1 text-xs"
+          />
+        )}
         {!expanded && (
           <>
             <span className="shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
@@ -209,10 +217,16 @@ function SortableActionItem({
             )}
           </>
         )}
-        <button type="button" onClick={onDelete}
-          className="flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
-          <X className="size-3" />
-        </button>
+        {isManaged && !manualMode ? (
+          <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground/40">
+            <Lock className="size-3" />
+          </span>
+        ) : (
+          <button type="button" onClick={onDelete}
+            className="flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
+            <X className="size-3" />
+          </button>
+        )}
       </div>
 
       {expanded && (

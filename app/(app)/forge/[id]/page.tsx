@@ -174,7 +174,9 @@ type ManualSectionId =
   | "skills"
   | "combat"
   | "trackers"
-  | "spells";
+  | "spells"
+  | "otherProficiencies"
+  | "actions";
 
 type ForgeManualUiPrefs = {
   manualControlsEnabled: boolean;
@@ -190,6 +192,8 @@ const DEFAULT_MANUAL_UI_PREFS: ForgeManualUiPrefs = {
     combat: false,
     trackers: false,
     spells: false,
+    otherProficiencies: false,
+    actions: false,
   },
 };
 
@@ -582,6 +586,7 @@ export default function ForgePage({
             matchedSubrace,
             subraceTraits,
             allRaceProficiencyRows,
+            allRaceLanguageChoiceRows,
           );
         }
       } else {
@@ -910,8 +915,8 @@ export default function ForgePage({
           name: tc.toolName,
           quantity: meta?.count ?? 1,
           weight: 0,
-          category: meta?.inventoryOnly ? "Mundane" : "Tool",
-          equipped: false,
+          category: (meta?.inventoryOnly && !meta?.category) ? "Mundane" : "Tool",
+          equipped: true,
           modifiers: [],
           sourceId: `bg-tool:${bgRow.id}`,
         });
@@ -979,6 +984,7 @@ export default function ForgePage({
   function applyItemFromSrdToCharacter(
     baseCharacter: typeof character,
     srdItem: ItemRow,
+    inventoryItemId?: string,
   ) {
     if (!baseCharacter) return baseCharacter;
 
@@ -1030,6 +1036,7 @@ export default function ForgePage({
         fixedDC: null,
         damageStack,
         notes,
+        sourceId: inventoryItemId,
       });
     }
 
@@ -1090,7 +1097,7 @@ export default function ForgePage({
 
     for (const item of items) {
       if (item.srdItem) {
-        updated = applyItemFromSrdToCharacter(updated, item.srdItem)!;
+        updated = applyItemFromSrdToCharacter(updated, item.srdItem, item.inventoryItem.id)!;
       }
     }
 
@@ -1144,7 +1151,7 @@ export default function ForgePage({
     };
 
     // Apply SRD-specific effects (attacks, AC modes, features, etc)
-    const updated = applyItemFromSrdToCharacter(withItem, srdItem);
+    const updated = applyItemFromSrdToCharacter(withItem, srdItem, invItem.id);
     if (updated) {
       replaceCharacter(updated);
     }
@@ -1385,6 +1392,7 @@ export default function ForgePage({
                       raceCantripChoices={character.raceCantripChoices ?? []}
                       dismissedRaceChoiceKeys={character.dismissedRaceChoiceKeys ?? []}
                       allRaceAsiBonusRows={allRaceAsiBonusRows}
+                      allRaceProficiencyRows={allRaceProficiencyRows}
                       availableRaces={availableRaces}
                       availableSubraces={availableSubraces}
                       currentRaceId={availableRaces.find((r) => r.name.toLowerCase() === identity.race.toLowerCase())?.id}
@@ -1429,6 +1437,7 @@ export default function ForgePage({
                       selectedBackground={availableBackgrounds.find(
                         (b) => b.name.toLowerCase() === identity.background.toLowerCase(),
                       )}
+                      charInventory={character.inventory}
                       gainedIsOpen={openGainedPanel === "background"}
                       onGainedToggle={() => setOpenGainedPanel((v) => v === "background" ? null : "background")}
                       onRevert={handleRevertBackgroundChoice}
@@ -1496,6 +1505,8 @@ export default function ForgePage({
                       dismissedClassChoiceKeys={character.dismissedClassChoiceKeys ?? []}
                       dismissedEquipmentChoiceKeys={character.dismissedEquipmentChoiceKeys ?? []}
                       charInventory={character.inventory}
+                      allClassProficiencyRows={allClassProfRows}
+                      activeClassIds={identity.classes.map((c) => c.classId).filter((id): id is string => !!id)}
                       availableClasses={availableClasses}
                       gainedIsOpen={openGainedPanel === "class"}
                       onGainedToggle={() => setOpenGainedPanel((v) => v === "class" ? null : "class")}
@@ -1786,12 +1797,14 @@ export default function ForgePage({
               title="Other Proficiencies"
               className="w-full xl:w-72 min-w-0"
               collapsible={true}
+              headerAction={renderManualSectionToggle("otherProficiencies")}
             >
               <OtherProficienciesBlock
                 proficiencies={otherProficiencies}
                 attributes={attributes}
                 proficiencyBonus={pb}
                 system={character.edition === "2024" ? "dnd5e_2024" : "dnd5e"}
+                showManualControls={isManualSectionVisible("otherProficiencies")}
                 onChange={setOtherProficiencies}
               />
             </ForgeSection>
@@ -1817,7 +1830,7 @@ export default function ForgePage({
                 />
               </ForgeSection>
 
-              <ForgeSection title="Attacks & Actions" collapsible={true}>
+              <ForgeSection title="Attacks & Actions" collapsible={true} headerAction={renderManualSectionToggle("actions")}>
                 <ActionsBlock
                   actions={actions}
                   castingStat={spells.globalCastingStat}
@@ -1825,6 +1838,7 @@ export default function ForgePage({
                   proficiencyBonus={pb}
                   attackStack={spells.attackStack}
                   dcStack={spells.dcStack}
+                  showManualControls={isManualSectionVisible("actions")}
                   onChange={setActions}
                   onCastingStatChange={setSpellCastingStat}
                 />

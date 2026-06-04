@@ -8,6 +8,7 @@ import type {
   BackgroundRow,
   RaceAbilityBonusRow,
   RaceProficiencyRow,
+  RaceLanguageChoiceRow,
   ClassStartingEquipmentRow,
 } from "@/lib/actions/5e-data"
 import type { CharacterClassEntry } from "@/lib/types/character"
@@ -67,6 +68,18 @@ function isLanguageChoiceTrait(traitId: string): boolean {
   return LANGUAGE_CHOICE_TRAIT_IDS.has(traitId.split(":").at(-2) ?? "")
 }
 
+// Returns true if a trait named "Languages" belongs to a race/subrace that has a language choice
+// panel — the choice text in the trait description would duplicate the pending choice UI.
+function isLanguagesTraitForChoiceRace(
+  trait: RaceTraitRow,
+  raceId: string,
+  subraceId: string | undefined,
+  langChoiceRaceIds: Set<string | null>,
+): boolean {
+  if (trait.name.toLowerCase() !== "languages") return false
+  return langChoiceRaceIds.has(raceId) || (subraceId != null && langChoiceRaceIds.has(subraceId))
+}
+
 export function applyRace(
   char: CharacterData,
   raceRow: RaceRow,
@@ -77,6 +90,7 @@ export function applyRace(
   subraceRow?: SubraceRow,
   subraceTraits?: RaceTraitRow[],
   allRaceProficiencies?: RaceProficiencyRow[],
+  allLangChoiceRows?: RaceLanguageChoiceRow[],
 ): CharacterData {
   const next = structuredClone(char)
 
@@ -122,9 +136,15 @@ export function applyRace(
     // Clear all dismissed race choice keys on race change
     next.dismissedRaceChoiceKeys = []
 
+    // Build set of race/subrace IDs that have a language choice panel
+    const langChoiceRaceIds = new Set<string | null>(
+      (allLangChoiceRows ?? []).map((r) => r.raceId ?? r.subraceId),
+    )
+
     // Apply base traits (only on major change) — skip language-choice-only traits
     for (const trait of raceTraits) {
       if (isLanguageChoiceTrait(trait.id)) continue
+      if (isLanguagesTraitForChoiceRace(trait, raceRow.id, subraceRow?.id, langChoiceRaceIds)) continue
       next.features.push({
         id: crypto.randomUUID(),
         name: trait.name,
@@ -137,6 +157,7 @@ export function applyRace(
     if (subraceRow && subraceTraits) {
       for (const trait of subraceTraits) {
         if (isLanguageChoiceTrait(trait.id)) continue
+        if (isLanguagesTraitForChoiceRace(trait, raceRow.id, subraceRow.id, langChoiceRaceIds)) continue
         next.features.push({
           id: crypto.randomUUID(),
           name: trait.name,
@@ -714,7 +735,7 @@ export function applyBackground(
     )
   }
 
-  // ── Clear old background features, system-managed proficiencies, and tool-choice items ──
+  // ── Clear old background features, system-managed proficiencies, and tool/equip items ──
   next.features = next.features.filter((f) => !f.sourceId?.startsWith("background:"))
   next.otherProficiencies = next.otherProficiencies.filter(
     (p) => !p.sourceId?.startsWith("background:"),
@@ -789,6 +810,29 @@ export function applyBackground(
         equipped: true,
         modifiers: [],
         sourceId: `bg-tool:${bgRow.id}`,
+      })
+    }
+  }
+
+  // ── Apply fixed proficiency grants (tools, vehicles, etc.) ──────────────
+  type FixedProfEntry = { name: string; category: string }
+  const fixedProfs: FixedProfEntry[] = bgRow.fixedProficienciesJson
+    ? (typeof bgRow.fixedProficienciesJson === "string"
+        ? JSON.parse(bgRow.fixedProficienciesJson)
+        : bgRow.fixedProficienciesJson as unknown as FixedProfEntry[])
+    : []
+  for (const prof of fixedProfs) {
+    const category = prof.category as OtherProficiency["category"]
+    const already = next.otherProficiencies.some((p) => p.name === prof.name && p.category === category)
+    if (!already) {
+      next.otherProficiencies.push({
+        id: crypto.randomUUID(),
+        name: prof.name,
+        category,
+        training: "Proficient",
+        stat: null,
+        override: null,
+        sourceId: `background:${bgRow.id}:prof`,
       })
     }
   }
@@ -912,6 +956,22 @@ export function applyClassStartingEquipment(
     return activeClassIds.has(classId)
   })
 
+  // Also remove equipment choice items for classes no longer active
+  const staleChoiceSourceIds = new Set(
+    (next.equipmentChoicesMade ?? [])
+      .filter(m => !activeClassIds.has(m.classId))
+      .map(m => `class-choice:${m.classId}:${m.choiceIndex}`)
+  )
+  if (staleChoiceSourceIds.size > 0) {
+    next.inventory = next.inventory.filter(
+      item => !item.sourceId || !staleChoiceSourceIds.has(item.sourceId)
+    )
+  }
+
+  // Cascade: remove weapon actions whose source inventory item was just removed
+  const keptInventoryIds = new Set(next.inventory.map(i => i.id))
+  next.actions = next.actions.filter(a => !a.sourceId || keptInventoryIds.has(a.sourceId))
+
   // 2. Addition: ONLY for classes that were NOT present in the previous session state
   for (const cls of activeClasses) {
     if (oldClassIds.has(cls.classId!)) continue 
@@ -929,8 +989,9 @@ export function applyClassStartingEquipment(
       const isShield = row.armorCategory === "Shield"
       const isWeapon = row.equipmentCategory === "Weapon"
 
+      const newItemId = crypto.randomUUID()
       next.inventory.push({
-        id: crypto.randomUUID(),
+        id: newItemId,
         name: row.itemName,
         quantity: row.quantity,
         weight: row.itemWeight ?? row.weight ?? 0,
@@ -975,6 +1036,7 @@ export function applyClassStartingEquipment(
           fixedDC: null,
           damageStack: dmgStack,
           notes: "",
+          sourceId: newItemId,
         }
         next.actions.push(action)
       }
@@ -1005,10 +1067,15 @@ export function clearBackgroundAutomation(char: CharacterData): CharacterData {
   }
 
   next.features = next.features.filter((f) => !f.sourceId?.startsWith("background:"))
+  next.otherProficiencies = next.otherProficiencies.filter((p) => !p.sourceId?.startsWith("background:"))
   next.inventory = next.inventory.filter(
     (item) => !item.sourceId?.startsWith("bg-start:") && !item.sourceId?.startsWith("bg-tool:"),
   )
   next.backgroundChoices = []
+  next.languageChoices = (next.languageChoices ?? []).filter(
+    (c) => !c.sourceId.startsWith("background:"),
+  )
+  next.toolChoices = []
 
   next.srdGrants = {
     saveProficiencies: next.srdGrants?.saveProficiencies ?? [],

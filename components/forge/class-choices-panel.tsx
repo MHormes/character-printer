@@ -7,7 +7,7 @@ import { ChevronDown, ChevronUp, X } from "lucide-react"
 import type { ClassChoiceMade, EquipmentChoiceMade, AttributeKey, InventoryItem, ModifierTarget } from "@/lib/types/character"
 import { getClassPendingChoiceKey, getEquipmentPendingChoiceKey, type PendingChoice, type EquipmentPendingChoice, type StartingEquipAlternative } from "@/lib/character/derive-pending-choices"
 import { getMulticlassWarningKey, type MulticlassWarning } from "@/lib/character/multiclass-prereqs"
-import { searchItems, type FeatRow, type ItemRow, type ClassRow } from "@/lib/actions/5e-data"
+import { searchItems, type FeatRow, type ItemRow, type ClassRow, type ClassProficiencyRow } from "@/lib/actions/5e-data"
 import { GainedBenefitsSection, type GainedBenefit, type DismissedBenefit } from "@/components/forge/gained-benefits-section"
 
 export type ResolvedEquipmentItem = {
@@ -512,6 +512,8 @@ type Props = {
   dismissedClassChoiceKeys?: string[]
   dismissedEquipmentChoiceKeys?: string[]
   charInventory?: InventoryItem[]
+  allClassProficiencyRows?: ClassProficiencyRow[]
+  activeClassIds?: string[]
   availableClasses?: ClassRow[]
   gainedIsOpen?: boolean
   onGainedToggle?: () => void
@@ -533,6 +535,8 @@ export function ClassChoicesPanel({
   dismissedClassChoiceKeys = [],
   dismissedEquipmentChoiceKeys = [],
   charInventory = [],
+  allClassProficiencyRows = [],
+  activeClassIds = [],
   availableClasses = [],
   gainedIsOpen = false,
   onGainedToggle,
@@ -558,6 +562,21 @@ export function ClassChoicesPanel({
     const autoGrants: GainedBenefit[] = []
     for (const [classId, names] of autoGrantsByClass) {
       autoGrants.push({ key: `${classId}:fixed`, label: `${classNameFor(classId)}: ${names.join(", ")}` })
+    }
+
+    // Fixed class proficiencies — only for classes the character actually has
+    const activeSet = new Set(activeClassIds)
+    const profByClass = new Map<string, Record<string, string[]>>()
+    for (const p of allClassProficiencyRows.filter((r) => activeSet.has(r.classId))) {
+      const existing = profByClass.get(p.classId) ?? {}
+      existing[p.profType] = [...(existing[p.profType] ?? []), p.name]
+      profByClass.set(p.classId, existing)
+    }
+    for (const [classId, grouped] of profByClass) {
+      const cn = classNameFor(classId)
+      for (const [type, names] of Object.entries(grouped)) {
+        autoGrants.push({ key: `${classId}:prof:${type}`, label: `${cn}: ${type} — ${names.join(", ")}` })
+      }
     }
 
     const madeChoices: GainedBenefit[] = []
@@ -630,7 +649,7 @@ export function ClassChoicesPanel({
     }
 
     return { autoGrants, madeChoices, dismissedBenefits }
-  }, [classChoices, equipmentChoicesMade, dismissedClassChoiceKeys, dismissedEquipmentChoiceKeys, charInventory, availableClasses])
+  }, [classChoices, equipmentChoicesMade, dismissedClassChoiceKeys, dismissedEquipmentChoiceKeys, charInventory, allClassProficiencyRows, activeClassIds, availableClasses])
 
   if (totalPending === 0 && multiclassWarnings.length === 0 && autoGrants.length === 0 && madeChoices.length === 0 && dismissedBenefits.length === 0) return null
 
