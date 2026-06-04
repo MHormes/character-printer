@@ -211,6 +211,7 @@ export function CharacterImageField({ characterId, image, onChange }: CharacterI
                 size="sm"
                 disabled={isBusy}
                 onClick={handleRemove}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/80"
               >
                 {isRemoving ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
                 Remove

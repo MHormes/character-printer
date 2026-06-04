@@ -1205,10 +1205,18 @@ export default function ForgePage({
   const manualControlsEnabled = manualUiPrefs.manualControlsEnabled;
 
   function toggleManualControls() {
-    setManualUiPrefs((current) => ({
-      ...current,
-      manualControlsEnabled: !current.manualControlsEnabled,
-    }));
+    setManualUiPrefs((current) => {
+      const turningOn = !current.manualControlsEnabled;
+      return {
+        ...current,
+        manualControlsEnabled: turningOn,
+        sections: turningOn
+          ? Object.fromEntries(
+              Object.keys(current.sections).map((k) => [k, true]),
+            ) as Record<ManualSectionId, boolean>
+          : current.sections,
+      };
+    });
   }
 
   function setManualSection(section: ManualSectionId, visible: boolean) {
