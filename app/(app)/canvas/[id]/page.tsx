@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useRef } from "react";
+import { use, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
@@ -23,7 +23,8 @@ import { Input } from "@/components/ui/input";
 import { CanvasArea } from "@/components/canvas/canvas-area";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useCharacterStore } from "@/lib/store/character-store";
-import { loadCharacter, saveCharacter } from "@/lib/actions/character";
+import { loadCharacter } from "@/lib/actions/character";
+import { useSaveCharacter } from "@/lib/hooks/use-save-character";
 import {
   createCanvasTemplate,
   deleteCanvasTemplate,
@@ -39,9 +40,6 @@ export default function CanvasPage({
 }) {
   const { id } = use(params);
   const [showGridConfig, setShowGridConfig] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
-    "idle",
-  );
   const [templates, setTemplates] = useState<CanvasTemplate[]>([]);
   const [templateName, setTemplateName] = useState("");
   const [showTemplateForm, setShowTemplateForm] = useState(false);
@@ -52,7 +50,6 @@ export default function CanvasPage({
   const [templateError, setTemplateError] = useState<string | null>(null);
   const { data: session } = useSession();
   const userId = session?.user?.id ?? null;
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cols = useCanvasStore((s) => s.cols);
   const setCols = useCanvasStore((s) => s.setCols);
@@ -71,6 +68,18 @@ export default function CanvasPage({
 
   const rows = Math.ceil((cols * 297) / 210);
 
+  const { saveStatus, handleSave, handleToggleAutoSave } = useSaveCharacter({
+    id,
+    autoSave,
+    autoSaveDeps: [canvasPages, cols],
+    shouldAutoSave: !!character,
+    buildSaveData: () => ({
+      ...character!,
+      canvas: { ...character!.canvas, pages: canvasPages },
+    }),
+    setAutoSave,
+  });
+
   useEffect(() => {
     if (!userId) return;
     clearCharacter();
@@ -84,54 +93,6 @@ export default function CanvasPage({
       },
     );
   }, [id, userId, clearCharacter, setCharacter, setCanvasData]);
-
-  // Auto-save on canvas change with 1.5s debounce
-  useEffect(() => {
-    if (!character || !autoSave) return;
-
-    const updatedCharacter = {
-      ...character,
-      canvas: { ...character.canvas, pages: canvasPages },
-    };
-
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      setSaveStatus("saving");
-      await saveCharacter(id, updatedCharacter, autoSave);
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
-    }, 1500);
-
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
-  }, [canvasPages, cols, autoSave, id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleSave() {
-    if (!character) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-
-    const updatedCharacter = {
-      ...character,
-      canvas: { ...character.canvas, pages: canvasPages },
-    };
-
-    setSaveStatus("saving");
-    await saveCharacter(id, updatedCharacter, autoSave);
-    setSaveStatus("saved");
-    setTimeout(() => setSaveStatus("idle"), 2000);
-  }
-
-  async function handleToggleAutoSave(checked: boolean) {
-    setAutoSave(checked);
-    if (character) {
-      const updatedCharacter = {
-        ...character,
-        canvas: { ...character.canvas, pages: canvasPages },
-      };
-      await saveCharacter(id, updatedCharacter, checked);
-    }
-  }
 
   async function handleSaveTemplate() {
     if (!userId) return;
