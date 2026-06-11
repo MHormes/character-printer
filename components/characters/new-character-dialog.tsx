@@ -23,8 +23,14 @@ const CHARACTER_OPTIONS: CharacterOption[] = [
   {
     edition: "2014",
     mode: "npc",
-    label: "NPC / Monster",
-    subtitle: "Manual stats — no class or race automation (2014 base rules)",
+    label: "NPC / Monster (2014)",
+    subtitle: "Manual stats — no class or race automation",
+  },
+  {
+    edition: "2024",
+    mode: "npc",
+    label: "NPC / Monster (2024)",
+    subtitle: "Manual stats — no class or race automation",
   },
 ];
 
