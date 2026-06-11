@@ -64,7 +64,7 @@ export function StatBlock({ label, data, attrs, level, pb, showManualControls, o
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3">
-      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+      <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wide md:tracking-widest text-muted-foreground">
         {label}
       </span>
 

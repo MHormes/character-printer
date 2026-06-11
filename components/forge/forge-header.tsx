@@ -30,17 +30,17 @@ export function ForgeHeader({
 }: ForgeHeaderProps) {
   return (
     <>
-      <header className="flex items-center justify-between bg-primary px-8 py-3 shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="flex items-center justify-between bg-primary px-4 md:px-8 py-3 shrink-0">
+        <div className="flex items-center gap-4 min-w-0">
           <Link
             href="/characters"
-            className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/70 hover:text-primary-foreground transition-colors flex items-center gap-2"
+            className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/70 hover:text-primary-foreground transition-colors flex items-center gap-2 shrink-0"
           >
             <ArrowLeft className="size-3.5" />
             Characters
           </Link>
-          <div className="h-4 w-px bg-primary-foreground/20" />
-          <span className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground">
+          <div className="h-4 w-px bg-primary-foreground/20 shrink-0" />
+          <span className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground truncate min-w-0">
             {characterName || "Forge"}
           </span>
         </div>

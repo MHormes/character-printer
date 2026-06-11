@@ -55,7 +55,7 @@ export function ForgeSection({
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div
           className={cn(
             "flex items-center gap-2",

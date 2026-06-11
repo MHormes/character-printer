@@ -330,7 +330,7 @@ function SortableActionItem({
                 onPatch({ damageStack: action.damageStack.map((d, j) => j === i ? { ...d, ...patch } : d) })
               }
               return (
-                <div key={i} className={cn("flex items-center gap-1.5", !dmg.active && "opacity-50")}>
+                <div key={i} className={cn("flex flex-wrap items-center gap-1.5", !dmg.active && "opacity-50")}>
                   <input
                     type="text" inputMode="numeric"
                     value={(dmg.diceCount ?? 0) === 0 ? "" : String(dmg.diceCount)}
@@ -367,21 +367,23 @@ function SortableActionItem({
                       className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-card-foreground/40 focus:outline-none"
                     />
                   </div>
-                  <input
-                    type="text" value={dmg.type}
-                    placeholder={action.mode === "Heal" ? "Healing" : "Slashing"}
-                    onChange={(e) => patchDmg({ type: e.target.value })}
-                    className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
-                  />
-                  <button type="button" onClick={() => patchDmg({ active: !dmg.active })}
-                    className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
-                    {dmg.active ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
-                  </button>
-                  <button type="button"
-                    onClick={() => onPatch({ damageStack: action.damageStack.filter((_, j) => j !== i) })}
-                    className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
-                    <X className="size-2.5" />
-                  </button>
+                  <div className="flex basis-full md:basis-auto items-center gap-1.5 min-w-0">
+                    <input
+                      type="text" value={dmg.type}
+                      placeholder={action.mode === "Heal" ? "Healing" : "Slashing"}
+                      onChange={(e) => patchDmg({ type: e.target.value })}
+                      className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
+                    />
+                    <button type="button" onClick={() => patchDmg({ active: !dmg.active })}
+                      className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
+                      {dmg.active ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
+                    </button>
+                    <button type="button"
+                      onClick={() => onPatch({ damageStack: action.damageStack.filter((_, j) => j !== i) })}
+                      className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
+                      <X className="size-2.5" />
+                    </button>
+                  </div>
                 </div>
               )
             })}

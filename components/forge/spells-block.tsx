@@ -690,12 +690,12 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
         {!expanded && (
           <>
             {label && (
-              <span className="shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
+              <span className="hidden md:inline shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
                 {label}
               </span>
             )}
             {dmgLabel && (
-              <span className="shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
+              <span className="hidden md:inline shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
                 {dmgLabel}
               </span>
             )}
@@ -713,7 +713,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
 
       {expanded && (
         <div className="space-y-3 border-t border-border p-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <div className="flex items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">School</span>
               <Select selectSize="sm" className="flex-1" value={spell.school} onChange={e => onPatch({ school: e.target.value })}>
@@ -728,7 +728,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <div className="flex items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">Range</span>
               <Input type="text" value={spell.range} onChange={e => onPatch({ range: e.target.value })}
@@ -760,7 +760,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
           </div>
 
           {spell.mode !== "Heal" && spell.mode !== "Plain" && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">
                 {spell.mode === "DC" ? "Save DC" : "To Hit"}
               </span>
@@ -855,7 +855,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
               {spell.mode === "Heal" ? "Healing" : "Damage / Effect"}
             </span>
             {(spell.damageStack ?? []).map((dmg, idx) => (
-              <div key={idx} className={cn("flex items-center gap-1.5", !dmg.active && "opacity-50")}>
+              <div key={idx} className={cn("flex flex-wrap items-center gap-1.5", !dmg.active && "opacity-50")}>
                 <input
                   type="text" inputMode="numeric"
                   value={(dmg.diceCount ?? 0) === 0 ? "" : String(dmg.diceCount)}
@@ -892,18 +892,20 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
                     className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-card-foreground/40 focus:outline-none"
                   />
                 </div>
-                <input type="text" value={dmg.type} placeholder={spell.mode === "Heal" ? "Healing" : "Fire"}
-                  onChange={e => onPatchDmg(idx, { type: e.target.value })}
-                  className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
-                />
-                <button type="button" onClick={() => onPatchDmg(idx, { active: !dmg.active })}
-                  className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
-                  {dmg.active ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
-                </button>
-                <button type="button" onClick={() => onDeleteDmg(idx)}
-                  className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
-                  <X className="size-2.5" />
-                </button>
+                <div className="flex basis-full md:basis-auto items-center gap-1.5 min-w-0">
+                  <input type="text" value={dmg.type} placeholder={spell.mode === "Heal" ? "Healing" : "Fire"}
+                    onChange={e => onPatchDmg(idx, { type: e.target.value })}
+                    className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
+                  />
+                  <button type="button" onClick={() => onPatchDmg(idx, { active: !dmg.active })}
+                    className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
+                    {dmg.active ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
+                  </button>
+                  <button type="button" onClick={() => onDeleteDmg(idx)}
+                    className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
+                    <X className="size-2.5" />
+                  </button>
+                </div>
               </div>
             ))}
             <button type="button"

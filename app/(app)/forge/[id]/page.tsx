@@ -825,7 +825,7 @@ export default function ForgePage({
             className="space-y-4"
             collapsible={true}
             headerAction={
-              <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg">
+              <div className="flex flex-wrap items-center gap-1 bg-muted/30 p-1 rounded-lg w-full md:w-auto">
                 <Button
                   variant={identityTab === "basics" ? "secondary" : "ghost"}
                   size="xs"

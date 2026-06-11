@@ -143,7 +143,7 @@ export function ClassesField({
         const isSubclassOpen = subclassOpenIdx === i && hasDbSubclasses;
 
         return (
-          <div key={i} className="mt-1 relative flex items-end gap-2">
+          <div key={i} className="mt-1 relative flex flex-col gap-1 md:flex-row md:items-end md:gap-2">
             <div className="flex flex-1 flex-col gap-1">
               {/* Class name combobox */}
               <div className="relative">
@@ -304,34 +304,36 @@ export function ClassesField({
               </div>
             </div>
 
-            <Select
-              value={cls.hitDie ?? "d8"}
-              onChange={(e) => update(i, "hitDie", e.target.value)}
-            >
-              {HIT_DICE.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </Select>
+            <div className="flex items-center gap-2 self-end">
+              <Select
+                value={cls.hitDie ?? "d8"}
+                onChange={(e) => update(i, "hitDie", e.target.value)}
+              >
+                {HIT_DICE.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </Select>
 
-            <IntegerField
-              label=""
-              value={cls.level}
-              onChange={(v) => update(i, "level", v)}
-              min={1}
-              max={20}
-              className="w-28 shrink-0"
-            />
+              <IntegerField
+                label=""
+                value={cls.level}
+                onChange={(v) => update(i, "level", v)}
+                min={1}
+                max={20}
+                className="w-28 shrink-0"
+              />
 
-            <button
-              type="button"
-              aria-label="Remove class"
-              onClick={() => remove(i)}
-              className="mb-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="size-3.5" />
-            </button>
+              <button
+                type="button"
+                aria-label="Remove class"
+                onClick={() => remove(i)}
+                className="mb-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
           </div>
         );
       })}
