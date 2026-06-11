@@ -28,7 +28,7 @@ export function ToggleButton({
       )}
       {...props}
     >
-      <span className="min-w-[3ch] text-left">{children}</span>
+      <span className="inline-flex items-center gap-1 min-w-[4rem]">{children}</span>
       <span
         className={cn(
           "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200",

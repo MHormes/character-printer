@@ -373,7 +373,7 @@ export default function CanvasPage({
               onClick={() => setShowGridConfig((v) => !v)}
             >
               <Grid3x3 className="size-3.5" />
-              Grid
+              Grid size
             </ToggleButton>
             {showGridConfig && (
               <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 flex min-w-64 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-md">

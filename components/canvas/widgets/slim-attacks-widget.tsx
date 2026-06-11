@@ -1,6 +1,7 @@
 "use client";
 
 import { useCharacterStore } from "@/lib/store/character-store";
+import { resolveSpellDc, resolveSpellAttack, resolvePb } from "@/lib/character/calculations";
 import { DndFrame } from "./dnd-frame";
 import type { ActionEntry } from "@/lib/types/character";
 
@@ -19,8 +20,8 @@ export function SlimAttacksWidget() {
   const character = useCharacterStore((s) => s.character);
   if (!character) return null;
 
-  const { actions, attributes, identity } = character;
-  const pb = Math.ceil(identity.level / 4) + 1;
+  const { actions, attributes } = character;
+  const pb = resolvePb(character);
 
   const stkSum = (stack: { value: number; isActive: boolean }[]) =>
     stack.filter((m) => m.isActive).reduce((s, m) => s + m.value, 0);
@@ -33,11 +34,9 @@ export function SlimAttacksWidget() {
   const fmtBonus = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
 
   function atkStr(a: ActionEntry) {
-    if (a.mode === "DC") {
-      const dc =
-        a.fixedDC ?? 8 + pb + (a.attackStat ? attrMod(a.attackStat) : 0);
-      return `DC ${dc}`;
-    }
+    if (a.mode === "Heal" || a.mode === "Plain") return "—";
+    if (a.mode === "Spell") return fmtBonus(resolveSpellAttack(character) + a.attackBonus);
+    if (a.mode === "DC") return `DC ${a.fixedDC ?? resolveSpellDc(character)}`;
     const statMod = a.attackStat ? attrMod(a.attackStat) : 0;
     return fmtBonus(statMod + (a.attackProficient ? pb : 0) + a.attackBonus);
   }
