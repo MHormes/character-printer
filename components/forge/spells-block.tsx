@@ -443,7 +443,7 @@ export function SpellsBlock({
               )}
             </div>
 
-            <div className="space-y-1 pl-3">
+            <div className="space-y-1">
               {showManualControls && slot && slotExpanded && (
                 <div className="mb-2 flex flex-col gap-1.5 rounded-md border border-border bg-card/60 p-2">
                   {slot.stack.map((mod) =>

@@ -5,10 +5,12 @@ type ButtonProps = React.ComponentProps<typeof Button>
 
 interface ToggleButtonProps extends Omit<ButtonProps, "variant"> {
   isActive: boolean
+  compact?: boolean
 }
 
 export function ToggleButton({
   isActive,
+  compact = false,
   className,
   size = "xs",
   children,
@@ -28,7 +30,7 @@ export function ToggleButton({
       )}
       {...props}
     >
-      <span className="inline-flex items-center gap-1 min-w-[4rem]">{children}</span>
+      <span className={cn("inline-flex items-center gap-1", !compact && "min-w-[4rem]")}>{children}</span>
       <span
         className={cn(
           "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200",

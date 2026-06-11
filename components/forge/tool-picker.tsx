@@ -72,7 +72,7 @@ export function ToolPicker({ tools, category, label, sourceName, profLabel = "To
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Button
           type="button"
           size="sm"

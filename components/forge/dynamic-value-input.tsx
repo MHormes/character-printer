@@ -3,6 +3,7 @@
 import { Sigma } from "lucide-react"
 import { Select } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { ToggleButton } from "@/components/ui/toggle-button"
 import type { TrackerBaseSource, AttributeKey, AttributeData } from "@/lib/types/character"
 import { resolveModifierValue } from "@/lib/character/calculations"
 
@@ -93,15 +94,14 @@ export function DynamicValueInput({
         <span className="flex h-6 items-center justify-center rounded-md border border-input bg-muted/40 px-2 text-xs tabular-nums text-foreground">
           ={resolved}
         </span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
+        <ToggleButton
+          isActive={true}
+          compact
           tooltip="Use fixed value"
           onClick={() => onChange(resolved, undefined, undefined, undefined)}
         >
           <Sigma className="size-3" />
-        </Button>
+        </ToggleButton>
       </div>
     )
   }
@@ -127,15 +127,14 @@ export function DynamicValueInput({
           className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-xs placeholder:text-card-foreground/40 focus:outline-none"
         />
       </div>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
+      <ToggleButton
+        isActive={false}
+        compact
         tooltip="Base on stat"
         onClick={() => onChange(value, { kind: "level" }, 1, 0)}
       >
         <Sigma className="size-3" />
-      </Button>
+      </ToggleButton>
     </div>
   )
 }

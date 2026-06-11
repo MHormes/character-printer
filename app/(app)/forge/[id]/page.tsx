@@ -1069,7 +1069,7 @@ export default function ForgePage({
                 headerAction={renderManualSectionToggle("coreStats")}
                 collapsible={true}
               >
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                   {ATTRIBUTE_KEYS.map((attr) => (
                     <StatBlock
                       key={attr}

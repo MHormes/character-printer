@@ -236,7 +236,7 @@ function CantripPicker({
           <p className="text-xs text-muted-foreground">No cantrips found.</p>
         )}
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Button
           type="button"
           size="sm"

@@ -251,9 +251,9 @@ export function CombatBlock({
   const hpOverridden = data.hp.max !== null;
 
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
       {/* Armor Class */}
-      <div className="w-52 shrink-0 space-y-3 rounded-lg border border-border bg-card p-3">
+      <div className="w-full space-y-3 rounded-lg border border-border bg-card p-3 sm:w-52 sm:shrink-0">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Armor Class
         </h3>
@@ -426,7 +426,7 @@ export function CombatBlock({
       </div>
 
       {/* Initiative */}
-      <div className="w-40 shrink-0 space-y-2 rounded-lg border border-border bg-card p-3">
+      <div className="w-full space-y-2 rounded-lg border border-border bg-card p-3 sm:w-40 sm:shrink-0">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Initiative
         </h3>
@@ -503,7 +503,7 @@ export function CombatBlock({
       </div>
 
       {/* Speed */}
-      <div className="w-40 shrink-0 space-y-2 rounded-lg border border-border bg-card p-3">
+      <div className="w-full space-y-2 rounded-lg border border-border bg-card p-3 sm:w-40 sm:shrink-0">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Speed
         </h3>
@@ -588,7 +588,7 @@ export function CombatBlock({
       </div>
 
       {/* Hit Points */}
-      <div className="min-w-0 max-w-72 flex-1 space-y-3 rounded-lg border border-border bg-card p-3">
+      <div className="w-full space-y-3 rounded-lg border border-border bg-card p-3 sm:min-w-0 sm:max-w-72 sm:flex-1">
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Hit Points
         </h3>
