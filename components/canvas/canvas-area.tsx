@@ -98,9 +98,10 @@ const SLIM_W = 10;
 type Props = {
   templates: CanvasTemplate[];
   onDeleteTemplate: (templateId: string) => void;
+  isMobile?: boolean;
 };
 
-export function CanvasArea({ templates, onDeleteTemplate }: Props) {
+export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Props) {
   const {
     cols,
     pages,
@@ -214,7 +215,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
   const equipmentH = Math.max(
     4,
     Math.round(
-      (equipmentSvgH(inventoryCount) * 12 * rows * 210) / (cols * 297 * 176),
+      (equipmentSvgH(inventoryCount) * 9 * rows * 210) / (cols * 297 * 132),
     ),
   );
   const trackersH = Math.max(
@@ -750,14 +751,14 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
   return (
     <DndContext
-      sensors={sensors}
+      sensors={isMobile ? [] : sensors}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
       <div className="flex min-h-0 items-start overflow-visible">
         {/* Sidebar palette */}
-        <aside className="sticky top-0 h-screen w-1/4 shrink-0 self-start overflow-y-auto border-r border-border bg-section p-4 space-y-3">
+        {!isMobile && <aside className="sticky top-0 h-screen w-1/4 shrink-0 self-start overflow-y-auto border-r border-border bg-section p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Your Templates
           </p>
@@ -800,43 +801,45 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
               <PaletteTile key={item.type} {...item} />
             ))}
           </div>
-        </aside>
+        </aside>}
 
         {/* Canvas column */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Page actions bar — top right */}
-          <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border bg-section px-3 py-1">
-            <button
-              type="button"
-              onClick={() => setOverviewMode((v) => !v)}
-              className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <LayoutGrid className="size-3" />
-              {overviewMode ? "Back to editor" : "Page overview"}
-            </button>
-            {!overviewMode && (
-              <>
-                <button
-                  type="button"
-                  onClick={addPage}
-                  className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Plus className="size-3" />
-                  Add page
-                </button>
-                {pages.length > 1 && (
+          {!isMobile && (
+            <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border bg-section px-3 py-1">
+              <button
+                type="button"
+                onClick={() => setOverviewMode((v) => !v)}
+                className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <LayoutGrid className="size-3" />
+                {overviewMode ? "Back to editor" : "Page overview"}
+              </button>
+              {!overviewMode && (
+                <>
                   <button
                     type="button"
-                    onClick={() => deletePage(currentPageIndex)}
-                    className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-destructive"
+                    onClick={addPage}
+                    className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    <Trash2 className="size-3" />
-                    Delete page
+                    <Plus className="size-3" />
+                    Add page
                   </button>
-                )}
-              </>
-            )}
-          </div>
+                  {pages.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => deletePage(currentPageIndex)}
+                      className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-destructive"
+                    >
+                      <Trash2 className="size-3" />
+                      Delete page
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {/* Overview mode */}
           {overviewMode && (
@@ -845,8 +848,9 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
           {/* Canvas display with floating nav arrows */}
           {!overviewMode && (
+            <>
             <div
-              className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center bg-muted/30 p-8"
+              className="relative flex md:min-h-[calc(100vh-8rem)] items-start md:items-center justify-center bg-muted/30 p-2 md:p-8"
               onClick={() => clearSelected()}
             >
               <div
@@ -875,7 +879,9 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                       selected={selectedIds.has(widget.id)}
                       isToolbarHost={lastSelectedId === widget.id}
                       wasAutoResized={autoResizedIds.has(widget.id)}
+                      isMobile={isMobile}
                       onSelect={(e) => {
+                        if (isMobile) return;
                         e.stopPropagation();
                         if (e.ctrlKey || e.metaKey) {
                           toggleSelected(widget.id);
@@ -914,28 +920,30 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                 </div>
               </div>
 
-              {/* Floating prev arrow */}
+              {/* Floating prev arrow — desktop only */}
               {currentPageIndex > 0 && (
                 <button
                   type="button"
                   onClick={() => setPage(currentPageIndex - 1)}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+                  className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
                 >
                   <ChevronLeft className="size-4" />
                 </button>
               )}
 
-              {/* Floating next arrow */}
+              {/* Floating next arrow — desktop only */}
               {currentPageIndex < pages.length - 1 && (
                 <button
                   type="button"
                   onClick={() => setPage(currentPageIndex + 1)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+                  className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
                 >
                   <ChevronRight className="size-4" />
                 </button>
               )}
             </div>
+
+            </>
           )}
         </div>
 

@@ -42,7 +42,7 @@ export function computeIdealWidgetH(
     case "SlimAttacks":
       return Math.max(2, Math.round((slimAttacksSvgH(actionsCount) * widget.w * rows * 210) / (cols * 297 * 176)));
     case "Equipment":
-      return Math.max(4, Math.round((equipmentSvgH(inventoryCount) * widget.w * rows * 210) / (cols * 297 * 176)));
+      return Math.max(4, Math.round((equipmentSvgH(inventoryCount) * widget.w * rows * 210) / (cols * 297 * 132)));
     case "Trackers":
       return Math.max(
         trackersCount <= 2 ? 4 : 2,

@@ -123,6 +123,7 @@ type Props = {
   isToolbarHost: boolean;
   printMode?: boolean;
   wasAutoResized?: boolean;
+  isMobile?: boolean;
   onSelect: (e: React.MouseEvent) => void;
   onRotate: () => void;
   onToggleLock: () => void;
@@ -137,6 +138,7 @@ export function PlacedWidget({
   isToolbarHost,
   printMode,
   wasAutoResized,
+  isMobile = false,
   onSelect,
   onToggleLock,
   onDelete,
@@ -185,7 +187,7 @@ export function PlacedWidget({
     useDraggable({
       id: widget.id,
       data: { source: "canvas", widgetId: widget.id },
-      disabled: widget.locked || !!printMode,
+      disabled: widget.locked || !!printMode || isMobile,
     });
 
   const posStyle: React.CSSProperties = {
@@ -249,7 +251,7 @@ export function PlacedWidget({
         )}
       </div>
 
-      {isToolbarHost && (
+      {!isMobile && isToolbarHost && (
         <div className="absolute -top-7 left-0 z-20 flex items-center gap-0.5 rounded border border-border bg-card px-1 py-0.5 shadow-sm">
           <button
             type="button"
