@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { Lock, Unlock, Trash2, Settings } from "lucide-react";
+import { Lock, Unlock, Trash2, Settings, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 import type { CanvasWidget, WidgetType } from "@/lib/types/canvas";
@@ -122,6 +122,7 @@ type Props = {
   selected: boolean;
   isToolbarHost: boolean;
   printMode?: boolean;
+  wasAutoResized?: boolean;
   onSelect: (e: React.MouseEvent) => void;
   onRotate: () => void;
   onToggleLock: () => void;
@@ -135,6 +136,7 @@ export function PlacedWidget({
   selected,
   isToolbarHost,
   printMode,
+  wasAutoResized,
   onSelect,
   onToggleLock,
   onDelete,
@@ -233,6 +235,14 @@ export function PlacedWidget({
         <WidgetContent type={widget.type} spellId={widget.spellId} spellStartIndex={widget.spellStartIndex} spellCount={widget.spellCount} featureId={widget.featureId} statId={widget.statId} trackerId={widget.trackerId} textSource={widget.textSource} />
         {widget.locked && (
           <Lock className="absolute left-1 top-1 size-3 text-muted-foreground" />
+        )}
+        {wasAutoResized && (
+          <div
+            className="pointer-events-none absolute right-1 top-1 z-20 flex size-4 items-center justify-center rounded-full bg-primary/80"
+            title="Height was auto-adjusted"
+          >
+            <RefreshCw className="size-2.5 text-primary-foreground" />
+          </div>
         )}
         {selected && (
           <div className="pointer-events-none absolute inset-0 z-10 rounded bg-primary/15" />

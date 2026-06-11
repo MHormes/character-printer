@@ -1,12 +1,20 @@
 "use client";
 
-import { useRef, useCallback, useSyncExternalStore, useState, useEffect } from "react";
+import {
+  useRef,
+  useCallback,
+  useSyncExternalStore,
+  useState,
+  useEffect,
+  useMemo,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronLeft,
   ChevronRight,
   LayoutGrid,
   Plus,
+  RefreshCw,
   Trash2,
 } from "lucide-react";
 import {
@@ -49,6 +57,9 @@ import { characteristicsSvgH } from "@/components/canvas/widgets/characteristics
 import { bioTextSvgH } from "@/components/canvas/widgets/bio-text-widget";
 import { featureCardGridH } from "@/components/canvas/widgets/feature-card-widget";
 import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
+import { otherProfSvgH } from "@/components/canvas/widgets/other-proficiencies-widget";
+import { toolProfSvgH } from "@/components/canvas/widgets/tool-proficiencies-widget";
+import { characteristicCardSvgH } from "@/components/canvas/widgets/characteristic-card-widget";
 
 const topLeftOnCursor: Modifier = ({
   activatorEvent,
@@ -330,6 +341,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     deletePage,
     setPage,
     replaceCurrentPage,
+    batchUpdateHeights,
   } = useCanvasStore();
   const rows = rowsForCols(cols);
   const [overviewMode, setOverviewMode] = useState(false);
@@ -348,7 +360,10 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         undo();
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key === "y" || (e.key === "z" && e.shiftKey))
+      ) {
         if (inInput) return;
         e.preventDefault();
         redo();
@@ -439,6 +454,19 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     ),
   );
 
+  const toolProfH = Math.max(
+    2,
+    Math.round(
+      (toolProfSvgH(toolCount) * 10 * rows * 210) / (cols * 297 * 164),
+    ),
+  );
+  const otherProfH = Math.max(
+    2,
+    Math.round(
+      (otherProfSvgH(otherCount) * 10 * rows * 210) / (cols * 297 * 185),
+    ),
+  );
+
   const spellLevelH = (level: number) => {
     const count =
       character?.spells.list.filter((s) => s.level === level).length ?? 0;
@@ -447,6 +475,184 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       Math.round((spellLevelSvgH(count) * 9 * rows * 210) / (cols * 297 * 120)),
     );
   };
+
+  function computeIdealH(widget: CanvasWidget): number | null {
+    switch (widget.type) {
+      case "ToolProficiencies":
+        return Math.max(
+          2,
+          Math.round(
+            (toolProfSvgH(toolCount) * widget.w * rows * 210) /
+              (cols * 297 * 164),
+          ),
+        );
+      case "OtherProficiencies":
+        return Math.max(
+          2,
+          Math.round(
+            (otherProfSvgH(otherCount) * widget.w * rows * 210) /
+              (cols * 297 * 185),
+          ),
+        );
+      case "SlimToolProf":
+        return Math.max(
+          2,
+          Math.round(
+            (slimToolSvgH(toolCount) * widget.w * rows * 210) /
+              (cols * 297 * 164),
+          ),
+        );
+      case "SlimOtherProf":
+        return Math.max(
+          2,
+          Math.round(
+            (slimOtherSvgH(otherCount) * widget.w * rows * 210) /
+              (cols * 297 * 185),
+          ),
+        );
+      case "Attacks":
+        return Math.max(
+          2,
+          Math.round(
+            (attacksSvgH(actionsCount) * widget.w * rows * 210) /
+              (cols * 297 * 176),
+          ),
+        );
+      case "SlimAttacks":
+        return Math.max(
+          2,
+          Math.round(
+            (slimAttacksSvgH(actionsCount) * widget.w * rows * 210) /
+              (cols * 297 * 176),
+          ),
+        );
+      case "Equipment":
+        return Math.max(
+          4,
+          Math.round(
+            (equipmentSvgH(inventoryCount) * widget.w * rows * 210) /
+              (cols * 297 * 176),
+          ),
+        );
+      case "Trackers":
+        return Math.max(
+          trackersCount <= 2 ? 4 : 2,
+          Math.round(
+            (trackerSvgH(trackersCount) * widget.w * rows * 210) /
+              (cols * 297 * 171),
+          ),
+        );
+      case "Features":
+        return Math.max(
+          2,
+          Math.round(
+            (featuresSvgH(featuresCount) * widget.w * rows * 210) /
+              (cols * 297 * 96),
+          ),
+        );
+      case "Characteristics":
+        return Math.max(
+          4,
+          Math.round(
+            (characteristicsSvgH(character?.characteristics) *
+              widget.w *
+              rows *
+              210) /
+              (cols * 297 * 96),
+          ),
+        );
+      case "SpellLevel0":
+      case "SpellLevel1":
+      case "SpellLevel2":
+      case "SpellLevel3":
+      case "SpellLevel4":
+      case "SpellLevel5":
+      case "SpellLevel6":
+      case "SpellLevel7":
+      case "SpellLevel8":
+      case "SpellLevel9": {
+        const level = parseInt(widget.type.replace("SpellLevel", ""), 10);
+        const count =
+          character?.spells.list.filter((s) => s.level === level).length ?? 0;
+        return Math.max(
+          count > 0 ? 3 : 2,
+          Math.round(
+            (spellLevelSvgH(count) * widget.w * rows * 210) /
+              (cols * 297 * 120),
+          ),
+        );
+      }
+      case "FeatureCard": {
+        const feature = character?.features.find(
+          (f) => f.id === widget.featureId,
+        );
+        if (!feature) return null;
+        return Math.min(
+          rows,
+          featureCardGridH(feature.description, widget.w, cols, rows),
+        );
+      }
+      case "CharacteristicCard": {
+        if (!widget.textSource) return null;
+        const text =
+          (character?.characteristics as Record<string, string> | undefined)?.[
+            widget.textSource
+          ] ?? "";
+        return Math.min(
+          rows,
+          Math.max(
+            2,
+            Math.round(
+              (characteristicCardSvgH(text) * widget.w * rows * 210) /
+                (cols * 297 * 96),
+            ),
+          ),
+        );
+      }
+      case "BioText": {
+        if (!widget.textSource) return null;
+        const text =
+          (character?.bio as Record<string, string> | undefined)?.[
+            widget.textSource
+          ] ?? "";
+        return Math.min(
+          rows,
+          Math.max(
+            3,
+            Math.round(
+              (bioTextSvgH(text) * widget.w * rows * 210) / (cols * 297 * 96),
+            ),
+          ),
+        );
+      }
+      default:
+        return null;
+    }
+  }
+
+  const staleUpdates = useMemo(() => {
+    const updates: { id: string; h: number }[] = [];
+    for (const widget of widgets) {
+      const ideal = computeIdealH(widget);
+      if (ideal !== null && ideal !== widget.h)
+        updates.push({ id: widget.id, h: ideal });
+    }
+    return updates;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [widgets, character, cols, rows]);
+
+  const [autoResizedIds, setAutoResizedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (staleUpdates.length === 0) return;
+    batchUpdateHeights(staleUpdates);
+    setAutoResizedIds((prev) => {
+      const next = new Set(prev);
+      staleUpdates.forEach((u) => next.add(u.id));
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staleUpdates]);
 
   const PALETTE_ITEMS = [
     { type: "CharacterName" as const, label: "Character Name", w: 15, h: 3 },
@@ -487,8 +693,18 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     },
     { type: "SavingThrows" as const, label: "Saving Throws", w: 5, h: 4 },
     { type: "Skills" as const, label: "Skills", w: 7, h: 13 },
-    { type: "ToolProficiencies" as const, label: "Tool Prof.", w: 10, h: 5 },
-    { type: "OtherProficiencies" as const, label: "Other Prof.", w: 10, h: 5 },
+    {
+      type: "ToolProficiencies" as const,
+      label: "Tool Prof.",
+      w: 10,
+      h: toolProfH,
+    },
+    {
+      type: "OtherProficiencies" as const,
+      label: "Other Prof.",
+      w: 10,
+      h: otherProfH,
+    },
     {
       type: "SlimToolProf" as const,
       label: "Slim Tools",
@@ -614,13 +830,15 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     w: number;
     h: number;
   } | null>(null);
-  const [groupDropPreviews, setGroupDropPreviews] = useState<{
-    id: string;
-    col: number;
-    row: number;
-    w: number;
-    h: number;
-  }[]>([]);
+  const [groupDropPreviews, setGroupDropPreviews] = useState<
+    {
+      id: string;
+      col: number;
+      row: number;
+      w: number;
+      h: number;
+    }[]
+  >([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -641,7 +859,11 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     setActiveData(data);
     setDropPreview(null);
     setGroupDropPreviews([]);
-    if (data.source === "canvas" && data.widgetId && !selectedIds.has(data.widgetId)) {
+    if (
+      data.source === "canvas" &&
+      data.widgetId &&
+      !selectedIds.has(data.widgetId)
+    ) {
       setSelected(data.widgetId);
     }
   }
@@ -758,7 +980,9 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
       if (data.type === "TemplateSpellCards") {
         const spells = [...(character?.spells.list ?? [])].sort((a, b) =>
-          a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
+          a.level !== b.level
+            ? a.level - b.level
+            : a.name.localeCompare(b.name),
         );
         if (spells.length === 0) return;
 
@@ -926,7 +1150,9 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
       if (data.type === "FullPageSpells") {
         const spells = [...(character?.spells.list ?? [])].sort((a, b) =>
-          a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
+          a.level !== b.level
+            ? a.level - b.level
+            : a.name.localeCompare(b.name),
         );
         if (spells.length === 0) return;
 
@@ -943,18 +1169,20 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         for (let i = 0; i < spells.length; i += perPage) {
           pageWidgets.push({
             cols,
-            widgets: [{
-              type: "FullPageSpells" as WidgetType,
-              col: 0,
-              row: 0,
-              w: cols,
-              h: rows,
-              rotation: 0 as const,
-              locked: false,
-              printState: "Calculated" as const,
-              spellStartIndex: i,
-              spellCount: Math.min(perPage, spells.length - i),
-            }],
+            widgets: [
+              {
+                type: "FullPageSpells" as WidgetType,
+                col: 0,
+                row: 0,
+                w: cols,
+                h: rows,
+                rotation: 0 as const,
+                locked: false,
+                printState: "Calculated" as const,
+                spellStartIndex: i,
+                spellCount: Math.min(perPage, spells.length - i),
+              },
+            ],
           });
         }
         addWidgetsMultiPage(pageWidgets);
@@ -1024,11 +1252,11 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       const isGroupDrag = selectedIds.has(draggedId) && selectedIds.size > 1;
 
       if (isGroupDrag) {
-        const selected = widgets.filter(w => selectedIds.has(w.id));
-        if (selected.some(w => w.locked)) return;
+        const selected = widgets.filter((w) => selectedIds.has(w.id));
+        if (selected.some((w) => w.locked)) return;
         const deltaCols = Math.round(delta.x / cellW);
         const deltaRows = Math.round(delta.y / cellH);
-        const moves = selected.map(w => ({
+        const moves = selected.map((w) => ({
           id: w.id,
           col: Math.max(0, Math.min(w.col + deltaCols, cols - w.w)),
           row: Math.max(0, Math.min(w.row + deltaRows, rows - w.h)),
@@ -1039,8 +1267,14 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         if (!widget || widget.locked) return;
         const deltaCols = Math.round(delta.x / cellW);
         const deltaRows = Math.round(delta.y / cellH);
-        const newCol = Math.max(0, Math.min(widget.col + deltaCols, cols - widget.w));
-        const newRow = Math.max(0, Math.min(widget.row + deltaRows, rows - widget.h));
+        const newCol = Math.max(
+          0,
+          Math.min(widget.col + deltaCols, cols - widget.w),
+        );
+        const newRow = Math.max(
+          0,
+          Math.min(widget.row + deltaRows, rows - widget.h),
+        );
         moveWidget(widget.id, newCol, newRow);
       }
     }
@@ -1091,15 +1325,15 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       const isGroupDrag = selectedIds.has(draggedId) && selectedIds.size > 1;
 
       if (isGroupDrag) {
-        const selected = widgets.filter(w => selectedIds.has(w.id));
-        if (selected.some(w => w.locked)) {
+        const selected = widgets.filter((w) => selectedIds.has(w.id));
+        if (selected.some((w) => w.locked)) {
           setDropPreview(null);
           setGroupDropPreviews([]);
           return;
         }
         const deltaCols = Math.round(delta.x / cellW);
         const deltaRows = Math.round(delta.y / cellH);
-        const previews = selected.map(w => ({
+        const previews = selected.map((w) => ({
           id: w.id,
           col: Math.max(0, Math.min(w.col + deltaCols, cols - w.w)),
           row: Math.max(0, Math.min(w.row + deltaRows, rows - w.h)),
@@ -1135,7 +1369,10 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
   }
 
   const mounted = useSyncExternalStore(
-    (cb) => { cb(); return () => {}; },
+    (cb) => {
+      cb();
+      return () => {};
+    },
     () => true,
     () => false,
   );
@@ -1266,6 +1503,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                       rows={rows}
                       selected={selectedIds.has(widget.id)}
                       isToolbarHost={lastSelectedId === widget.id}
+                      wasAutoResized={autoResizedIds.has(widget.id)}
                       onSelect={(e) => {
                         e.stopPropagation();
                         if (e.ctrlKey || e.metaKey) {
