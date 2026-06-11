@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client"
 import { dbCharacters, dbClasses } from "@/lib/db/tables"
 import { normalizeCanvasPages } from "@/lib/canvas/page-utils"
 import { createDefaultCharacter } from "@/lib/character/defaults"
-import type { CharacterData, AttributeKey, Edition } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, Edition, CharacterMode } from "@/lib/types/character"
 import { and, eq, sql } from "drizzle-orm"
 import { randomUUID } from "crypto"
 import { auth } from "@/lib/auth"
@@ -59,6 +59,7 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
     ...defaults,
     ...data,
     edition: data.edition ?? "2014",
+    mode: data.mode ?? "player",
     selectionIgnores: {
       race: data.selectionIgnores?.race ?? defaults.selectionIgnores!.race,
       background: data.selectionIgnores?.background ?? defaults.selectionIgnores!.background,
@@ -110,9 +111,9 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
   }
 }
 
-export async function createCharacter(userId: string, edition: Edition = "2014"): Promise<{ id: string }> {
+export async function createCharacter(userId: string, edition: Edition = "2014", mode: CharacterMode = "player"): Promise<{ id: string }> {
   const id = randomUUID()
-  const data = createDefaultCharacter(id, edition)
+  const data = createDefaultCharacter(id, edition, mode)
 
   await anyDb.insert(dbCharacters).values({
     id,
@@ -173,6 +174,7 @@ export type CharacterSummary = {
   updatedAt: Date | null
   system: string
   edition: Edition
+  mode: CharacterMode
   race: string
   classLabels: string
   level: number
@@ -210,6 +212,7 @@ export async function listAllCharacters(userId: string): Promise<CharacterSummar
         updatedAt: toDate(row.updatedAt) ?? toDate(row.createdAt),
         system,
         edition: (data.edition ?? "2014") as Edition,
+        mode: (data.mode ?? "player") as CharacterMode,
         race: data.identity?.race ?? "",
         classLabels,
         level: data.identity?.level ?? 1,

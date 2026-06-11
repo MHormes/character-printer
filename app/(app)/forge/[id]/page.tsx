@@ -253,6 +253,7 @@ export default function ForgePage({
     const char = characterRef.current;
     if (
       !char ||
+      char.mode === "npc" ||
       availableRaces.length === 0 ||
       availableBackgrounds.length === 0
     )
@@ -877,7 +878,7 @@ export default function ForgePage({
                       availableRaces={availableRaces}
                       availableSubraces={availableSubraces}
                     />
-                    <RaceChoicesPanel
+                    {character.mode !== "npc" && <RaceChoicesPanel
                       pendingChoices={racePendingChoices}
                       languagePendingChoices={raceLanguagePendingChoices}
                       toolPendingChoices={raceToolPendingChoices}
@@ -909,7 +910,7 @@ export default function ForgePage({
                       gainedIsOpen={openGainedPanel === "race"}
                       onGainedToggle={() => setOpenGainedPanel((v) => v === "race" ? null : "race")}
                       onRevert={handleRevertRaceChoice}
-                    />
+                    />}
                   </div>
                   <div className="space-y-2">
                     <BackgroundField
@@ -926,7 +927,7 @@ export default function ForgePage({
                       onIgnoreAutomationChange={setBackgroundAutomationIgnored}
                       availableBackgrounds={availableBackgrounds}
                     />
-                    <BackgroundChoicesPanel
+                    {character.mode !== "npc" && <BackgroundChoicesPanel
                       pendingChoices={backgroundPendingChoices}
                       languages={availableLanguages}
                       tools={availableTools}
@@ -950,7 +951,7 @@ export default function ForgePage({
                       gainedIsOpen={openGainedPanel === "background"}
                       onGainedToggle={() => setOpenGainedPanel((v) => v === "background" ? null : "background")}
                       onRevert={handleRevertBackgroundChoice}
-                    />
+                    />}
                   </div>
                   <StringField
                     label="Deity"
@@ -999,7 +1000,7 @@ export default function ForgePage({
                         }
                       }}
                     />
-                    <ClassChoicesPanel
+                    {character.mode !== "npc" && <ClassChoicesPanel
                       pendingChoices={pendingChoices}
                       equipmentPendingChoices={equipmentPendingChoices}
                       availableFeats={availableFeats}
@@ -1020,7 +1021,7 @@ export default function ForgePage({
                       gainedIsOpen={openGainedPanel === "class"}
                       onGainedToggle={() => setOpenGainedPanel((v) => v === "class" ? null : "class")}
                       onRevertChoice={handleRevertClassChoice}
-                    />
+                    />}
                   </div>
                 </div>
               </div>

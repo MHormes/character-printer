@@ -14,7 +14,7 @@ import { Pencil, Scroll } from "lucide-react";
 import { NewCharacterDialog } from "@/components/characters/new-character-dialog";
 import { DeleteCharacterButton } from "@/components/characters/delete-character-button";
 import { LogoutButton } from "@/components/auth/logout-button";
-import type { Edition } from "@/lib/types/character";
+import type { Edition, CharacterMode } from "@/lib/types/character";
 
 const EDITION_LABELS: Record<Edition, string> = {
   "2014": "D&D 5e 2014",
@@ -31,7 +31,8 @@ async function createAction(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const edition = (formData.get("edition") as Edition) || "2014";
-  const { id } = await createCharacter(session.user.id, edition);
+  const mode = (formData.get("mode") as CharacterMode) || "player";
+  const { id } = await createCharacter(session.user.id, edition, mode);
   redirect(`/forge/${id}`);
 }
 
@@ -108,9 +109,16 @@ export default async function CharactersPage() {
               >
                 {/* Card accent + system badge + actions */}
                 <div className="bg-primary px-4 py-2.5 flex items-center justify-between">
-                  <span className="font-cinzel text-[10px] tracking-[0.25em] uppercase text-primary-foreground/70">
-                    {EDITION_LABELS[char.edition] ?? char.edition}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-cinzel text-[10px] tracking-[0.25em] uppercase text-primary-foreground/70">
+                      {EDITION_LABELS[char.edition] ?? char.edition}
+                    </span>
+                    {char.mode === "npc" && (
+                      <span className="font-cinzel text-[9px] tracking-[0.2em] uppercase text-primary-foreground/50 border border-primary-foreground/30 rounded px-1 py-0.5">
+                        NPC
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1.5">
                     <Link
                       href={`/forge/${char.id}`}

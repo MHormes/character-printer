@@ -49,10 +49,11 @@ const SPELL_SLOTS = Object.fromEntries(
   ])
 )
 
-export function createDefaultCharacter(id: string, edition: CharacterData["edition"] = "2014"): CharacterData {
+export function createDefaultCharacter(id: string, edition: CharacterData["edition"] = "2014", mode: CharacterData["mode"] = "player"): CharacterData {
   return {
     version: "1.0.0",
     edition,
+    mode,
     profBonusStack: [],
     selectionIgnores: {
       race: false,
