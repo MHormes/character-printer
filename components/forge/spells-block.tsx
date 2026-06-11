@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle, Search, Loader2, Lock, Sword } from "lucide-react"
+import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle, Search, Loader2, Lock, Sword, AlertTriangle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
@@ -13,6 +13,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from "@dnd-kit/utilities"
 import { searchSpells } from "@/lib/actions/5e-data"
 import type { ClassRow, SpellRow } from "@/lib/actions/5e-data"
+import { spellCardDescCap, spellDescFitsCard, spellDescEffectiveLength } from "@/components/canvas/widgets/spell-card-widget"
 
 type SlotData = { base: number; stack: ModifierEntry[]; override: number | null }
 
@@ -925,12 +926,36 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
           </div>
 
           <div className="space-y-1">
-            <span className="text-xs text-muted-foreground">Description</span>
-            <textarea value={spell.description} placeholder="Spell description..."
-              onChange={e => onPatch({ description: e.target.value })}
-              rows={3}
-              className="w-full resize-y rounded-md border border-input bg-background p-2 text-xs focus:outline-none focus:border-ring"
-            />
+            {(() => {
+              const hasMat = spell.components.material && !!spell.components.materialDesc.trim()
+              const descCap = spellCardDescCap(hasMat)
+              const descOverLimit = !spellDescFitsCard(spell.description, hasMat)
+              return (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Description</span>
+                    <div className="flex items-center gap-1.5">
+                      {descOverLimit && (
+                        <div className="group relative">
+                          <AlertTriangle className="size-3 text-amber-500 cursor-default" />
+                          <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 w-52 rounded border border-border bg-card p-1.5 text-xs text-muted-foreground shadow-md">
+                            Description overflows the spell card area. Paragraph breaks count as extra height (cap: ~{descCap} chars).
+                          </div>
+                        </div>
+                      )}
+                      <span className={cn("text-xs tabular-nums", descOverLimit ? "text-amber-500" : "text-muted-foreground/50")}>
+                        {spellDescEffectiveLength(spell.description)}/{descCap}
+                      </span>
+                    </div>
+                  </div>
+                  <textarea value={spell.description} placeholder="Spell description..."
+                    onChange={e => onPatch({ description: e.target.value })}
+                    rows={3}
+                    className="w-full resize-y rounded-md border border-input bg-background p-2 text-xs focus:outline-none focus:border-ring"
+                  />
+                </>
+              )
+            })()}
           </div>
 
           {spell.level > 0 && (

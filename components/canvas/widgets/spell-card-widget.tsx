@@ -8,7 +8,45 @@ import { getSpell } from "@/lib/actions/5e-data";
 import type { SpellRow } from "@/lib/actions/5e-data";
 
 export const SPELL_CARD_GRID_W = 7;
-export const SPELL_CARD_GRID_H = 10;
+export const SPELL_CARD_GRID_H = 13;
+
+export function spellCardDescCap(hasMaterial: boolean): number {
+  const LINE_H = 6.5 * 1.45;
+  const charsPerLine = Math.floor(164 / (6.5 * 0.5));
+  const CH = 330, DESC_Y = 87;
+  const COMP_H = hasMaterial ? 7.5 + 10 : 0;
+  const COMP_Y = hasMaterial ? CH - COMP_H - 8 : CH;
+  const DESC_H = COMP_Y - DESC_Y - (hasMaterial ? 3 : 6);
+  return Math.floor(DESC_H / LINE_H) * charsPerLine;
+}
+
+export function spellDescEffectiveLength(desc: string): number {
+  const PARA_GAP = 6.5 * 0.65;
+  const LINE_H = 6.5 * 1.45;
+  const charsPerLine = Math.floor(164 / (6.5 * 0.5));
+  const extraParas = Math.max(0, desc.split(/\n\n+/).length - 1);
+  return desc.length + extraParas * Math.round((PARA_GAP / LINE_H) * charsPerLine);
+}
+
+export function spellDescFitsCard(desc: string, hasMaterial: boolean): boolean {
+  const FONT_SIZE = 6.5;
+  const LINE_H = FONT_SIZE * 1.45;
+  const PARA_GAP = FONT_SIZE * 0.65;
+  const CH = 330, DESC_Y = 87;
+  const COMP_H = hasMaterial ? 7.5 + 10 : 0;
+  const COMP_Y = hasMaterial ? CH - COMP_H - 8 : CH;
+  const DESC_H = COMP_Y - DESC_Y - (hasMaterial ? 3 : 6);
+  let curY = DESC_Y + FONT_SIZE;
+  for (let pi = 0, paras = desc.split(/\n\n+/); pi < paras.length; pi++) {
+    if (curY > DESC_Y + DESC_H) return false;
+    if (pi > 0) curY += PARA_GAP;
+    for (const _ of wrapText(paras[pi].replace(/\n/g, " ").trim(), 164, FONT_SIZE)) {
+      if (curY > DESC_Y + DESC_H) return false;
+      curY += LINE_H;
+    }
+  }
+  return true;
+}
 
 const ff = "Georgia, 'Times New Roman', serif";
 
@@ -44,7 +82,7 @@ function wrapText(text: string, width: number, fontSize: number): string[] {
 
 export function SpellCardSvg({ spell }: { spell: SpellEntry }) {
   const CW = 180,
-    CH = 252,
+    CH = 330,
     PAD = 8,
     MX = 90;
   const TITLE_H = 36;
@@ -52,17 +90,23 @@ export function SpellCardSvg({ spell }: { spell: SpellEntry }) {
   const STAT1_Y = TITLE_H;
   const STAT2_Y = TITLE_H + STAT_H;
   const DIV2_Y = TITLE_H + STAT_H * 2;
-  const FOOTER_H = 16;
-  const FOOTER_Y = CH - FOOTER_H;
 
   const hasMatDesc = !!(
     spell.components.material && spell.components.materialDesc.trim()
   );
-  const COMP_H = hasMatDesc ? 24 : 0;
-  const COMP_Y = hasMatDesc ? FOOTER_Y - COMP_H - 4 : FOOTER_Y;
 
+  const matLines = hasMatDesc
+    ? wrapText(
+        `Material Component: ${spell.components.materialDesc}`,
+        CW - PAD * 2 - 11,
+        5.5,
+      )
+    : [];
+
+  const COMP_H = hasMatDesc ? matLines.length * 7.5 + 10 : 0;
+  const COMP_Y = hasMatDesc ? CH - COMP_H - 8 : CH;
   const DESC_Y = DIV2_Y + 3;
-  const DESC_H = COMP_Y - DESC_Y - (hasMatDesc ? 3 : 2);
+  const DESC_H = COMP_Y - DESC_Y - (hasMatDesc ? 3 : 6);
 
   const FONT_SIZE = 6.5;
   const LINE_H = FONT_SIZE * 1.45;
@@ -95,22 +139,6 @@ export function SpellCardSvg({ spell }: { spell: SpellEntry }) {
       curY += LINE_H;
     }
   }
-
-  const matLines = hasMatDesc
-    ? wrapText(
-        `Material Component: ${spell.components.materialDesc}`,
-        CW - PAD * 2 - 11,
-        5.5,
-      ).slice(0, 3)
-    : [];
-
-  const footerText = [
-    spell.school,
-    spell.tags.ritual ? "Ritual" : null,
-    spell.tags.concentration ? "Concentration" : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
 
   return (
     <svg
@@ -196,6 +224,12 @@ export function SpellCardSvg({ spell }: { spell: SpellEntry }) {
         letterSpacing="0.4"
       >
         CASTING TIME
+        {spell.tags.ritual && (
+          <tspan fontSize="4" fill="#7a4a18">
+            {" "}
+            ◉ R
+          </tspan>
+        )}
       </text>
       <text
         x={PAD}
@@ -370,29 +404,6 @@ export function SpellCardSvg({ spell }: { spell: SpellEntry }) {
         </>
       )}
 
-      {/* ── Footer ── */}
-      <line
-        x1={PAD}
-        y1={FOOTER_Y}
-        x2={CW - PAD}
-        y2={FOOTER_Y}
-        stroke="#1a1208"
-        strokeWidth="0.5"
-        opacity="0.35"
-      />
-
-      <text
-        x={MX}
-        y={FOOTER_Y + FOOTER_H / 2}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize="5"
-        fontFamily={ff}
-        fill="#6a5a48"
-        fontStyle="italic"
-      >
-        {footerText}
-      </text>
     </svg>
   );
 }
