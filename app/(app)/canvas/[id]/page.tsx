@@ -1,10 +1,13 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Hammer,
   Grid3x3,
   Printer,
@@ -25,6 +28,7 @@ import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useCharacterStore } from "@/lib/store/character-store";
 import { loadCharacter } from "@/lib/actions/character";
 import { useSaveCharacter } from "@/lib/hooks/use-save-character";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import { exportPdf } from "@/lib/canvas/export-pdf";
 import {
   createCanvasTemplate,
@@ -55,6 +59,8 @@ export default function CanvasPage({
   const cols = useCanvasStore((s) => s.cols);
   const setCols = useCanvasStore((s) => s.setCols);
   const canvasPages = useCanvasStore((s) => s.pages);
+  const currentPageIndex = useCanvasStore((s) => s.currentPageIndex);
+  const setPage = useCanvasStore((s) => s.setPage);
   const setCanvasData = useCanvasStore((s) => s.setCanvasData);
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
@@ -68,6 +74,9 @@ export default function CanvasPage({
   const setAutoSave = useCharacterStore((s) => s.setAutoSave);
 
   const rows = Math.ceil((cols * 297) / 210);
+  const isMobile = useIsMobile();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   const { saveStatus, handleSave, handleToggleAutoSave } = useSaveCharacter({
     id,
@@ -168,19 +177,23 @@ export default function CanvasPage({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Primary nav bar */}
-      <header className="flex shrink-0 items-center justify-between bg-primary px-8 py-3">
-        <div className="flex items-center gap-4">
+      <header className="flex shrink-0 items-center justify-between bg-primary px-4 md:px-8 py-3">
+        <div className="flex items-center gap-4 min-w-0">
           <Link
             href="/characters"
-            className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/70 hover:text-primary-foreground transition-colors flex items-center gap-2"
+            className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/70 hover:text-primary-foreground transition-colors flex items-center gap-2 shrink-0"
           >
             <ArrowLeft className="size-3.5" />
             Characters
           </Link>
-          <div className="h-4 w-px bg-primary-foreground/20" />
-          <span className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground">
-            {character.identity.name || "Canvas"}
-          </span>
+          {!isMobile && (
+            <>
+              <div className="h-4 w-px bg-primary-foreground/20" />
+              <span className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground truncate">
+                {character.identity.name || "Canvas"}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Link
@@ -190,40 +203,44 @@ export default function CanvasPage({
             <Hammer className="size-4" />
             Forge
           </Link>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={undo}
-            disabled={historyLength === 0}
-            title="Undo (Ctrl+Z)"
-            className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 disabled:opacity-30"
-          >
-            <Undo2 className="size-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={redo}
-            disabled={futureLength === 0}
-            title="Redo (Ctrl+Shift+Z)"
-            className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 disabled:opacity-30"
-          >
-            <Redo2 className="size-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleSave}
-            disabled={saveStatus === "saving"}
-          >
-            <Save className="size-4" />
-            Save
-          </Button>
+          {!isMobile && (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={undo}
+                disabled={historyLength === 0}
+                title="Undo (Ctrl+Z)"
+                className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 disabled:opacity-30"
+              >
+                <Undo2 className="size-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={redo}
+                disabled={futureLength === 0}
+                title="Redo (Ctrl+Shift+Z)"
+                className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 disabled:opacity-30"
+              >
+                <Redo2 className="size-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleSave}
+                disabled={saveStatus === "saving"}
+              >
+                <Save className="size-4" />
+                Save
+              </Button>
+            </>
+          )}
         </div>
       </header>
 
       {/* Secondary action bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-border bg-section px-8 py-2">
+      {!isMobile && <div className="flex shrink-0 items-center justify-between border-b border-border bg-section px-8 py-2">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           {saveStatus === "saving" && (
             <>
@@ -342,7 +359,7 @@ export default function CanvasPage({
             Export PDF
           </Button>
         </div>
-      </div>
+      </div>}
 
       {templateError && (
         <div className="border-b border-border bg-section px-8 py-2 text-xs text-destructive">
@@ -353,7 +370,36 @@ export default function CanvasPage({
       <CanvasArea
         templates={templates}
         onDeleteTemplate={handleDeleteTemplate}
+        isMobile={isMobile}
       />
+
+      {/* Mobile page navigation — portaled to body so fixed bottom-0 is never contained */}
+      {mounted && isMobile && canvasPages.length > 1 && createPortal(
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 border-t border-border bg-section">
+          <button
+            type="button"
+            onClick={() => setPage(currentPageIndex - 1)}
+            disabled={currentPageIndex === 0}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground disabled:opacity-30 transition-colors hover:text-foreground"
+          >
+            <ChevronLeft className="size-4" />
+            Previous
+          </button>
+          <span className="text-xs text-muted-foreground">
+            {currentPageIndex + 1} / {canvasPages.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(currentPageIndex + 1)}
+            disabled={currentPageIndex === canvasPages.length - 1}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground disabled:opacity-30 transition-colors hover:text-foreground"
+          >
+            Next
+            <ChevronRight className="size-4" />
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
