@@ -25,6 +25,7 @@ import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useCharacterStore } from "@/lib/store/character-store";
 import { loadCharacter } from "@/lib/actions/character";
 import { useSaveCharacter } from "@/lib/hooks/use-save-character";
+import { exportPdf } from "@/lib/canvas/export-pdf";
 import {
   createCanvasTemplate,
   deleteCanvasTemplate,
@@ -130,87 +131,10 @@ export default function CanvasPage({
 
   async function handleExportPdf() {
     if (pdfStatus === "exporting") return;
-
-    const printRoot = document.getElementById("print-all-pages");
-    if (!printRoot) return;
-
     setPdfStatus("exporting");
-
-    const exportHost = document.createElement("div");
-    exportHost.setAttribute("aria-hidden", "true");
-    exportHost.style.position = "fixed";
-    exportHost.style.left = "-100000px";
-    exportHost.style.top = "0";
-    exportHost.style.pointerEvents = "none";
-    exportHost.style.opacity = "0";
-    exportHost.style.background = "white";
-
     try {
-      if ("fonts" in document) {
-        await document.fonts.ready;
-      }
-
-      const [{ toJpeg }, { jsPDF }] = await Promise.all([
-        import("html-to-image"),
-        import("jspdf"),
-      ]);
-
-      const clonedRoot = printRoot.cloneNode(true) as HTMLDivElement;
-      clonedRoot.id = "pdf-export-pages";
-      clonedRoot.style.display = "block";
-      exportHost.appendChild(clonedRoot);
-      document.body.appendChild(exportHost);
-
-      const pageNodes = Array.from(clonedRoot.children).filter(
-        (node): node is HTMLElement => node instanceof HTMLElement,
-      );
-
-      if (pageNodes.length === 0) return;
-
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-        compress: true,
-      });
-
-      for (const [index, pageNode] of pageNodes.entries()) {
-        // Ensure the node is visible and has dimensions
-        const width = pageNode.offsetWidth || 794; // fallback to ~210mm at 96dpi
-        const height = pageNode.offsetHeight || 1123; // fallback to ~297mm at 96dpi
-
-        const imageData = await toJpeg(pageNode, {
-          backgroundColor: "#ffffff",
-          cacheBust: true,
-          pixelRatio: 2,
-          quality: 0.95,
-          width: width,
-          height: height,
-        });
-
-        const pageHeight = (height * 210) / width;
-
-        if (index > 0) {
-          pdf.addPage("a4", "portrait");
-        }
-
-        pdf.addImage(
-          imageData,
-          "JPEG",
-          0,
-          0,
-          210,
-          pageHeight,
-          undefined,
-          "FAST",
-        );
-      }
-
-      const baseName = character?.identity.name?.trim() || "character-sheet";
-      const fileName = `${baseName.replace(/[<>:\"/\\|?*\u0000-\u001F]+/g, "-")}.pdf`;
-      pdf.save(fileName);
+      await exportPdf(character?.identity.name);
     } finally {
-      exportHost.remove();
       setPdfStatus("idle");
     }
   }
