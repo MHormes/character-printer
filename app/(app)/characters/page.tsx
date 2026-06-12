@@ -10,7 +10,7 @@ import {
 } from "@/lib/actions/character";
 import { auth } from "@/lib/auth";
 import { buttonVariants } from "@/components/ui/button";
-import { Pencil, Scroll } from "lucide-react";
+import { Pencil, Scroll, Shield } from "lucide-react";
 import { NewCharacterDialog } from "@/components/characters/new-character-dialog";
 import { DeleteCharacterButton } from "@/components/characters/delete-character-button";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -63,6 +63,15 @@ export default async function CharactersPage() {
           Character Printer
         </Link>
         <div className="flex items-center gap-2">
+          {session.user.role === "admin" && (
+            <Link
+              href="/admin/users"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              <Shield className="size-3.5" />
+              Admin
+            </Link>
+          )}
           <NewCharacterDialog createAction={createAction} size="sm" />
           <Link
             href="/settings"

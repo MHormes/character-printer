@@ -10,6 +10,7 @@ declare module "next-auth" {
       username: string
       role: "admin" | "user"
       emailVerified: boolean
+      disabled: boolean
     }
   }
   interface User {
@@ -17,6 +18,7 @@ declare module "next-auth" {
     username: string
     role: "admin" | "user"
     emailVerified: boolean
+    disabled: boolean
   }
 }
 
@@ -26,5 +28,6 @@ declare module "next-auth/jwt" {
     username: string
     role: "admin" | "user"
     emailVerified: boolean
+    disabled: boolean
   }
 }

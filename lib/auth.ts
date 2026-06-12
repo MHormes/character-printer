@@ -48,6 +48,8 @@ export const authOptions: NextAuthOptions = {
           if (delta === null) return null
         }
 
+        if (user.disabled) throw new Error("ACCOUNT_DISABLED")
+
         return {
           id: user.id,
           email: user.email,
@@ -55,6 +57,7 @@ export const authOptions: NextAuthOptions = {
           username: user.username,
           role: user.role,
           emailVerified: !!user.emailVerified,
+          disabled: false,
         }
       },
     }),
@@ -66,14 +69,15 @@ export const authOptions: NextAuthOptions = {
         token.username = user.username
         token.role = user.role
         token.emailVerified = user.emailVerified as boolean
-      } else if (!token.emailVerified && token.id) {
-        // Re-check DB on each request until email is verified
+        token.disabled = false
+      } else if ((!token.emailVerified || token.disabled) && token.id) {
         const rows = await anyDb
-          .select({ emailVerified: dbUsers.emailVerified })
+          .select({ emailVerified: dbUsers.emailVerified, disabled: dbUsers.disabled })
           .from(dbUsers)
           .where(eq(dbUsers.id, token.id as string))
           .limit(1)
         token.emailVerified = !!rows[0]?.emailVerified
+        token.disabled = !!rows[0]?.disabled
       }
       return token
     },
@@ -82,6 +86,7 @@ export const authOptions: NextAuthOptions = {
       session.user.username = token.username as string
       session.user.role = token.role as "admin" | "user"
       session.user.emailVerified = token.emailVerified as boolean
+      session.user.disabled = token.disabled as boolean
       return session
     },
   },
