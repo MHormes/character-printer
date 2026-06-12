@@ -9,12 +9,14 @@ declare module "next-auth" {
       name?: string | null
       username: string
       role: "admin" | "user"
+      emailVerified: boolean
     }
   }
   interface User {
     id: string
     username: string
     role: "admin" | "user"
+    emailVerified: boolean
   }
 }
 
@@ -23,5 +25,6 @@ declare module "next-auth/jwt" {
     id: string
     username: string
     role: "admin" | "user"
+    emailVerified: boolean
   }
 }

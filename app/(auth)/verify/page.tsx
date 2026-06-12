@@ -1,4 +1,5 @@
-import { RegisterForm } from "@/components/auth/register-form"
+import { verifyTokenAction } from "@/lib/actions/verify-email"
+import { redirect } from "next/navigation"
 import Link from "next/link"
 
 const D20Mini = () => (
@@ -19,7 +20,21 @@ const D20Mini = () => (
   </svg>
 )
 
-export default function RegisterPage() {
+export default async function VerifyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>
+}) {
+  const { token } = await searchParams
+
+  if (!token) redirect("/login")
+
+  const result = await verifyTokenAction(token)
+
+  if (result.success === true) {
+    redirect("/login?verified=1")
+  }
+
   return (
     <div className="w-full max-w-sm flex flex-col items-center gap-8 rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="w-full bg-primary flex flex-col items-center gap-2 py-7 px-8">
@@ -28,25 +43,27 @@ export default function RegisterPage() {
           Character Printer
         </h1>
         <p className="font-garamond italic text-primary-foreground/70 text-sm">
-          Join the forge
+          Email Verification
         </p>
       </div>
 
       <div className="flex items-center gap-3 w-full px-8 -mt-2">
         <div className="h-px flex-1 bg-border" />
-        <span className="font-cinzel text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Register</span>
+        <span className="font-cinzel text-[10px] tracking-[0.3em] uppercase text-muted-foreground">Error</span>
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      <RegisterForm />
-
-      <div className="w-full border-t border-border px-8 py-4 text-center -mt-4">
+      <div className="px-8 pb-8 w-full flex flex-col gap-5 text-center">
+        <p className="font-garamond text-destructive text-sm">{result.error}</p>
         <p className="font-garamond text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/login" className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors">
-            Sign in
-          </Link>
+          Sign in to request a new verification email.
         </p>
+        <Link
+          href="/login"
+          className="inline-flex items-center justify-center h-10 px-6 rounded-md bg-primary text-primary-foreground font-cinzel text-xs tracking-widest uppercase hover:bg-primary/90 transition-colors"
+        >
+          Sign In
+        </Link>
       </div>
     </div>
   )

@@ -14,6 +14,7 @@ import { Pencil, Scroll } from "lucide-react";
 import { NewCharacterDialog } from "@/components/characters/new-character-dialog";
 import { DeleteCharacterButton } from "@/components/characters/delete-character-button";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { Settings } from "lucide-react";
 import type { Edition, CharacterMode } from "@/lib/types/character";
 
 const EDITION_LABELS: Record<Edition, string> = {
@@ -63,7 +64,13 @@ export default async function CharactersPage() {
         </Link>
         <div className="flex items-center gap-2">
           <NewCharacterDialog createAction={createAction} size="sm" />
-
+          <Link
+            href="/settings"
+            className={buttonVariants({ variant: "secondary", size: "icon-sm" })}
+            aria-label="Settings"
+          >
+            <Settings className="size-3.5" />
+          </Link>
           <LogoutButton variant="secondary" />
         </div>
       </header>

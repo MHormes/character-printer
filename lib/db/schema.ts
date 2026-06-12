@@ -29,6 +29,12 @@ export const sqliteUsers = sqliteTable("users", {
   username: text("username").notNull().default("").unique(),
   passwordHash: text("password_hash").notNull().default(""),
   role: text("role").notNull().default("user"),
+  totpSecret: text("totp_secret"),
+  totpEnabled: integer("totp_enabled", { mode: "boolean" }).notNull().default(false),
+  emailVerified: integer("email_verified", { mode: "timestamp" }),
+  verificationToken: text("verification_token"),
+  verificationTokenExpiry: integer("verification_token_expiry", { mode: "timestamp" }),
+  emailVerificationSentAt: integer("email_verification_sent_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -75,6 +81,12 @@ export const pgUsers = pgTable("users", {
   username: varchar("username", { length: 100 }).notNull().default("").unique(),
   passwordHash: varchar("password_hash", { length: 255 }).notNull().default(""),
   role: varchar("role", { length: 20 }).notNull().default("user"),
+  totpSecret: pgText("totp_secret"),
+  totpEnabled: boolean("totp_enabled").notNull().default(false),
+  emailVerified: timestamp("email_verified"),
+  verificationToken: pgText("verification_token"),
+  verificationTokenExpiry: timestamp("verification_token_expiry"),
+  emailVerificationSentAt: timestamp("email_verification_sent_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
