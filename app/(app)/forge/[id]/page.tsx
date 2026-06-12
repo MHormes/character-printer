@@ -61,11 +61,17 @@ import {
   clearRaceAutomation,
   clearBackgroundAutomation,
 } from "@/lib/character/apply-srd";
-import { ATTRIBUTE_KEYS, ATTRIBUTE_LABELS, SAVE_LABELS } from "@/lib/character/defaults";
+import {
+  ATTRIBUTE_KEYS,
+  ATTRIBUTE_LABELS,
+  SAVE_LABELS,
+} from "@/lib/character/defaults";
 import { useSrdData } from "./_hooks/use-srd-data";
-import { useManualControls, type ManualSectionId } from "./_hooks/use-manual-controls";
+import {
+  useManualControls,
+  type ManualSectionId,
+} from "./_hooks/use-manual-controls";
 import { usePendingChoices } from "./_hooks/use-pending-choices";
-
 
 export default function ForgePage({
   params,
@@ -73,7 +79,12 @@ export default function ForgePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { manualControlsEnabled, isManualSectionVisible, toggleManualControls, setManualSection } = useManualControls(id);
+  const {
+    manualControlsEnabled,
+    isManualSectionVisible,
+    toggleManualControls,
+    setManualSection,
+  } = useManualControls(id);
 
   const setCharacter = useCharacterStore((s) => s.setCharacter);
   const clearCharacter = useCharacterStore((s) => s.clearCharacter);
@@ -143,8 +154,12 @@ export default function ForgePage({
   const [identityTab, setIdentityTab] = useState<
     "basics" | "characteristics" | "bio"
   >("basics");
-  const [openChoicePanel, setOpenChoicePanel] = useState<"race" | "background" | null>(null);
-  const [openGainedPanel, setOpenGainedPanel] = useState<"race" | "background" | "class" | null>(null);
+  const [openChoicePanel, setOpenChoicePanel] = useState<
+    "race" | "background" | null
+  >(null);
+  const [openGainedPanel, setOpenGainedPanel] = useState<
+    "race" | "background" | "class" | null
+  >(null);
 
   const srdSystem = character ? getRuleSet(character.edition).srdSystem : null;
 
@@ -218,7 +233,9 @@ export default function ForgePage({
 
   // Keep a ref so the SRD effect can read the latest character without `character` being a dep.
   const characterRef = useRef(character);
-  useLayoutEffect(() => { characterRef.current = character; });
+  useLayoutEffect(() => {
+    characterRef.current = character;
+  });
 
   // Single combined effect: apply race → class → background in sequence so each transform
   // sees the output of the previous. This prevents a race condition where separate effects
@@ -469,7 +486,12 @@ export default function ForgePage({
     updated.languageChoices = newLangChoices;
     // Eagerly re-apply race language proficiencies
     updated.otherProficiencies = updated.otherProficiencies.filter(
-      (p) => !((p.sourceId?.startsWith("race:") || p.sourceId?.startsWith("subrace:")) && p.sourceId?.endsWith(":lang")),
+      (p) =>
+        !(
+          (p.sourceId?.startsWith("race:") ||
+            p.sourceId?.startsWith("subrace:")) &&
+          p.sourceId?.endsWith(":lang")
+        ),
     );
     for (const c of newLangChoices) {
       if (c.sourceId.startsWith("race:") || c.sourceId.startsWith("subrace:")) {
@@ -502,7 +524,10 @@ export default function ForgePage({
   ) {
     if (!character) return;
     const updated = structuredClone(character);
-    updated.raceCantripChoices = [...(updated.raceCantripChoices ?? []), choice];
+    updated.raceCantripChoices = [
+      ...(updated.raceCantripChoices ?? []),
+      choice,
+    ];
     // Clear any existing cantrip entry for this source then add the new one
     updated.spells.list = updated.spells.list.filter(
       (s) => s.sourceId !== `${choice.sourceId}:cantrip`,
@@ -534,7 +559,10 @@ export default function ForgePage({
   ) {
     if (!character) return;
     const existing = character.backgroundChoices ?? [];
-    replaceCharacter({ ...character, backgroundChoices: [...existing, choice] });
+    replaceCharacter({
+      ...character,
+      backgroundChoices: [...existing, choice],
+    });
   }
 
   function handleConfirmBackgroundLanguage(
@@ -543,7 +571,8 @@ export default function ForgePage({
   ) {
     if (!character) return;
     const bgRow = availableBackgrounds.find(
-      (b) => b.name.toLowerCase() === character.identity.background.toLowerCase(),
+      (b) =>
+        b.name.toLowerCase() === character.identity.background.toLowerCase(),
     );
     if (!bgRow) return;
     const newLangChoices = [...(character.languageChoices ?? []), ...choices];
@@ -553,7 +582,9 @@ export default function ForgePage({
     updated.otherProficiencies = updated.otherProficiencies.filter(
       (p) => p.sourceId !== `background:${bgRow.id}:lang`,
     );
-    for (const c of newLangChoices.filter((c) => c.sourceId === `background:${bgRow.id}`)) {
+    for (const c of newLangChoices.filter(
+      (c) => c.sourceId === `background:${bgRow.id}`,
+    )) {
       updated.otherProficiencies.push({
         id: crypto.randomUUID(),
         name: c.languageName,
@@ -572,13 +603,23 @@ export default function ForgePage({
   ) {
     if (!character) return;
     const bgRow = availableBackgrounds.find(
-      (b) => b.name.toLowerCase() === character.identity.background.toLowerCase(),
+      (b) =>
+        b.name.toLowerCase() === character.identity.background.toLowerCase(),
     );
     if (!bgRow) return;
 
-    type ToolChoiceMeta = { count?: number; category?: string; label: string; addToInventory?: boolean; inventoryOnly?: boolean; options?: { name: string }[] };
+    type ToolChoiceMeta = {
+      count?: number;
+      category?: string;
+      label: string;
+      addToInventory?: boolean;
+      inventoryOnly?: boolean;
+      options?: { name: string }[];
+    };
     const toolChoiceMeta: ToolChoiceMeta[] = bgRow.toolChoicesJson
-      ? (typeof bgRow.toolChoicesJson === "string" ? JSON.parse(bgRow.toolChoicesJson) : bgRow.toolChoicesJson as unknown as ToolChoiceMeta[])
+      ? typeof bgRow.toolChoicesJson === "string"
+        ? JSON.parse(bgRow.toolChoicesJson)
+        : (bgRow.toolChoicesJson as unknown as ToolChoiceMeta[])
       : [];
 
     const newToolChoices = [...(character.toolChoices ?? []), choice];
@@ -589,7 +630,9 @@ export default function ForgePage({
     updated.otherProficiencies = updated.otherProficiencies.filter(
       (p) => p.sourceId !== `background:${bgRow.id}:tool`,
     );
-    for (const tc of newToolChoices.filter((c) => c.backgroundId === bgRow.id)) {
+    for (const tc of newToolChoices.filter(
+      (c) => c.backgroundId === bgRow.id,
+    )) {
       const meta = toolChoiceMeta[tc.choiceIndex] as ToolChoiceMeta | undefined;
       if (!meta?.inventoryOnly) {
         updated.otherProficiencies.push({
@@ -605,8 +648,12 @@ export default function ForgePage({
     }
 
     // Eagerly re-apply tool-choice inventory items
-    updated.inventory = updated.inventory.filter((i) => i.sourceId !== `bg-tool:${bgRow.id}`);
-    for (const tc of newToolChoices.filter((c) => c.backgroundId === bgRow.id)) {
+    updated.inventory = updated.inventory.filter(
+      (i) => i.sourceId !== `bg-tool:${bgRow.id}`,
+    );
+    for (const tc of newToolChoices.filter(
+      (c) => c.backgroundId === bgRow.id,
+    )) {
       const meta = toolChoiceMeta[tc.choiceIndex] as ToolChoiceMeta | undefined;
       if (meta?.addToInventory || meta?.inventoryOnly) {
         updated.inventory.push({
@@ -614,7 +661,7 @@ export default function ForgePage({
           name: tc.toolName,
           quantity: meta?.count ?? 1,
           weight: 0,
-          category: (meta?.inventoryOnly && !meta?.category) ? "Mundane" : "Tool",
+          category: meta?.inventoryOnly && !meta?.category ? "Mundane" : "Tool",
           equipped: true,
           modifiers: [],
           sourceId: `bg-tool:${bgRow.id}`,
@@ -651,8 +698,11 @@ export default function ForgePage({
     if (!character) return;
     replaceCharacter({
       ...character,
-      dismissedClassChoiceKeys: character.dismissedClassChoiceKeys?.filter((k) => k !== key),
-      dismissedEquipmentChoiceKeys: character.dismissedEquipmentChoiceKeys?.filter((k) => k !== key),
+      dismissedClassChoiceKeys: character.dismissedClassChoiceKeys?.filter(
+        (k) => k !== key,
+      ),
+      dismissedEquipmentChoiceKeys:
+        character.dismissedEquipmentChoiceKeys?.filter((k) => k !== key),
     });
   }
 
@@ -660,7 +710,9 @@ export default function ForgePage({
     if (!character) return;
     replaceCharacter({
       ...character,
-      dismissedRaceChoiceKeys: character.dismissedRaceChoiceKeys?.filter((k) => k !== key),
+      dismissedRaceChoiceKeys: character.dismissedRaceChoiceKeys?.filter(
+        (k) => k !== key,
+      ),
     });
   }
 
@@ -668,7 +720,8 @@ export default function ForgePage({
     if (!character) return;
     replaceCharacter({
       ...character,
-      dismissedBackgroundChoiceKeys: character.dismissedBackgroundChoiceKeys?.filter((k) => k !== key),
+      dismissedBackgroundChoiceKeys:
+        character.dismissedBackgroundChoiceKeys?.filter((k) => k !== key),
     });
   }
 
@@ -701,7 +754,11 @@ export default function ForgePage({
 
     for (const item of items) {
       if (item.srdItem) {
-        updated = applyItemFromSrdToCharacter(updated, item.srdItem, item.inventoryItem.id)!;
+        updated = applyItemFromSrdToCharacter(
+          updated,
+          item.srdItem,
+          item.inventoryItem.id,
+        )!;
       }
     }
 
@@ -825,15 +882,15 @@ export default function ForgePage({
             className="space-y-4"
             collapsible={true}
             headerAction={
-              <div className="flex flex-wrap items-center gap-1 bg-muted/30 p-1 rounded-lg w-full md:w-auto">
+              <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg">
                 <Button
                   variant={identityTab === "basics" ? "secondary" : "ghost"}
                   size="xs"
                   onClick={() => setIdentityTab("basics")}
                   className="h-7 px-2 hover:text-card-foreground"
                 >
-                  <User className="size-3 mr-1" />
-                  Basics
+                  <User className="size-3 md:mr-1" />
+                  <span className="hidden md:inline">Basics</span>
                 </Button>
                 <Button
                   variant={
@@ -843,8 +900,8 @@ export default function ForgePage({
                   onClick={() => setIdentityTab("characteristics")}
                   className="h-7 px-2 hover:text-card-foreground"
                 >
-                  <MessageSquare className="size-3 mr-1" />
-                  Characteristics
+                  <MessageSquare className="size-3 md:mr-1" />
+                  <span className="hidden md:inline">Characteristics</span>
                 </Button>
                 <Button
                   variant={identityTab === "bio" ? "secondary" : "ghost"}
@@ -852,8 +909,8 @@ export default function ForgePage({
                   onClick={() => setIdentityTab("bio")}
                   className="h-7 px-2 hover:text-card-foreground"
                 >
-                  <BookOpen className="size-3 mr-1" />
-                  Bio & Appearance
+                  <BookOpen className="size-3 md:mr-1" />
+                  <span className="hidden md:inline">Bio & Appearance</span>
                 </Button>
               </div>
             }
@@ -871,46 +928,80 @@ export default function ForgePage({
                     <RaceField
                       race={identity.race}
                       subrace={identity.subrace}
-                      ignoreAutomation={character.selectionIgnores?.race ?? false}
+                      ignoreAutomation={
+                        character.selectionIgnores?.race ?? false
+                      }
                       onRaceChange={(v) => updateIdentityField("race", v)}
                       onSubraceChange={(v) => updateIdentityField("subrace", v)}
                       onIgnoreAutomationChange={setRaceAutomationIgnored}
                       availableRaces={availableRaces}
                       availableSubraces={availableSubraces}
                     />
-                    {character.mode !== "npc" && <RaceChoicesPanel
-                      pendingChoices={racePendingChoices}
-                      languagePendingChoices={raceLanguagePendingChoices}
-                      toolPendingChoices={raceToolPendingChoices}
-                      cantripPendingChoices={raceCantripPendingChoices}
-                      languages={availableLanguages}
-                      tools={availableTools}
-                      cantrips={availableRaceCantrips}
-                      alreadyChosenLanguageIds={(character.languageChoices ?? [])
-                        .filter((c) => c.sourceId.startsWith("race:") || c.sourceId.startsWith("subrace:"))
-                        .map((c) => c.languageId)}
-                      isOpen={openChoicePanel === "race"}
-                      onToggle={() => setOpenChoicePanel((v) => v === "race" ? null : "race")}
-                      onConfirmChoice={handleConfirmRaceChoice}
-                      onConfirmLanguageChoice={handleConfirmRaceLanguageChoice}
-                      onConfirmToolChoice={handleConfirmRaceToolChoice}
-                      onConfirmCantripChoice={handleConfirmRaceCantripChoice}
-                      onDismissChoice={handleDismissRaceChoice}
-                      raceChoices={character.raceChoices ?? []}
-                      languageChoices={character.languageChoices ?? []}
-                      raceToolChoices={character.raceToolChoices ?? []}
-                      raceCantripChoices={character.raceCantripChoices ?? []}
-                      dismissedRaceChoiceKeys={character.dismissedRaceChoiceKeys ?? []}
-                      allRaceAsiBonusRows={allRaceAsiBonusRows}
-                      allRaceProficiencyRows={allRaceProficiencyRows}
-                      availableRaces={availableRaces}
-                      availableSubraces={availableSubraces}
-                      currentRaceId={availableRaces.find((r) => r.name.toLowerCase() === identity.race.toLowerCase())?.id}
-                      currentSubraceId={availableSubraces.find((s) => s.name.toLowerCase() === (identity.subrace ?? "").toLowerCase())?.id}
-                      gainedIsOpen={openGainedPanel === "race"}
-                      onGainedToggle={() => setOpenGainedPanel((v) => v === "race" ? null : "race")}
-                      onRevert={handleRevertRaceChoice}
-                    />}
+                    {character.mode !== "npc" && (
+                      <RaceChoicesPanel
+                        pendingChoices={racePendingChoices}
+                        languagePendingChoices={raceLanguagePendingChoices}
+                        toolPendingChoices={raceToolPendingChoices}
+                        cantripPendingChoices={raceCantripPendingChoices}
+                        languages={availableLanguages}
+                        tools={availableTools}
+                        cantrips={availableRaceCantrips}
+                        alreadyChosenLanguageIds={(
+                          character.languageChoices ?? []
+                        )
+                          .filter(
+                            (c) =>
+                              c.sourceId.startsWith("race:") ||
+                              c.sourceId.startsWith("subrace:"),
+                          )
+                          .map((c) => c.languageId)}
+                        isOpen={openChoicePanel === "race"}
+                        onToggle={() =>
+                          setOpenChoicePanel((v) =>
+                            v === "race" ? null : "race",
+                          )
+                        }
+                        onConfirmChoice={handleConfirmRaceChoice}
+                        onConfirmLanguageChoice={
+                          handleConfirmRaceLanguageChoice
+                        }
+                        onConfirmToolChoice={handleConfirmRaceToolChoice}
+                        onConfirmCantripChoice={handleConfirmRaceCantripChoice}
+                        onDismissChoice={handleDismissRaceChoice}
+                        raceChoices={character.raceChoices ?? []}
+                        languageChoices={character.languageChoices ?? []}
+                        raceToolChoices={character.raceToolChoices ?? []}
+                        raceCantripChoices={character.raceCantripChoices ?? []}
+                        dismissedRaceChoiceKeys={
+                          character.dismissedRaceChoiceKeys ?? []
+                        }
+                        allRaceAsiBonusRows={allRaceAsiBonusRows}
+                        allRaceProficiencyRows={allRaceProficiencyRows}
+                        availableRaces={availableRaces}
+                        availableSubraces={availableSubraces}
+                        currentRaceId={
+                          availableRaces.find(
+                            (r) =>
+                              r.name.toLowerCase() ===
+                              identity.race.toLowerCase(),
+                          )?.id
+                        }
+                        currentSubraceId={
+                          availableSubraces.find(
+                            (s) =>
+                              s.name.toLowerCase() ===
+                              (identity.subrace ?? "").toLowerCase(),
+                          )?.id
+                        }
+                        gainedIsOpen={openGainedPanel === "race"}
+                        onGainedToggle={() =>
+                          setOpenGainedPanel((v) =>
+                            v === "race" ? null : "race",
+                          )
+                        }
+                        onRevert={handleRevertRaceChoice}
+                      />
+                    )}
                   </div>
                   <div className="space-y-2">
                     <BackgroundField
@@ -927,31 +1018,47 @@ export default function ForgePage({
                       onIgnoreAutomationChange={setBackgroundAutomationIgnored}
                       availableBackgrounds={availableBackgrounds}
                     />
-                    {character.mode !== "npc" && <BackgroundChoicesPanel
-                      pendingChoices={backgroundPendingChoices}
-                      languages={availableLanguages}
-                      tools={availableTools}
-                      alreadyChosenLanguageIds={(character.languageChoices ?? [])
-                        .filter((c) => c.sourceId.startsWith("background:"))
-                        .map((c) => c.languageId)}
-                      isOpen={openChoicePanel === "background"}
-                      onToggle={() => setOpenChoicePanel((v) => v === "background" ? null : "background")}
-                      onConfirmAsi={handleConfirmBackgroundAsi}
-                      onConfirmLanguage={handleConfirmBackgroundLanguage}
-                      onConfirmTool={handleConfirmBackgroundTool}
-                      onDismissChoice={handleDismissBackgroundChoice}
-                      backgroundChoices={character.backgroundChoices ?? []}
-                      languageChoices={character.languageChoices ?? []}
-                      toolChoices={character.toolChoices ?? []}
-                      dismissedBackgroundChoiceKeys={character.dismissedBackgroundChoiceKeys ?? []}
-                      selectedBackground={availableBackgrounds.find(
-                        (b) => b.name.toLowerCase() === identity.background.toLowerCase(),
-                      )}
-                      charInventory={character.inventory}
-                      gainedIsOpen={openGainedPanel === "background"}
-                      onGainedToggle={() => setOpenGainedPanel((v) => v === "background" ? null : "background")}
-                      onRevert={handleRevertBackgroundChoice}
-                    />}
+                    {character.mode !== "npc" && (
+                      <BackgroundChoicesPanel
+                        pendingChoices={backgroundPendingChoices}
+                        languages={availableLanguages}
+                        tools={availableTools}
+                        alreadyChosenLanguageIds={(
+                          character.languageChoices ?? []
+                        )
+                          .filter((c) => c.sourceId.startsWith("background:"))
+                          .map((c) => c.languageId)}
+                        isOpen={openChoicePanel === "background"}
+                        onToggle={() =>
+                          setOpenChoicePanel((v) =>
+                            v === "background" ? null : "background",
+                          )
+                        }
+                        onConfirmAsi={handleConfirmBackgroundAsi}
+                        onConfirmLanguage={handleConfirmBackgroundLanguage}
+                        onConfirmTool={handleConfirmBackgroundTool}
+                        onDismissChoice={handleDismissBackgroundChoice}
+                        backgroundChoices={character.backgroundChoices ?? []}
+                        languageChoices={character.languageChoices ?? []}
+                        toolChoices={character.toolChoices ?? []}
+                        dismissedBackgroundChoiceKeys={
+                          character.dismissedBackgroundChoiceKeys ?? []
+                        }
+                        selectedBackground={availableBackgrounds.find(
+                          (b) =>
+                            b.name.toLowerCase() ===
+                            identity.background.toLowerCase(),
+                        )}
+                        charInventory={character.inventory}
+                        gainedIsOpen={openGainedPanel === "background"}
+                        onGainedToggle={() =>
+                          setOpenGainedPanel((v) =>
+                            v === "background" ? null : "background",
+                          )
+                        }
+                        onRevert={handleRevertBackgroundChoice}
+                      />
+                    )}
                   </div>
                   <StringField
                     label="Deity"
@@ -1000,28 +1107,44 @@ export default function ForgePage({
                         }
                       }}
                     />
-                    {character.mode !== "npc" && <ClassChoicesPanel
-                      pendingChoices={pendingChoices}
-                      equipmentPendingChoices={equipmentPendingChoices}
-                      availableFeats={availableFeats}
-                      onConfirmChoice={handleConfirmChoice}
-                      onDismissChoice={handleDismissClassChoice}
-                      onConfirmEquipmentChoice={handleConfirmEquipmentChoice}
-                      onDismissEquipmentChoice={handleDismissEquipmentChoice}
-                      multiclassWarnings={multiclassWarnings}
-                      onDismissMulticlassWarning={handleDismissMulticlassWarning}
-                      classChoices={character.classChoices ?? []}
-                      equipmentChoicesMade={character.equipmentChoicesMade ?? []}
-                      dismissedClassChoiceKeys={character.dismissedClassChoiceKeys ?? []}
-                      dismissedEquipmentChoiceKeys={character.dismissedEquipmentChoiceKeys ?? []}
-                      charInventory={character.inventory}
-                      allClassProficiencyRows={allClassProfRows}
-                      activeClassIds={identity.classes.map((c) => c.classId).filter((id): id is string => !!id)}
-                      availableClasses={availableClasses}
-                      gainedIsOpen={openGainedPanel === "class"}
-                      onGainedToggle={() => setOpenGainedPanel((v) => v === "class" ? null : "class")}
-                      onRevertChoice={handleRevertClassChoice}
-                    />}
+                    {character.mode !== "npc" && (
+                      <ClassChoicesPanel
+                        pendingChoices={pendingChoices}
+                        equipmentPendingChoices={equipmentPendingChoices}
+                        availableFeats={availableFeats}
+                        onConfirmChoice={handleConfirmChoice}
+                        onDismissChoice={handleDismissClassChoice}
+                        onConfirmEquipmentChoice={handleConfirmEquipmentChoice}
+                        onDismissEquipmentChoice={handleDismissEquipmentChoice}
+                        multiclassWarnings={multiclassWarnings}
+                        onDismissMulticlassWarning={
+                          handleDismissMulticlassWarning
+                        }
+                        classChoices={character.classChoices ?? []}
+                        equipmentChoicesMade={
+                          character.equipmentChoicesMade ?? []
+                        }
+                        dismissedClassChoiceKeys={
+                          character.dismissedClassChoiceKeys ?? []
+                        }
+                        dismissedEquipmentChoiceKeys={
+                          character.dismissedEquipmentChoiceKeys ?? []
+                        }
+                        charInventory={character.inventory}
+                        allClassProficiencyRows={allClassProfRows}
+                        activeClassIds={identity.classes
+                          .map((c) => c.classId)
+                          .filter((id): id is string => !!id)}
+                        availableClasses={availableClasses}
+                        gainedIsOpen={openGainedPanel === "class"}
+                        onGainedToggle={() =>
+                          setOpenGainedPanel((v) =>
+                            v === "class" ? null : "class",
+                          )
+                        }
+                        onRevertChoice={handleRevertClassChoice}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -1170,7 +1293,9 @@ export default function ForgePage({
                 attributes={attributes}
                 proficiencyBonus={pb}
                 system={character.edition === "2024" ? "dnd5e_2024" : "dnd5e"}
-                showManualControls={isManualSectionVisible("otherProficiencies")}
+                showManualControls={isManualSectionVisible(
+                  "otherProficiencies",
+                )}
                 onChange={setOtherProficiencies}
               />
             </ForgeSection>
@@ -1196,7 +1321,11 @@ export default function ForgePage({
                 />
               </ForgeSection>
 
-              <ForgeSection title="Attacks & Actions" collapsible={true} headerAction={renderManualSectionToggle("actions")}>
+              <ForgeSection
+                title="Attacks & Actions"
+                collapsible={true}
+                headerAction={renderManualSectionToggle("actions")}
+              >
                 <ActionsBlock
                   actions={actions}
                   castingStat={spells.globalCastingStat}
