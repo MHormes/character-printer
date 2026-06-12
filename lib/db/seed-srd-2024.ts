@@ -188,6 +188,11 @@ function kebabToCamel(s: string): string {
   return s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 }
 
+function normalizeSrdName(name: string): string {
+  const idx = name.indexOf(", ");
+  return idx === -1 ? name : name.slice(0, idx) + " - " + name.slice(idx + 2);
+}
+
 function hitDieStr(n: number): string {
   return `d${n}`;
 }
@@ -1020,7 +1025,7 @@ const fixedEquipRows: (typeof sqliteClassStartingEquipment.$inferInsert)[] = [];
     return {
       id: `${SYSTEM}:${e.index}`,
       system: SYSTEM,
-      name: e.name,
+      name: normalizeSrdName(e.name),
       equipmentCategory: e.equipment_category?.name ?? "Adventuring Gear",
       description: desc,
       weight: e.weight ?? null,
