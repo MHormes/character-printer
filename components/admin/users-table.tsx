@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, Fragment } from "react"
 import { ChevronDown, ChevronRight, UserX, UserCheck, Shield, User, Trash2, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -76,26 +76,26 @@ export function UsersTable({
   const [error, setError] = useState<string | null>(null)
 
   function toggleExpand(userId: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(userId)) {
+    if (expanded.has(userId)) {
+      setExpanded((prev) => {
+        const next = new Set(prev)
         next.delete(userId)
-      } else {
-        next.add(userId)
-        if (!charCache[userId]) {
-          setLoadingChars((s) => new Set(s).add(userId))
-          actions.listCharacters(userId).then((chars) => {
-            setCharCache((c) => ({ ...c, [userId]: chars }))
-            setLoadingChars((s) => {
-              const n = new Set(s)
-              n.delete(userId)
-              return n
-            })
+        return next
+      })
+    } else {
+      setExpanded((prev) => new Set(prev).add(userId))
+      if (!charCache[userId]) {
+        setLoadingChars((s) => new Set(s).add(userId))
+        actions.listCharacters(userId).then((chars) => {
+          setCharCache((c) => ({ ...c, [userId]: chars }))
+          setLoadingChars((s) => {
+            const n = new Set(s)
+            n.delete(userId)
+            return n
           })
-        }
+        })
       }
-      return next
-    })
+    }
   }
 
   function handleConfirm() {
@@ -195,8 +195,8 @@ export function UsersTable({
               const isExpanded = expanded.has(user.id)
 
               return (
-                <>
-                  <tr key={user.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                <Fragment key={user.id}>
+                  <tr className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
                       <button
                         onClick={() => toggleExpand(user.id)}
@@ -360,7 +360,7 @@ export function UsersTable({
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               )
             })}
           </tbody>
