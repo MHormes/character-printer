@@ -8,6 +8,7 @@ import { dbUsers } from "@/lib/db/tables";
 import { eq } from "drizzle-orm";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { TwoFactorSection } from "@/components/settings/two-factor-section";
+import { DeleteAccountSection } from "@/components/settings/delete-account-section";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = db as any;
@@ -66,6 +67,13 @@ export default async function SettingsPage() {
               Two-Factor Authentication
             </h2>
             <TwoFactorSection totpEnabled={user.totpEnabled ?? false} />
+          </section>
+
+          <section className="rounded-xl border border-destructive/40 bg-card p-6">
+            <h2 className="font-cinzel text-sm tracking-[0.25em] uppercase font-semibold text-destructive mb-6">
+              Danger Zone
+            </h2>
+            <DeleteAccountSection username={session.user.username} />
           </section>
         </div>
       </main>

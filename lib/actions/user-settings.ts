@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db/client"
-import { dbUsers } from "@/lib/db/tables"
+import { dbUsers, dbCharacters } from "@/lib/db/tables"
 import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 import { auth } from "@/lib/auth"
@@ -131,5 +131,24 @@ export async function disableTotpAction(
     return { success: true }
   } catch {
     return { success: false, error: "Failed to disable 2FA." }
+  }
+}
+
+export async function deleteAccountAction(
+  usernameConfirm: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return { success: false, error: "Not authenticated." }
+
+    if (usernameConfirm !== session.user.username)
+      return { success: false, error: "Username does not match." }
+
+    await anyDb.delete(dbCharacters).where(eq(dbCharacters.userId, session.user.id))
+    await anyDb.delete(dbUsers).where(eq(dbUsers.id, session.user.id))
+
+    return { success: true }
+  } catch {
+    return { success: false, error: "Something went wrong. Please try again." }
   }
 }
