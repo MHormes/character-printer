@@ -37,8 +37,8 @@ export function AttacksWidget() {
 
   function atkStr(a: ActionEntry) {
     if (a.mode === "Heal" || a.mode === "Plain") return "—";
-    if (a.mode === "Spell") return fmtBonus(resolveSpellAttack(character) + a.attackBonus);
-    if (a.mode === "DC") return `DC ${a.fixedDC ?? resolveSpellDc(character)}`;
+    if (a.mode === "Spell") return fmtBonus(resolveSpellAttack(character!) + a.attackBonus);
+    if (a.mode === "DC") return `DC ${a.fixedDC ?? resolveSpellDc(character!)}`;
     const statMod = a.attackStat ? attrMod(a.attackStat) : 0;
     return fmtBonus(statMod + (a.attackProficient ? pb : 0) + a.attackBonus);
   }
