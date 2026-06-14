@@ -165,6 +165,15 @@ export function LoginForm() {
         />
       </div>
 
+      <div className="text-right -mt-2">
+        <a
+          href="/forgot-password"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors font-garamond"
+        >
+          Forgot password?
+        </a>
+      </div>
+
       <Button type="submit" className="w-full mt-1" size="lg" disabled={pending}>
         {pending ? "Entering…" : "Enter the Forge"}
       </Button>

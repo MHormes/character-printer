@@ -35,6 +35,8 @@ export const sqliteUsers = sqliteTable("users", {
   verificationToken: text("verification_token"),
   verificationTokenExpiry: integer("verification_token_expiry", { mode: "timestamp" }),
   emailVerificationSentAt: integer("email_verification_sent_at", { mode: "timestamp" }),
+  passwordResetToken: text("password_reset_token"),
+  passwordResetTokenExpiry: integer("password_reset_token_expiry", { mode: "timestamp" }),
   disabled: integer("disabled", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -88,6 +90,8 @@ export const pgUsers = pgTable("users", {
   verificationToken: pgText("verification_token"),
   verificationTokenExpiry: timestamp("verification_token_expiry"),
   emailVerificationSentAt: timestamp("email_verification_sent_at"),
+  passwordResetToken: pgText("password_reset_token"),
+  passwordResetTokenExpiry: timestamp("password_reset_token_expiry"),
   disabled: boolean("disabled").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

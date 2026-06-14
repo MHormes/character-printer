@@ -90,6 +90,24 @@ export function verificationEmail(username: string, verifyUrl: string): string {
   `)
 }
 
+export function passwordResetEmail(resetUrl: string): string {
+  return wrapper(`
+    <p style="margin:0 0 8px;font-size:20px;font-weight:bold;font-family:Georgia,serif;">Reset your password</p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:${C.muted};">We received a request to reset your password. Click the button below to choose a new one.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+      <tr>
+        <td align="center">
+          <a href="${resetUrl}" style="display:inline-block;background:${C.primary};color:${C.primaryFg};text-decoration:none;padding:12px 32px;border-radius:8px;font-family:Georgia,serif;font-size:14px;letter-spacing:0.1em;font-weight:bold;">Reset Password</a>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;font-size:12px;color:${C.muted};line-height:1.5;">Button not working? Copy and paste this link:<br/>
+      <a href="${resetUrl}" style="color:${C.primary};word-break:break-all;">${resetUrl}</a>
+    </p>
+    <p style="margin:16px 0 0;font-size:12px;color:${C.muted};">This link expires in 1 hour. If you didn&apos;t request a password reset, you can safely ignore this email.</p>
+  `)
+}
+
 export function resendVerificationEmail(username: string, verifyUrl: string): string {
   return wrapper(`
     <p style="margin:0 0 8px;font-size:20px;font-weight:bold;font-family:Georgia,serif;">New verification link</p>

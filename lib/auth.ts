@@ -68,8 +68,13 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.username = user.username
         token.role = user.role
-        token.emailVerified = user.emailVerified as boolean
         token.disabled = false
+        const loginRows = await anyDb
+          .select({ emailVerified: dbUsers.emailVerified })
+          .from(dbUsers)
+          .where(eq(dbUsers.id, user.id as string))
+          .limit(1)
+        token.emailVerified = !!loginRows[0]?.emailVerified
       } else if ((!token.emailVerified || token.disabled) && token.id) {
         const rows = await anyDb
           .select({ emailVerified: dbUsers.emailVerified, disabled: dbUsers.disabled })
