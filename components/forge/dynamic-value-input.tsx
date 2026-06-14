@@ -2,7 +2,6 @@
 
 import { Sigma } from "lucide-react"
 import { Select } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
 import { ToggleButton } from "@/components/ui/toggle-button"
 import type { TrackerBaseSource, AttributeKey, AttributeData } from "@/lib/types/character"
 import { resolveModifierValue } from "@/lib/character/calculations"

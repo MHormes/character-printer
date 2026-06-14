@@ -16,7 +16,6 @@ export type RegisterResult =
   | { success: false; error: string; field?: "username" | "email" | "password" | "confirmPassword" }
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/
-const RESEND_COOLDOWN_MS = 60_000
 
 function passwordStrength(pw: string): string | null {
   if (pw.length < 8) return "Password must be at least 8 characters."

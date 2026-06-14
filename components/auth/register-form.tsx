@@ -4,7 +4,6 @@ import { useActionState, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import Link from "next/link"
 import { registerAction, type RegisterResult } from "@/lib/actions/register"
 import { Check, X } from "lucide-react"
 
@@ -20,7 +19,7 @@ export function RegisterForm() {
   const router = useRouter()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [pending, startTransition] = useTransition()
+  const [pending] = useTransition()
 
   const [state, formAction] = useActionState<RegisterResult | null, FormData>(
     async (_prev, formData) => {

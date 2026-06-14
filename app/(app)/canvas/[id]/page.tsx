@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -75,8 +75,11 @@ export default function CanvasPage({
 
   const rows = Math.ceil((cols * 297) / 210);
   const isMobile = useIsMobile();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useSyncExternalStore(
+    (cb) => { cb(); return () => {}; },
+    () => true,
+    () => false,
+  );
 
   const { saveStatus, handleSave, handleToggleAutoSave } = useSaveCharacter({
     id,

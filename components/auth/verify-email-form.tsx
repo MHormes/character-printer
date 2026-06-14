@@ -22,7 +22,7 @@ export function VerifyEmailForm({ email, lastSentAt }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!cooldownUntil) { setSecondsLeft(0); return }
+    if (!cooldownUntil) return
     const tick = () => {
       const remaining = Math.ceil((cooldownUntil - Date.now()) / 1000)
       if (remaining <= 0) { setSecondsLeft(0); setCooldownUntil(null) }

@@ -14,7 +14,6 @@ import {
   ChevronRight,
   LayoutGrid,
   Plus,
-  RefreshCw,
   Trash2,
 } from "lucide-react";
 import {
@@ -44,7 +43,6 @@ import { useCharacterStore } from "@/lib/store/character-store";
 import {
   DEFAULT_CANVAS_COLS,
   type CanvasTemplate,
-  type CanvasWidget,
   type WidgetType,
 } from "@/lib/types/canvas";
 import { PaletteTile } from "@/components/canvas/palette-tile";
@@ -268,7 +266,6 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
         updates.push({ id: widget.id, h: ideal });
     }
     return updates;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [widgets, character, cols, rows]);
 
   const [autoResizedIds, setAutoResizedIds] = useState<Set<string>>(new Set());
@@ -276,6 +273,7 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
   useEffect(() => {
     if (staleUpdates.length === 0) return;
     batchUpdateHeights(staleUpdates);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAutoResizedIds((prev) => {
       const next = new Set(prev);
       staleUpdates.forEach((u) => next.add(u.id));

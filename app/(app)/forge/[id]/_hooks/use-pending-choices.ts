@@ -94,22 +94,22 @@ export function usePendingChoices(
   const racePendingChoices = useMemo<RacePendingChoice[]>(() => {
     if (!character || srd.availableRaces.length === 0) return [];
     return deriveRacePendingChoices(character, matchedRace, srd.allRaceAsiOptionRows, srd.allRaceSkillChoiceRows);
-  }, [character, matchedRace, srd.allRaceAsiOptionRows, srd.allRaceSkillChoiceRows]);
+  }, [character, matchedRace, srd.availableRaces, srd.allRaceAsiOptionRows, srd.allRaceSkillChoiceRows]);
 
   const raceLanguagePendingChoices = useMemo<RaceLanguagePendingChoice[]>(() => {
     if (!character || srd.availableRaces.length === 0) return [];
     return deriveRaceLanguagePendingChoices(character, matchedRace, matchedSubrace, srd.allRaceLanguageChoiceRows);
-  }, [character, matchedRace, matchedSubrace, srd.allRaceLanguageChoiceRows]);
+  }, [character, matchedRace, matchedSubrace, srd.availableRaces, srd.allRaceLanguageChoiceRows]);
 
   const raceToolPendingChoices = useMemo<RaceToolPendingChoice[]>(() => {
     if (!character || srd.availableRaces.length === 0) return [];
     return deriveRaceToolPendingChoices(character, matchedRace, matchedSubrace);
-  }, [character, matchedRace, matchedSubrace]);
+  }, [character, matchedRace, matchedSubrace, srd.availableRaces]);
 
   const raceCantripPendingChoices = useMemo<RaceCantripPendingChoice[]>(() => {
     if (!character || srd.availableRaces.length === 0) return [];
     return deriveRaceCantripPendingChoices(character, matchedRace, matchedSubrace, srd.availableRaceCantrips);
-  }, [character, matchedRace, matchedSubrace, srd.availableRaceCantrips]);
+  }, [character, matchedRace, matchedSubrace, srd.availableRaces, srd.availableRaceCantrips]);
 
   const backgroundPendingChoices = useMemo<BackgroundPendingChoice[]>(() => {
     if (!character || srd.availableBackgrounds.length === 0) return [];

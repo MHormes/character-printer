@@ -13,7 +13,6 @@ import {
   copyCharacterToUser,
 } from "@/lib/actions/admin"
 import { UsersTable } from "@/components/admin/users-table"
-import { buttonVariants } from "@/components/ui/button"
 
 export default async function AdminUsersPage() {
   const session = await auth()
