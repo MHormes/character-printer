@@ -48,8 +48,8 @@ export async function forgotPasswordAction(
       subject: "Reset your Character Printer password",
       html: passwordResetEmail(resetUrl),
     })
-  } catch {
-    // Silent — user can request again
+  } catch (err) {
+    console.error("[forgot-password] sendEmail failed:", err)
   }
 
   return { success: true }
