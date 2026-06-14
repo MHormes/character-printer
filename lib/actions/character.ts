@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client"
 import { dbCharacters, dbClasses } from "@/lib/db/tables"
 import { normalizeCanvasPages } from "@/lib/canvas/page-utils"
 import { createDefaultCharacter } from "@/lib/character/defaults"
-import type { CharacterData, AttributeKey, Edition, CharacterMode } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, Edition, CharacterMode, AbilityScoreMode } from "@/lib/types/character"
 import { and, eq, sql } from "drizzle-orm"
 import { randomUUID } from "crypto"
 import { auth } from "@/lib/auth"
@@ -111,9 +111,17 @@ async function hydrateCharacter(id: string, data: CharacterData): Promise<Charac
   }
 }
 
-export async function createCharacter(userId: string, edition: Edition = "2014", mode: CharacterMode = "player"): Promise<{ id: string }> {
+export async function createCharacter(
+  userId: string,
+  edition: Edition = "2014",
+  mode: CharacterMode = "player",
+  options?: {
+    abilityScoreMode?: AbilityScoreMode;
+    abilityScores?: Partial<Record<AttributeKey, number>>;
+  }
+): Promise<{ id: string }> {
   const id = randomUUID()
-  const data = createDefaultCharacter(id, edition, mode)
+  const data = createDefaultCharacter(id, edition, mode, options)
 
   await anyDb.insert(dbCharacters).values({
     id,
