@@ -15,7 +15,7 @@ import { NewCharacterDialog } from "@/components/characters/new-character-dialog
 import { DeleteCharacterButton } from "@/components/characters/delete-character-button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Settings } from "lucide-react";
-import type { Edition, CharacterMode } from "@/lib/types/character";
+import type { Edition, CharacterMode, AbilityScoreMode } from "@/lib/types/character";
 
 const EDITION_LABELS: Record<Edition, string> = {
   "2014": "D&D 5e 2014",
@@ -33,7 +33,10 @@ async function createAction(formData: FormData) {
   if (!session?.user?.id) redirect("/login");
   const edition = (formData.get("edition") as Edition) || "2014";
   const mode = (formData.get("mode") as CharacterMode) || "player";
-  const { id } = await createCharacter(session.user.id, edition, mode);
+  const abilityScoreMode = ((formData.get("abilityScoreMode") as string) || "manual") as AbilityScoreMode;
+  const rawScores = formData.get("abilityScores") as string | null;
+  const abilityScores = rawScores ? (JSON.parse(rawScores) as Record<string, number>) : undefined;
+  const { id } = await createCharacter(session.user.id, edition, mode, { abilityScoreMode, abilityScores });
   redirect(`/forge/${id}`);
 }
 

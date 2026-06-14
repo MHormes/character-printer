@@ -314,10 +314,13 @@ export type Edition = "2014" | "2024";
 
 export type CharacterMode = "player" | "npc";
 
+export type AbilityScoreMode = "manual" | "standardArray" | "pointBuy";
+
 export type CharacterData = {
   version: string;
   edition: Edition;
   mode?: CharacterMode;
+  abilityScoreMode?: AbilityScoreMode;
   profBonusStack: ModifierEntry[];
   selectionIgnores?: SelectionIgnores;
   dismissedClassChoiceKeys?: string[];

@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, AttributeData, SaveData } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, AttributeData, SaveData, AbilityScoreMode } from "@/lib/types/character"
 import { DEFAULT_CANVAS_COLS } from "@/lib/types/canvas"
 
 export const ATTRIBUTE_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
@@ -49,11 +49,20 @@ const SPELL_SLOTS = Object.fromEntries(
   ])
 )
 
-export function createDefaultCharacter(id: string, edition: CharacterData["edition"] = "2014", mode: CharacterData["mode"] = "player"): CharacterData {
+export function createDefaultCharacter(
+  id: string,
+  edition: CharacterData["edition"] = "2014",
+  mode: CharacterData["mode"] = "player",
+  options?: {
+    abilityScoreMode?: AbilityScoreMode;
+    abilityScores?: Partial<Record<AttributeKey, number>>;
+  }
+): CharacterData {
   return {
     version: "1.0.0",
     edition,
     mode,
+    abilityScoreMode: options?.abilityScoreMode ?? "manual",
     profBonusStack: [],
     selectionIgnores: {
       race: false,
@@ -97,7 +106,7 @@ export function createDefaultCharacter(id: string, edition: CharacterData["editi
     },
     portraitImage: null,
     attributes: Object.fromEntries(
-      ATTRIBUTE_KEYS.map((k): [AttributeKey, AttributeData] => [k, { base: 10, stack: [], override: null }])
+      ATTRIBUTE_KEYS.map((k): [AttributeKey, AttributeData] => [k, { base: options?.abilityScores?.[k] ?? 10, stack: [], override: null }])
     ) as CharacterData["attributes"],
     saves: Object.fromEntries(
       ATTRIBUTE_KEYS.map((k): [AttributeKey, SaveData] => [k, { proficient: false, stack: [], override: null }])
