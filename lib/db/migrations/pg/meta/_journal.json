@@ -2,24 +2,145 @@
   "version": "7",
   "dialect": "postgresql",
   "entries": [
-    { "idx": 0,  "version": "7", "when": 1700000000000, "tag": "0000_initial",                       "breakpoints": true },
-    { "idx": 1,  "version": "7", "when": 1700000000001, "tag": "0001_subclass_features",             "breakpoints": true },
-    { "idx": 2,  "version": "7", "when": 1700000000002, "tag": "0002_backgrounds_features",          "breakpoints": true },
-    { "idx": 3,  "version": "7", "when": 1700000000003, "tag": "0003_backgrounds_fixed_equipment",   "breakpoints": true },
-    { "idx": 4,  "version": "7", "when": 1700000000004, "tag": "0004_backgrounds_asi_feat",          "breakpoints": true },
-    { "idx": 5,  "version": "7", "when": 1700000000005, "tag": "0005_nullable_upcast_desc",          "breakpoints": true },
-    { "idx": 6,  "version": "7", "when": 1700000000006, "tag": "0006_nullable_spell_fields",         "breakpoints": true },
-    { "idx": 7,  "version": "7", "when": 1700000000007, "tag": "0007_nullable_content_fields",       "breakpoints": true },
-    { "idx": 8,  "version": "7", "when": 1700000000008, "tag": "0008_item_modifiers_json",           "breakpoints": true },
-    { "idx": 9,  "version": "7", "when": 1700000000009, "tag": "0009_race_bg_choice_columns",        "breakpoints": true },
-    { "idx": 10, "version": "7", "when": 1700000000010, "tag": "0010_race_proficiencies",            "breakpoints": true },
-    { "idx": 11, "version": "7", "when": 1700000000011, "tag": "0011_race_tool_cantrip_choices",     "breakpoints": true },
-    { "idx": 12, "version": "7", "when": 1780001755454, "tag": "0012_add_username",                  "breakpoints": true },
-    { "idx": 13, "version": "7", "when": 1780001755455, "tag": "0013_users_auth_columns",             "breakpoints": true },
-    { "idx": 14, "version": "7", "when": 1748736000001, "tag": "0014_fix_column_types",               "breakpoints": true },
-    { "idx": 15, "version": "7", "when": 1748908800001, "tag": "0015_background_fixed_proficiencies", "breakpoints": true },
-    { "idx": 16, "version": "7", "when": 1749686400000, "tag": "0016_email_verification",             "breakpoints": true },
-    { "idx": 17, "version": "7", "when": 1781308800000, "tag": "0017_rename_srd_items",               "breakpoints": true },
-    { "idx": 18, "version": "7", "when": 1781363900000, "tag": "0018_password_reset",                 "breakpoints": true }
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1700000000000,
+      "tag": "0000_initial",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1700000000001,
+      "tag": "0001_subclass_features",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1700000000002,
+      "tag": "0002_backgrounds_features",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1700000000003,
+      "tag": "0003_backgrounds_fixed_equipment",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1700000000004,
+      "tag": "0004_backgrounds_asi_feat",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1700000000005,
+      "tag": "0005_nullable_upcast_desc",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1700000000006,
+      "tag": "0006_nullable_spell_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1700000000007,
+      "tag": "0007_nullable_content_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1700000000008,
+      "tag": "0008_item_modifiers_json",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1700000000009,
+      "tag": "0009_race_bg_choice_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1700000000010,
+      "tag": "0010_race_proficiencies",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1700000000011,
+      "tag": "0011_race_tool_cantrip_choices",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1780001755454,
+      "tag": "0012_add_username",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1780001755455,
+      "tag": "0013_users_auth_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1748736000001,
+      "tag": "0014_fix_column_types",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1748908800001,
+      "tag": "0015_background_fixed_proficiencies",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1749686400000,
+      "tag": "0016_email_verification",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1781308800000,
+      "tag": "0017_rename_srd_items",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1781363900000,
+      "tag": "0018_password_reset",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1781441586902,
+      "tag": "0019_normal_virginia_dare",
+      "breakpoints": true
+    }
   ]
 }
