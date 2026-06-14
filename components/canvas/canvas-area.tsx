@@ -451,6 +451,7 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
   ];
 
   const gridDomRef = useRef<HTMLDivElement>(null);
+  const [activeCellSize, setActiveCellSize] = useState({ w: 32, h: 32 });
   const [activeData, setActiveData] = useState<ActiveData | null>(null);
   const [dropPreview, setDropPreview] = useState<{
     col: number;
@@ -487,6 +488,10 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
     setActiveData(data);
     setDropPreview(null);
     setGroupDropPreviews([]);
+    if (gridDomRef.current) {
+      const rect = gridDomRef.current.getBoundingClientRect();
+      setActiveCellSize({ w: rect.width / cols, h: rect.height / rows });
+    }
     if (
       data.source === "canvas" &&
       data.widgetId &&
@@ -852,7 +857,8 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
               onClick={() => clearSelected()}
             >
               <div
-                className="relative aspect-[210/297] w-full max-w-5xl bg-card shadow-lg py-[4mm] px-[2.828mm] box-border"
+                className="relative aspect-[210/297] w-full bg-card shadow-lg py-[4mm] px-[2.828mm] box-border"
+                style={{ maxWidth: 'clamp(1024px, 53vw, 1600px)' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div
@@ -1017,8 +1023,8 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
               activeData.fullPage
                 ? { width: "80px", height: "113px" }
                 : {
-                    width: `${(activeData.w ?? 1) * 32}px`,
-                    height: `${(activeData.h ?? 1) * 32}px`,
+                    width: `${(activeData.w ?? 1) * activeCellSize.w}px`,
+                    height: `${(activeData.h ?? 1) * activeCellSize.h}px`,
                   }
             }
           />
