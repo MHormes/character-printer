@@ -1,7 +1,11 @@
 "use client";
 
-import { use, useState, useEffect, useLayoutEffect, useRef } from "react";
+import { use, useState, useEffect, useLayoutEffect, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useCharacterStore } from "@/lib/store/character-store";
+import { useTourStore } from "@/lib/store/tour-store";
+import { TOUR_STEPS } from "@/lib/tour/tour-steps";
+import { TourOverlay } from "@/components/tour/tour-overlay";
 import { loadCharacter } from "@/lib/actions/character";
 import { useSaveCharacter } from "@/lib/hooks/use-save-character";
 import type { ItemRow } from "@/lib/actions/5e-data";
@@ -73,6 +77,22 @@ import {
 } from "./_hooks/use-manual-controls";
 import { usePendingChoices } from "./_hooks/use-pending-choices";
 
+function TourInitializer({ characterId }: { characterId: string }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const startTour = useTourStore((s) => s.startTour);
+
+  useEffect(() => {
+    if (searchParams.get("tour") === "true") {
+      startTour(characterId);
+      router.replace(`/forge/${characterId}`, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null;
+}
+
 export default function ForgePage({
   params,
 }: {
@@ -85,6 +105,9 @@ export default function ForgePage({
     toggleManualControls,
     setManualSection,
   } = useManualControls(id);
+
+  const tourActive = useTourStore((s) => s.active);
+  const tourStep = useTourStore((s) => s.step);
 
   const setCharacter = useCharacterStore((s) => s.setCharacter);
   const clearCharacter = useCharacterStore((s) => s.clearCharacter);
@@ -160,6 +183,8 @@ export default function ForgePage({
   const [openGainedPanel, setOpenGainedPanel] = useState<
     "race" | "background" | "class" | null
   >(null);
+  const [tourForceShowDismissed, setTourForceShowDismissed] = useState(false);
+  const [tourForceExpandModifiers, setTourForceExpandModifiers] = useState(false);
 
   const srdSystem = character ? getRuleSet(character.edition).srdSystem : null;
 
@@ -197,6 +222,34 @@ export default function ForgePage({
       if (res) setCharacter(res.data, res.autoSave);
     });
   }, [id, clearCharacter, setCharacter]);
+
+  // Tour orchestration — expand sections and open panels as needed per step
+  useEffect(() => {
+    if (!tourActive) return;
+    const step = TOUR_STEPS[tourStep];
+    if (!step) return;
+
+    if (step.requiredSection) {
+      const storageKey = `forge-section-collapsed:${id}:${step.requiredSection}`;
+      localStorage.setItem(storageKey, "false");
+    }
+
+    if (step.flags?.openGainedPanel) {
+      setOpenGainedPanel("race");
+    }
+
+    if (step.flags?.openChoicesPanel) {
+      setOpenChoicePanel("race");
+    }
+
+    setTourForceShowDismissed(step.flags?.openDismissed ?? false);
+    setTourForceExpandModifiers(step.flags?.expandModifiers ?? false);
+
+    if (step.flags?.enableManual && !manualControlsEnabled) {
+      toggleManualControls();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourActive, tourStep, id]);
 
   useEffect(() => {
     if (
@@ -856,11 +909,16 @@ export default function ForgePage({
       <ToggleButton
         isActive={visible}
         onClick={() => setManualSection(section, !visible)}
+        data-tour-id={section === "coreStats" ? "corestat-manual-toggle" : undefined}
       >
         {visible ? "Hide manual" : "Show manual"}
       </ToggleButton>
     );
   }
+
+  const tourRequiredSection = tourActive
+    ? (TOUR_STEPS[tourStep]?.requiredSection ?? null)
+    : null;
 
   return (
     <RuleSetProvider edition={character.edition}>
@@ -881,6 +939,8 @@ export default function ForgePage({
             title="Identity"
             className="space-y-4"
             collapsible={true}
+            forceExpanded={tourRequiredSection === "Identity"}
+            headerTourId="identity-section-header"
             headerAction={
               <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg">
                 <Button
@@ -1000,6 +1060,7 @@ export default function ForgePage({
                           )
                         }
                         onRevert={handleRevertRaceChoice}
+                        forceShowDismissed={tourForceShowDismissed}
                       />
                     )}
                   </div>
@@ -1191,6 +1252,7 @@ export default function ForgePage({
                 title="Core Stats"
                 headerAction={renderManualSectionToggle("coreStats")}
                 collapsible={true}
+                forceExpanded={tourRequiredSection === "Core Stats"}
               >
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                   {ATTRIBUTE_KEYS.map((attr) => (
@@ -1202,6 +1264,8 @@ export default function ForgePage({
                       level={identity.level}
                       pb={pb}
                       showManualControls={isManualSectionVisible("coreStats")}
+                      tourId={attr === "str" ? "str" : undefined}
+                      forceExpandModifiers={attr === "str" ? tourForceExpandModifiers : undefined}
                       onBaseChange={(v) => updateAttributeBase(attr, v)}
                       onStackChange={(stack: ModifierEntry[]) =>
                         setAttributeStack(attr, stack)
@@ -1218,6 +1282,7 @@ export default function ForgePage({
                 title="Saving Throws"
                 headerAction={renderManualSectionToggle("savingThrows")}
                 collapsible={true}
+                forceExpanded={tourRequiredSection === "Saving Throws"}
               >
                 <div className="grid grid-cols-3 gap-3">
                   {ATTRIBUTE_KEYS.map((attr) => (
@@ -1225,6 +1290,7 @@ export default function ForgePage({
                       key={attr}
                       label={SAVE_LABELS[attr]}
                       data={saves[attr]}
+                      tourId={attr === "str" ? "str" : undefined}
                       attrMod={resolveAttributeMod(attributes[attr])}
                       proficiencyBonus={pb}
                       globalStack={saveGlobalStack}
@@ -1416,6 +1482,10 @@ export default function ForgePage({
           </div>
         </main>
       </div>
+      <Suspense fallback={null}>
+        <TourInitializer characterId={id} />
+      </Suspense>
+      <TourOverlay />
     </RuleSetProvider>
   );
 }

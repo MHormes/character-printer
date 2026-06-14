@@ -14,6 +14,7 @@ export function GainedBenefitsSection({
   isOpen,
   onToggle,
   onRevert,
+  forceShowDismissed = false,
 }: {
   autoGrants: GainedBenefit[]
   madeChoices: GainedBenefit[]
@@ -21,6 +22,7 @@ export function GainedBenefitsSection({
   isOpen: boolean
   onToggle: () => void
   onRevert: (key: string) => void
+  forceShowDismissed?: boolean
 }) {
   const [dismissedOpen, setDismissedOpen] = useState(false)
 
@@ -28,7 +30,7 @@ export function GainedBenefitsSection({
   if (totalGained === 0 && dismissedBenefits.length === 0) return null
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-tour-id="gained-benefits">
       <button
         type="button"
         onClick={onToggle}
@@ -57,13 +59,14 @@ export function GainedBenefitsSection({
             <div className="mt-3 space-y-1.5 border-t border-border pt-3">
               <button
                 type="button"
+                data-tour-id="revert-button"
                 onClick={() => setDismissedOpen((v) => !v)}
                 className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
               >
                 Dismissed ({dismissedBenefits.length})
                 {dismissedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
               </button>
-              {dismissedOpen && (
+              {(dismissedOpen || forceShowDismissed) && (
                 <div className="space-y-1.5">
                   {dismissedBenefits.map((d) => (
                     <div key={d.key} className="flex items-center justify-between gap-2">

@@ -272,6 +272,7 @@ type Props = {
   onConfirmToolChoice: (choice: RaceToolChoiceMade) => void
   onConfirmCantripChoice: (choice: RaceCantripChoiceMade) => void
   onDismissChoice: (choiceKey: string) => void
+  forceShowDismissed?: boolean
   // gained benefits
   raceChoices?: RaceChoiceMade[]
   languageChoices?: LanguageChoiceMade[]
@@ -305,6 +306,7 @@ export function RaceChoicesPanel({
   onConfirmToolChoice,
   onConfirmCantripChoice,
   onDismissChoice,
+  forceShowDismissed = false,
   raceChoices = [],
   languageChoices = [],
   raceToolChoices = [],
@@ -461,6 +463,7 @@ export function RaceChoicesPanel({
                 type="button"
                 size="sm"
                 variant="outline"
+                data-tour-id={i === 0 ? "dismiss-button" : undefined}
                 onClick={() => onDismissChoice(getRacePendingChoiceKey(pc))}
               >
                 Dismiss
@@ -552,6 +555,7 @@ export function RaceChoicesPanel({
         isOpen={gainedIsOpen}
         onToggle={() => onGainedToggle?.()}
         onRevert={(key) => onRevert?.(key)}
+        forceShowDismissed={forceShowDismissed}
       />
     </div>
   )

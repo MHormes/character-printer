@@ -87,6 +87,7 @@ export function ForgeHeader({
               <ToggleButton
                 isActive={manualControlsEnabled}
                 onClick={onToggleManualControls}
+                data-tour-id="manual-toggle"
               >
                 {manualControlsEnabled ? "Manual on" : "Manual off"}
               </ToggleButton>
