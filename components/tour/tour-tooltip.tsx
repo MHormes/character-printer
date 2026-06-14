@@ -52,6 +52,7 @@ export function TourTooltip({ step, stepIndex, totalSteps, targetRect, onNext, o
   const isCentered = step.position === "center" || !targetRect
   const isFirst = stepIndex === 0
   const isLast = stepIndex === totalSteps - 1
+  const actionAdvances = step.actionAdvances ?? false
 
   if (isCentered) {
     return (
@@ -144,14 +145,18 @@ export function TourTooltip({ step, stepIndex, totalSteps, targetRect, onNext, o
           {stepIndex + 1} / {totalSteps}
         </span>
 
-        <button
-          type="button"
-          onClick={onNext}
-          className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          {isLast ? "Finish" : "Next"}
-          {!isLast && <ChevronRight className="size-3.5" />}
-        </button>
+        {actionAdvances ? (
+          <span className="text-xs text-muted-foreground italic">click to continue</span>
+        ) : (
+          <button
+            type="button"
+            onClick={onNext}
+            className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            {isLast ? "Finish" : "Next"}
+            {!isLast && <ChevronRight className="size-3.5" />}
+          </button>
+        )}
       </div>
     </div>
   )

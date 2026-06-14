@@ -49,6 +49,8 @@ export function TourOverlay() {
     }
 
     let ro: ResizeObserver | null = null
+    let clickEl: Element | null = null
+    let clickHandler: (() => void) | null = null
     let cancelled = false
 
     waitForElement(currentStep.targetSelector).then((el) => {
@@ -59,21 +61,25 @@ export function TourOverlay() {
       ro = new ResizeObserver(() => updateRect(el))
       ro.observe(el)
 
+      if (currentStep.actionAdvances) {
+        clickHandler = () => nextStep(TOUR_STEPS.length)
+        el.addEventListener("click", clickHandler)
+        clickEl = el
+      }
+
       const onScroll = () => updateRect(el)
       window.addEventListener("scroll", onScroll, { passive: true })
       window.addEventListener("resize", onScroll, { passive: true })
-
-      return () => {
-        window.removeEventListener("scroll", onScroll)
-        window.removeEventListener("resize", onScroll)
-      }
     })
 
     return () => {
       cancelled = true
       ro?.disconnect()
+      if (clickEl && clickHandler) {
+        clickEl.removeEventListener("click", clickHandler)
+      }
     }
-  }, [active, step, updateRect])
+  }, [active, step, updateRect, nextStep])
 
   useEffect(() => {
     if (!active) return

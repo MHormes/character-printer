@@ -5,6 +5,7 @@ export type TourStep = {
   title: string
   description: string
   requiredSection?: string
+  actionAdvances?: boolean
   flags?: {
     openGainedPanel?: boolean
     openChoicesPanel?: boolean
@@ -58,16 +59,18 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       "Don't want a specific auto-granted benefit? Hit Dismiss. The sheet won't re-apply it on refresh.",
     requiredSection: "Identity",
+    actionAdvances: true,
     flags: { openChoicesPanel: true },
   },
   {
     id: "revert-button",
     targetSelector: "[data-tour-id=\"revert-button\"]",
-    position: "right",
+    position: "left",
     title: "Revert a Dismissal",
     description:
       "Changed your mind? The Dismissed toggle shows what you've dismissed. Click Revert to restore any of them.",
     requiredSection: "Identity",
+    actionAdvances: true,
     flags: { openGainedPanel: true, openDismissed: true },
   },
   {
@@ -105,7 +108,7 @@ export const TOUR_STEPS: TourStep[] = [
     position: "right",
     title: "Reading the Stack",
     description:
-      "Lock icon = automation-granted (read-only). The dot toggles a modifier on or off — handy for temporary effects. Add your own with the + button and give it a label like 'Bless' or 'Belt of Giant Strength'.",
+      "Lock icon = automation-granted (read-only). The dot toggles a modifier on or off. Add your own with the + button — give it a fixed value, or hit Σ to base it on a stat, level, or proficiency bonus (e.g. half level × 5).",
     requiredSection: "Core Stats",
     flags: { enableManual: true, expandModifiers: true },
   },

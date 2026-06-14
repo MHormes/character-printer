@@ -59,7 +59,6 @@ export function GainedBenefitsSection({
             <div className="mt-3 space-y-1.5 border-t border-border pt-3">
               <button
                 type="button"
-                data-tour-id="revert-button"
                 onClick={() => setDismissedOpen((v) => !v)}
                 className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
               >
@@ -68,13 +67,14 @@ export function GainedBenefitsSection({
               </button>
               {(dismissedOpen || forceShowDismissed) && (
                 <div className="space-y-1.5">
-                  {dismissedBenefits.map((d) => (
+                  {dismissedBenefits.map((d, idx) => (
                     <div key={d.key} className="flex items-center justify-between gap-2">
                       <span className="text-xs text-muted-foreground line-through">{d.label}</span>
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
+                        data-tour-id={idx === 0 ? "revert-button" : undefined}
                         className="h-5 gap-1 px-2 text-xs"
                         onClick={() => onRevert(d.key)}
                       >
