@@ -118,6 +118,11 @@ function kebabToCamel(s: string): string {
   return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 }
 
+function normalizeSrdName(name: string): string {
+  const idx = name.indexOf(", ");
+  return idx === -1 ? name : name.slice(0, idx) + " - " + name.slice(idx + 2);
+}
+
 type SpellSlotProgression = "none" | "full" | "half";
 
 type BgFeature = { name: string; description: string };
@@ -895,7 +900,7 @@ async function main() {
     return {
       id: `${SYSTEM}:${e.index}`,
       system: SYSTEM,
-      name: e.name,
+      name: normalizeSrdName(e.name),
       equipmentCategory: e.equipment_category.name,
       description: desc,
       weight: e.weight ?? null,

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle, Search, Loader2, Lock, Sword } from "lucide-react"
+import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, CircleDot, Circle, Search, Loader2, Lock, Sword, AlertTriangle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
@@ -13,6 +13,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from "@dnd-kit/utilities"
 import { searchSpells } from "@/lib/actions/5e-data"
 import type { ClassRow, SpellRow } from "@/lib/actions/5e-data"
+import { spellCardDescCap, spellDescFitsCard, spellDescEffectiveLength } from "@/components/canvas/widgets/spell-card-widget"
 
 type SlotData = { base: number; stack: ModifierEntry[]; override: number | null }
 
@@ -442,7 +443,7 @@ export function SpellsBlock({
               )}
             </div>
 
-            <div className="space-y-1 pl-3">
+            <div className="space-y-1">
               {showManualControls && slot && slotExpanded && (
                 <div className="mb-2 flex flex-col gap-1.5 rounded-md border border-border bg-card/60 p-2">
                   {slot.stack.map((mod) =>
@@ -689,12 +690,12 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
         {!expanded && (
           <>
             {label && (
-              <span className="shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
+              <span className="hidden md:inline shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
                 {label}
               </span>
             )}
             {dmgLabel && (
-              <span className="shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
+              <span className="hidden md:inline shrink-0 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
                 {dmgLabel}
               </span>
             )}
@@ -712,7 +713,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
 
       {expanded && (
         <div className="space-y-3 border-t border-border p-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <div className="flex items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">School</span>
               <Select selectSize="sm" className="flex-1" value={spell.school} onChange={e => onPatch({ school: e.target.value })}>
@@ -727,7 +728,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <div className="flex items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">Range</span>
               <Input type="text" value={spell.range} onChange={e => onPatch({ range: e.target.value })}
@@ -759,7 +760,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
           </div>
 
           {spell.mode !== "Heal" && spell.mode !== "Plain" && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="w-12 shrink-0 text-xs text-muted-foreground">
                 {spell.mode === "DC" ? "Save DC" : "To Hit"}
               </span>
@@ -854,7 +855,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
               {spell.mode === "Heal" ? "Healing" : "Damage / Effect"}
             </span>
             {(spell.damageStack ?? []).map((dmg, idx) => (
-              <div key={idx} className={cn("flex items-center gap-1.5", !dmg.active && "opacity-50")}>
+              <div key={idx} className={cn("flex flex-wrap items-center gap-1.5", !dmg.active && "opacity-50")}>
                 <input
                   type="text" inputMode="numeric"
                   value={(dmg.diceCount ?? 0) === 0 ? "" : String(dmg.diceCount)}
@@ -891,18 +892,20 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
                     className="h-full w-8 bg-transparent px-1 text-center text-xs placeholder:text-card-foreground/40 focus:outline-none"
                   />
                 </div>
-                <input type="text" value={dmg.type} placeholder={spell.mode === "Heal" ? "Healing" : "Fire"}
-                  onChange={e => onPatchDmg(idx, { type: e.target.value })}
-                  className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
-                />
-                <button type="button" onClick={() => onPatchDmg(idx, { active: !dmg.active })}
-                  className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
-                  {dmg.active ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
-                </button>
-                <button type="button" onClick={() => onDeleteDmg(idx)}
-                  className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
-                  <X className="size-2.5" />
-                </button>
+                <div className="flex basis-full md:basis-auto items-center gap-1.5 min-w-0">
+                  <input type="text" value={dmg.type} placeholder={spell.mode === "Heal" ? "Healing" : "Fire"}
+                    onChange={e => onPatchDmg(idx, { type: e.target.value })}
+                    className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
+                  />
+                  <button type="button" onClick={() => onPatchDmg(idx, { active: !dmg.active })}
+                    className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
+                    {dmg.active ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
+                  </button>
+                  <button type="button" onClick={() => onDeleteDmg(idx)}
+                    className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
+                    <X className="size-2.5" />
+                  </button>
+                </div>
               </div>
             ))}
             <button type="button"
@@ -925,12 +928,36 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
           </div>
 
           <div className="space-y-1">
-            <span className="text-xs text-muted-foreground">Description</span>
-            <textarea value={spell.description} placeholder="Spell description..."
-              onChange={e => onPatch({ description: e.target.value })}
-              rows={3}
-              className="w-full resize-y rounded-md border border-input bg-background p-2 text-xs focus:outline-none focus:border-ring"
-            />
+            {(() => {
+              const hasMat = spell.components.material && !!spell.components.materialDesc.trim()
+              const descCap = spellCardDescCap(hasMat)
+              const descOverLimit = !spellDescFitsCard(spell.description, hasMat)
+              return (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Description</span>
+                    <div className="flex items-center gap-1.5">
+                      {descOverLimit && (
+                        <div className="group relative">
+                          <AlertTriangle className="size-3 text-amber-500 cursor-default" />
+                          <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 w-52 rounded border border-border bg-card p-1.5 text-xs text-muted-foreground shadow-md">
+                            Description overflows the spell card area. Paragraph breaks count as extra height (cap: ~{descCap} chars).
+                          </div>
+                        </div>
+                      )}
+                      <span className={cn("text-xs tabular-nums", descOverLimit ? "text-amber-500" : "text-muted-foreground/50")}>
+                        {spellDescEffectiveLength(spell.description)}/{descCap}
+                      </span>
+                    </div>
+                  </div>
+                  <textarea value={spell.description} placeholder="Spell description..."
+                    onChange={e => onPatch({ description: e.target.value })}
+                    rows={3}
+                    className="w-full resize-y rounded-md border border-input bg-background p-2 text-xs focus:outline-none focus:border-ring"
+                  />
+                </>
+              )
+            })()}
           </div>
 
           {spell.level > 0 && (

@@ -1,4 +1,5 @@
 import { Suspense } from "react"
+import Link from "next/link"
 import { LoginForm } from "@/components/auth/login-form"
 
 const D20Mini = () => (
@@ -46,6 +47,15 @@ export default function LoginPage() {
       <Suspense>
         <LoginForm />
       </Suspense>
+
+      <div className="w-full border-t border-border px-8 py-4 text-center">
+        <p className="font-garamond text-sm text-muted-foreground">
+          No account yet?{" "}
+          <Link href="/register" className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors">
+            Create one
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

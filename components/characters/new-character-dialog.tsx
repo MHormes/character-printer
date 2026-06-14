@@ -3,18 +3,34 @@
 import { useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Edition } from "@/lib/types/character";
+import type { Edition, CharacterMode } from "@/lib/types/character";
 
-const EDITIONS: { value: Edition; label: string; subtitle: string }[] = [
+type CharacterOption = { edition: Edition; mode: CharacterMode; label: string; subtitle: string };
+
+const CHARACTER_OPTIONS: CharacterOption[] = [
   {
-    value: "2014",
+    edition: "2014",
+    mode: "player",
     label: "D&D 5e (2014)",
     subtitle: "Player's Handbook — classic ruleset",
   },
   {
-    value: "2024",
+    edition: "2024",
+    mode: "player",
     label: "D&D 5e (2024)",
     subtitle: "Revised rules — One D&D",
+  },
+  {
+    edition: "2014",
+    mode: "npc",
+    label: "NPC / Monster (2014)",
+    subtitle: "Manual stats — no class or race automation",
+  },
+  {
+    edition: "2024",
+    mode: "npc",
+    label: "NPC / Monster (2024)",
+    subtitle: "Manual stats — no class or race automation",
   },
 ];
 
@@ -25,12 +41,13 @@ type Props = {
 
 export function NewCharacterDialog({ createAction, size = "default" }: Props) {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<Edition>("2014");
+  const [selected, setSelected] = useState<CharacterOption>(CHARACTER_OPTIONS[0]);
   const [pending, startTransition] = useTransition();
 
   function handleCreate() {
     const fd = new FormData();
-    fd.set("edition", selected);
+    fd.set("edition", selected.edition);
+    fd.set("mode", selected.mode);
     startTransition(() => createAction(fd));
   }
 
@@ -74,26 +91,29 @@ export function NewCharacterDialog({ createAction, size = "default" }: Props) {
             </div>
 
             <div className="space-y-2">
-              {EDITIONS.map((ed) => (
-                <button
-                  key={ed.value}
-                  type="button"
-                  onClick={() => setSelected(ed.value)}
-                  className={[
-                    "w-full text-left rounded-lg border px-4 py-3 transition-colors",
-                    selected === ed.value
-                      ? "border-primary bg-primary/10"
-                      : "border-border bg-background hover:bg-muted",
-                  ].join(" ")}
-                >
-                  <p className="font-cinzel text-sm font-semibold text-foreground">
-                    {ed.label}
-                  </p>
-                  <p className="font-garamond italic text-xs text-muted-foreground mt-0.5">
-                    {ed.subtitle}
-                  </p>
-                </button>
-              ))}
+              {CHARACTER_OPTIONS.map((opt) => {
+                const isSelected = selected.edition === opt.edition && selected.mode === opt.mode;
+                return (
+                  <button
+                    key={`${opt.edition}-${opt.mode}`}
+                    type="button"
+                    onClick={() => setSelected(opt)}
+                    className={[
+                      "w-full text-left rounded-lg border px-4 py-3 transition-colors",
+                      isSelected
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-background hover:bg-muted",
+                    ].join(" ")}
+                  >
+                    <p className="font-cinzel text-sm font-semibold text-foreground">
+                      {opt.label}
+                    </p>
+                    <p className="font-garamond italic text-xs text-muted-foreground mt-0.5">
+                      {opt.subtitle}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="flex justify-end gap-2 pt-1">

@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, DieType } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, DieType, TrackerEntry } from "@/lib/types/character"
 import type {
   RaceRow,
   SubraceRow,
@@ -10,6 +10,7 @@ import type {
   RaceProficiencyRow,
   RaceLanguageChoiceRow,
   ClassStartingEquipmentRow,
+  ItemRow,
 } from "@/lib/actions/5e-data"
 import type { CharacterClassEntry } from "@/lib/types/character"
 
@@ -1090,4 +1091,99 @@ export function clearBackgroundAutomation(char: CharacterData): CharacterData {
   }
 
   return next
+}
+
+export function applyItemFromSrdToCharacter(
+  baseCharacter: CharacterData | null,
+  srdItem: ItemRow,
+  inventoryItemId?: string,
+): CharacterData | null {
+  if (!baseCharacter) return baseCharacter;
+
+  const next = structuredClone(baseCharacter);
+  const isWeapon = srdItem.equipmentCategory === "Weapon";
+
+  if (isWeapon && srdItem.damageDiceCount && srdItem.damageDieType) {
+    const rawProperties = srdItem.properties;
+    const props: string[] = rawProperties ? JSON.parse(rawProperties) : [];
+    const isFinesse = props.includes("Finesse");
+    const isRanged = srdItem.weaponRange === "Ranged";
+    const atkStat: ActionEntry["attackStat"] = isRanged ? "dex" : "str";
+
+    const primaryDmg: DamageEntry = {
+      diceCount: srdItem.damageDiceCount!,
+      dieType: srdItem.damageDieType as DieType,
+      stat: isFinesse || isRanged ? "dex" : "str",
+      flatBonus: 0,
+      type: srdItem.damageType ?? "Bludgeoning",
+      active: true,
+    };
+
+    const damageStack: DamageEntry[] = [primaryDmg];
+
+    if (srdItem.twoHandedDiceCount && srdItem.twoHandedDieType) {
+      damageStack.push({
+        diceCount: srdItem.twoHandedDiceCount!,
+        dieType: srdItem.twoHandedDieType as DieType,
+        stat: "str",
+        flatBonus: 0,
+        type: srdItem.twoHandedDamageType ?? primaryDmg.type,
+        active: false,
+      });
+    }
+
+    const rangePart = srdItem.rangeNormal
+      ? `Range ${srdItem.rangeNormal}${srdItem.rangeLong ? `/${srdItem.rangeLong}` : ""} ft`
+      : "";
+    const propPart = props.filter((p) => p !== "Versatile").join(", ");
+    const notes = [rangePart, propPart].filter(Boolean).join(" · ");
+
+    next.actions.push({
+      id: crypto.randomUUID(),
+      name: srdItem.name,
+      mode: "Attack",
+      attackStat: atkStat,
+      attackProficient: true,
+      attackBonus: 0,
+      fixedDC: null,
+      damageStack,
+      notes,
+      sourceId: inventoryItemId,
+    });
+  }
+
+  if (srdItem.description) {
+    next.features.push({
+      id: crypto.randomUUID(),
+      name: srdItem.name,
+      source: srdItem.equipmentCategory,
+      description: srdItem.description,
+    });
+
+    const chargeMatch = srdItem.description.match(/(\d+)\s+charges?/i);
+    if (chargeMatch) {
+      const maxCharges = parseInt(chargeMatch[1], 10);
+      const desc = srdItem.description.toLowerCase();
+      const reset: TrackerEntry["reset"] = desc.includes("dawn")
+        ? "Dawn"
+        : desc.includes("long rest")
+          ? "Long Rest"
+          : desc.includes("short rest")
+            ? "Short Rest"
+            : "Special";
+
+      next.trackers.push({
+        id: crypto.randomUUID(),
+        name: srdItem.name,
+        base: maxCharges,
+        baseSource: { kind: "fixed" },
+        stack: [],
+        reset,
+        override: null,
+        valueLabel: "charges",
+      });
+    }
+  }
+
+  return next;
 }

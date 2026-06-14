@@ -1,7 +1,25 @@
 import type { CharacterData, AttributeKey, AttributeData, SaveData } from "@/lib/types/character"
 import { DEFAULT_CANVAS_COLS } from "@/lib/types/canvas"
 
-const ATTRIBUTE_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
+export const ATTRIBUTE_KEYS: AttributeKey[] = ["str", "dex", "con", "int", "wis", "cha"]
+
+export const ATTRIBUTE_LABELS: Record<AttributeKey, string> = {
+  str: "Strength",
+  dex: "Dexterity",
+  con: "Constitution",
+  int: "Intelligence",
+  wis: "Wisdom",
+  cha: "Charisma",
+}
+
+export const SAVE_LABELS: Record<AttributeKey, string> = {
+  str: "STR",
+  dex: "DEX",
+  con: "CON",
+  int: "INT",
+  wis: "WIS",
+  cha: "CHA",
+}
 
 const DEFAULT_SKILLS: Record<string, { state: "None"; stack: []; override: null }> = {
   acrobatics:     { state: "None", stack: [], override: null },
@@ -31,10 +49,11 @@ const SPELL_SLOTS = Object.fromEntries(
   ])
 )
 
-export function createDefaultCharacter(id: string, edition: CharacterData["edition"] = "2014"): CharacterData {
+export function createDefaultCharacter(id: string, edition: CharacterData["edition"] = "2014", mode: CharacterData["mode"] = "player"): CharacterData {
   return {
     version: "1.0.0",
     edition,
+    mode,
     profBonusStack: [],
     selectionIgnores: {
       race: false,

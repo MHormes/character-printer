@@ -1,6 +1,13 @@
 "use client";
 
-import { useRef, useCallback, useSyncExternalStore, useState, useEffect } from "react";
+import {
+  useRef,
+  useCallback,
+  useSyncExternalStore,
+  useState,
+  useEffect,
+  useMemo,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronLeft,
@@ -22,12 +29,20 @@ import {
   type Modifier,
 } from "@dnd-kit/core";
 import { rowsForCols, sanitizeTemplateWidgets } from "@/lib/canvas/page-utils";
+import {
+  buildTemplatePage1,
+  buildTemplatePage2,
+  buildTemplateSpellCards,
+  buildFullPageSpells,
+  buildTemplateFeatures,
+  buildTemplateBio,
+} from "@/lib/canvas/template-builders";
+import { computeIdealWidgetH } from "@/lib/canvas/widget-heights";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useCharacterStore } from "@/lib/store/character-store";
 import {
   DEFAULT_CANVAS_COLS,
   type CanvasTemplate,
-  type CanvasWidget,
   type WidgetType,
 } from "@/lib/types/canvas";
 import { PaletteTile } from "@/components/canvas/palette-tile";
@@ -46,9 +61,9 @@ import { equipmentSvgH } from "@/components/canvas/widgets/equipment-widget";
 import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
 import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
 import { characteristicsSvgH } from "@/components/canvas/widgets/characteristics-widget";
-import { bioTextSvgH } from "@/components/canvas/widgets/bio-text-widget";
-import { featureCardGridH } from "@/components/canvas/widgets/feature-card-widget";
 import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
+import { otherProfSvgH } from "@/components/canvas/widgets/other-proficiencies-widget";
+import { toolProfSvgH } from "@/components/canvas/widgets/tool-proficiencies-widget";
 
 const topLeftOnCursor: Modifier = ({
   activatorEvent,
@@ -78,235 +93,13 @@ type ActiveData = {
 
 const SLIM_W = 10;
 
-const TEMPLATE_PAGE1_WIDGETS = [
-  {
-    type: "CoreStats",
-    col: 0,
-    row: 0,
-    w: 3,
-    h: 18,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "Inspiration",
-    col: 3,
-    row: 0,
-    w: 7,
-    h: 2,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "Proficiency",
-    col: 3,
-    row: 2,
-    w: 7,
-    h: 2,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "SavingThrows",
-    col: 3,
-    row: 4,
-    w: 5,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "Skills",
-    col: 3,
-    row: 8,
-    w: 7,
-    h: 13,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "PassivePerception",
-    col: 0,
-    row: 21,
-    w: 8,
-    h: 2,
-    rotation: 180,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "SlimToolProf",
-    col: 0,
-    row: 23,
-    w: 10,
-    h: 3,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "SlimOtherProf",
-    col: 0,
-    row: 26,
-    w: 10,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "ArmorClass",
-    col: 10,
-    row: 0,
-    w: 3,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "Initiative",
-    col: 13,
-    row: 0,
-    w: 3,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "Speed",
-    col: 16,
-    row: 0,
-    w: 3,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "Trackers",
-    col: 19,
-    row: 0,
-    w: 6,
-    h: 7,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "CurrentHp",
-    col: 10,
-    row: 4,
-    w: 4,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "TempHp",
-    col: 15,
-    row: 4,
-    w: 4,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "HitDice",
-    col: 10,
-    row: 8,
-    w: 4,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "DeathSaves",
-    col: 15,
-    row: 8,
-    w: 4,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "SlimAttacks",
-    col: 10,
-    row: 12,
-    w: 9,
-    h: 3,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "Features",
-    col: 19,
-    row: 7,
-    w: 6,
-    h: 19,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "Equipment",
-    col: 10,
-    row: 15,
-    w: 9,
-    h: 23,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "StatBox",
-    col: 25,
-    row: 0,
-    w: 3,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "StatBox",
-    col: 25,
-    row: 4,
-    w: 3,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-  {
-    type: "StatBox",
-    col: 25,
-    row: 8,
-    w: 3,
-    h: 4,
-    rotation: 0,
-    locked: false,
-    printState: "Calculated",
-  },
-] as const;
-
 type Props = {
   templates: CanvasTemplate[];
   onDeleteTemplate: (templateId: string) => void;
+  isMobile?: boolean;
 };
 
-export function CanvasArea({ templates, onDeleteTemplate }: Props) {
+export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Props) {
   const {
     cols,
     pages,
@@ -330,6 +123,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     deletePage,
     setPage,
     replaceCurrentPage,
+    batchUpdateHeights,
   } = useCanvasStore();
   const rows = rowsForCols(cols);
   const [overviewMode, setOverviewMode] = useState(false);
@@ -348,7 +142,10 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         undo();
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key === "y" || (e.key === "z" && e.shiftKey))
+      ) {
         if (inInput) return;
         e.preventDefault();
         redo();
@@ -416,7 +213,7 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
   const equipmentH = Math.max(
     4,
     Math.round(
-      (equipmentSvgH(inventoryCount) * 12 * rows * 210) / (cols * 297 * 176),
+      (equipmentSvgH(inventoryCount) * 9 * rows * 210) / (cols * 297 * 132),
     ),
   );
   const trackersH = Math.max(
@@ -439,6 +236,19 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     ),
   );
 
+  const toolProfH = Math.max(
+    2,
+    Math.round(
+      (toolProfSvgH(toolCount) * 10 * rows * 210) / (cols * 297 * 164),
+    ),
+  );
+  const otherProfH = Math.max(
+    2,
+    Math.round(
+      (otherProfSvgH(otherCount) * 10 * rows * 210) / (cols * 297 * 185),
+    ),
+  );
+
   const spellLevelH = (level: number) => {
     const count =
       character?.spells.list.filter((s) => s.level === level).length ?? 0;
@@ -447,6 +257,30 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       Math.round((spellLevelSvgH(count) * 9 * rows * 210) / (cols * 297 * 120)),
     );
   };
+
+  const staleUpdates = useMemo(() => {
+    const updates: { id: string; h: number }[] = [];
+    for (const widget of widgets) {
+      const ideal = computeIdealWidgetH(widget, character, cols, rows);
+      if (ideal !== null && ideal !== widget.h)
+        updates.push({ id: widget.id, h: ideal });
+    }
+    return updates;
+  }, [widgets, character, cols, rows]);
+
+  const [autoResizedIds, setAutoResizedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (staleUpdates.length === 0) return;
+    batchUpdateHeights(staleUpdates);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAutoResizedIds((prev) => {
+      const next = new Set(prev);
+      staleUpdates.forEach((u) => next.add(u.id));
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staleUpdates]);
 
   const PALETTE_ITEMS = [
     { type: "CharacterName" as const, label: "Character Name", w: 15, h: 3 },
@@ -487,8 +321,18 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     },
     { type: "SavingThrows" as const, label: "Saving Throws", w: 5, h: 4 },
     { type: "Skills" as const, label: "Skills", w: 7, h: 13 },
-    { type: "ToolProficiencies" as const, label: "Tool Prof.", w: 10, h: 5 },
-    { type: "OtherProficiencies" as const, label: "Other Prof.", w: 10, h: 5 },
+    {
+      type: "ToolProficiencies" as const,
+      label: "Tool Prof.",
+      w: 10,
+      h: toolProfH,
+    },
+    {
+      type: "OtherProficiencies" as const,
+      label: "Other Prof.",
+      w: 10,
+      h: otherProfH,
+    },
     {
       type: "SlimToolProf" as const,
       label: "Slim Tools",
@@ -614,13 +458,15 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     w: number;
     h: number;
   } | null>(null);
-  const [groupDropPreviews, setGroupDropPreviews] = useState<{
-    id: string;
-    col: number;
-    row: number;
-    w: number;
-    h: number;
-  }[]>([]);
+  const [groupDropPreviews, setGroupDropPreviews] = useState<
+    {
+      id: string;
+      col: number;
+      row: number;
+      w: number;
+      h: number;
+    }[]
+  >([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -641,7 +487,11 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
     setActiveData(data);
     setDropPreview(null);
     setGroupDropPreviews([]);
-    if (data.source === "canvas" && data.widgetId && !selectedIds.has(data.widgetId)) {
+    if (
+      data.source === "canvas" &&
+      data.widgetId &&
+      !selectedIds.has(data.widgetId)
+    ) {
       setSelected(data.widgetId);
     }
   }
@@ -672,292 +522,40 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         return;
 
       if (data.type === "TemplatePage1") {
-        replaceCurrentPage(
-          DEFAULT_CANVAS_COLS,
-          TEMPLATE_PAGE1_WIDGETS.map((w) => ({
-            ...w,
-            ...(w.type === "Equipment" ? { h: equipmentH } : {}),
-            printState: w.printState as "Calculated" | "Blank",
-          })),
-        );
+        replaceCurrentPage(DEFAULT_CANVAS_COLS, buildTemplatePage1(equipmentH));
         return;
       }
 
       if (data.type === "TemplatePage2") {
-        const INFO_W = 18;
-        const INFO_H = 3;
-        const START_ROW = 3;
-
-        const widgets: Omit<CanvasWidget, "id">[] = [
-          {
-            type: "SpellcastingInfo",
-            col: 5,
-            row: 0,
-            w: INFO_W,
-            h: INFO_H,
-            rotation: 0,
-            locked: false,
-            printState: "Calculated",
-          },
-        ];
-
-        // Column 1 (0-2)
-        let r0 = START_ROW;
-        [0, 1, 2].forEach((lvl) => {
-          const h = spellLevelH(lvl);
-          widgets.push({
-            type: `SpellLevel${lvl}` as WidgetType,
-            col: 0,
-            row: r0,
-            w: 9,
-            h,
-            rotation: 0,
-            locked: false,
-            printState: "Calculated",
-          });
-          r0 += h;
-        });
-
-        // Column 2 (3-5)
-        let r1 = START_ROW;
-        [3, 4, 5].forEach((lvl) => {
-          const h = spellLevelH(lvl);
-          widgets.push({
-            type: `SpellLevel${lvl}` as WidgetType,
-            col: 10,
-            row: r1,
-            w: 9,
-            h,
-            rotation: 0,
-            locked: false,
-            printState: "Calculated",
-          });
-          r1 += h;
-        });
-
-        // Column 3 (6-9)
-        let r2 = START_ROW;
-        [6, 7, 8, 9].forEach((lvl) => {
-          const h = spellLevelH(lvl);
-          widgets.push({
-            type: `SpellLevel${lvl}` as WidgetType,
-            col: 20,
-            row: r2,
-            w: 8,
-            h,
-            rotation: 0,
-            locked: false,
-            printState: "Calculated",
-          });
-          r2 += h;
-        });
-
-        replaceCurrentPage(DEFAULT_CANVAS_COLS, widgets);
+        replaceCurrentPage(DEFAULT_CANVAS_COLS, buildTemplatePage2(spellLevelH));
         return;
       }
 
       if (data.type === "TemplateSpellCards") {
-        const spells = [...(character?.spells.list ?? [])].sort((a, b) =>
-          a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
-        );
+        const spells = character?.spells.list ?? [];
         if (spells.length === 0) return;
-
-        const CARD_W = SPELL_CARD_GRID_W;
-        const CARD_H = SPELL_CARD_GRID_H;
-        const perRow = Math.floor(cols / CARD_W);
-        const rowsPerPage = Math.floor(rows / CARD_H);
-        const perPage = perRow * rowsPerPage;
-
-        const pageWidgets: {
-          cols?: number;
-          widgets: Omit<CanvasWidget, "id">[];
-        }[] = [];
-        for (let i = 0; i < spells.length; i += perPage) {
-          const chunk = spells.slice(i, i + perPage);
-          pageWidgets.push({
-            cols,
-            widgets: chunk.map((spell, j) => ({
-              type: "SpellCard" as WidgetType,
-              col: (j % perRow) * CARD_W,
-              row: Math.floor(j / perRow) * CARD_H,
-              w: CARD_W,
-              h: CARD_H,
-              rotation: 0 as const,
-              locked: false,
-              printState: "Calculated" as const,
-              spellId: spell.id,
-            })),
-          });
-        }
-        addWidgetsMultiPage(pageWidgets);
+        addWidgetsMultiPage(buildTemplateSpellCards(spells, cols, rows));
         return;
       }
 
       if (data.type === "TemplateFeatures") {
         const features = character?.features ?? [];
         if (features.length === 0) return;
-
-        // 3 columns: col 0, 10, 20 — each 9 wide (last capped at page edge)
-        const templateCols = DEFAULT_CANVAS_COLS;
-        const templateRows = rowsForCols(templateCols);
-        const COL_STARTS = [0, 10, 20];
-        const CARD_W = 9;
-
-        const pageWidgets: {
-          cols?: number;
-          widgets: Omit<CanvasWidget, "id">[];
-        }[] = [];
-        let currentPage: Omit<CanvasWidget, "id">[] = [];
-        let currentCol = 0;
-        let currentRow = 0;
-
-        for (const feature of features) {
-          const cardW = Math.min(CARD_W, templateCols - COL_STARTS[currentCol]);
-          const h = Math.min(
-            featureCardGridH(
-              feature.description,
-              cardW,
-              templateCols,
-              templateRows,
-            ),
-            templateRows,
-          );
-
-          if (currentRow + h > templateRows) {
-            // Column full — advance to next column
-            currentCol++;
-            currentRow = 0;
-            if (currentCol >= COL_STARTS.length) {
-              // All columns full — new page
-              pageWidgets.push({ cols: templateCols, widgets: currentPage });
-              currentPage = [];
-              currentCol = 0;
-            }
-          }
-
-          currentPage.push({
-            type: "FeatureCard" as WidgetType,
-            col: COL_STARTS[currentCol],
-            row: currentRow,
-            w: Math.min(CARD_W, templateCols - COL_STARTS[currentCol]),
-            h,
-            rotation: 0 as const,
-            locked: false,
-            printState: "Calculated" as const,
-            featureId: feature.id,
-          });
-          currentRow += h;
-        }
-        if (currentPage.length > 0)
-          pageWidgets.push({ cols: templateCols, widgets: currentPage });
-        addWidgetsMultiPage(pageWidgets);
+        addWidgetsMultiPage(buildTemplateFeatures(features));
         return;
       }
 
       if (data.type === "TemplateBio") {
-        const bio = character?.bio as Record<string, string> | undefined;
-        const BIO_FIELDS = [
-          { id: "appearance", label: "Appearance" },
-          { id: "backstory", label: "Backstory" },
-          { id: "allies", label: "Allies & Organizations" },
-          { id: "organizations", label: "Organizations" },
-        ];
-        const entries = BIO_FIELDS.filter((f) => bio?.[f.id]?.trim());
-        if (entries.length === 0) return;
-
-        const templateCols = DEFAULT_CANVAS_COLS;
-        const templateRows = rowsForCols(templateCols);
-        const COL_STARTS = [0, 10, 20];
-        const CARD_W = 9;
-
-        const pageWidgets: {
-          cols?: number;
-          widgets: Omit<CanvasWidget, "id">[];
-        }[] = [];
-        let currentPage: Omit<CanvasWidget, "id">[] = [];
-        let currentCol = 0;
-        let currentRow = 0;
-
-        for (const entry of entries) {
-          const cardW = Math.min(CARD_W, templateCols - COL_STARTS[currentCol]);
-          const h = Math.min(
-            Math.max(
-              3,
-              Math.round(
-                (bioTextSvgH(bio?.[entry.id] ?? "") *
-                  cardW *
-                  templateRows *
-                  210) /
-                  (templateCols * 297 * 96),
-              ),
-            ),
-            templateRows,
-          );
-
-          if (currentRow + h > templateRows) {
-            currentCol++;
-            currentRow = 0;
-            if (currentCol >= COL_STARTS.length) {
-              pageWidgets.push({ cols: templateCols, widgets: currentPage });
-              currentPage = [];
-              currentCol = 0;
-            }
-          }
-
-          currentPage.push({
-            type: "BioText" as WidgetType,
-            col: COL_STARTS[currentCol],
-            row: currentRow,
-            w: cardW,
-            h,
-            rotation: 0 as const,
-            locked: false,
-            printState: "Calculated" as const,
-            textSource: entry.id,
-          });
-          currentRow += h;
-        }
-
-        if (currentPage.length > 0)
-          pageWidgets.push({ cols: templateCols, widgets: currentPage });
-        addWidgetsMultiPage(pageWidgets);
+        const pages = buildTemplateBio(character?.bio as Record<string, string> | undefined);
+        if (pages.length === 0) return;
+        addWidgetsMultiPage(pages);
         return;
       }
 
       if (data.type === "FullPageSpells") {
-        const spells = [...(character?.spells.list ?? [])].sort((a, b) =>
-          a.level !== b.level ? a.level - b.level : a.name.localeCompare(b.name)
-        );
+        const spells = character?.spells.list ?? [];
         if (spells.length === 0) return;
-
-        const CARD_W = SPELL_CARD_GRID_W;
-        const CARD_H = SPELL_CARD_GRID_H;
-        const perRow = Math.floor(cols / CARD_W);
-        const rowsPerPage = Math.floor(rows / CARD_H);
-        const perPage = perRow * rowsPerPage;
-
-        const pageWidgets: {
-          cols?: number;
-          widgets: Omit<CanvasWidget, "id">[];
-        }[] = [];
-        for (let i = 0; i < spells.length; i += perPage) {
-          pageWidgets.push({
-            cols,
-            widgets: [{
-              type: "FullPageSpells" as WidgetType,
-              col: 0,
-              row: 0,
-              w: cols,
-              h: rows,
-              rotation: 0 as const,
-              locked: false,
-              printState: "Calculated" as const,
-              spellStartIndex: i,
-              spellCount: Math.min(perPage, spells.length - i),
-            }],
-          });
-        }
-        addWidgetsMultiPage(pageWidgets);
+        addWidgetsMultiPage(buildFullPageSpells(spells, cols, rows));
         return;
       }
 
@@ -1024,11 +622,11 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       const isGroupDrag = selectedIds.has(draggedId) && selectedIds.size > 1;
 
       if (isGroupDrag) {
-        const selected = widgets.filter(w => selectedIds.has(w.id));
-        if (selected.some(w => w.locked)) return;
+        const selected = widgets.filter((w) => selectedIds.has(w.id));
+        if (selected.some((w) => w.locked)) return;
         const deltaCols = Math.round(delta.x / cellW);
         const deltaRows = Math.round(delta.y / cellH);
-        const moves = selected.map(w => ({
+        const moves = selected.map((w) => ({
           id: w.id,
           col: Math.max(0, Math.min(w.col + deltaCols, cols - w.w)),
           row: Math.max(0, Math.min(w.row + deltaRows, rows - w.h)),
@@ -1039,8 +637,14 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
         if (!widget || widget.locked) return;
         const deltaCols = Math.round(delta.x / cellW);
         const deltaRows = Math.round(delta.y / cellH);
-        const newCol = Math.max(0, Math.min(widget.col + deltaCols, cols - widget.w));
-        const newRow = Math.max(0, Math.min(widget.row + deltaRows, rows - widget.h));
+        const newCol = Math.max(
+          0,
+          Math.min(widget.col + deltaCols, cols - widget.w),
+        );
+        const newRow = Math.max(
+          0,
+          Math.min(widget.row + deltaRows, rows - widget.h),
+        );
         moveWidget(widget.id, newCol, newRow);
       }
     }
@@ -1091,15 +695,15 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
       const isGroupDrag = selectedIds.has(draggedId) && selectedIds.size > 1;
 
       if (isGroupDrag) {
-        const selected = widgets.filter(w => selectedIds.has(w.id));
-        if (selected.some(w => w.locked)) {
+        const selected = widgets.filter((w) => selectedIds.has(w.id));
+        if (selected.some((w) => w.locked)) {
           setDropPreview(null);
           setGroupDropPreviews([]);
           return;
         }
         const deltaCols = Math.round(delta.x / cellW);
         const deltaRows = Math.round(delta.y / cellH);
-        const previews = selected.map(w => ({
+        const previews = selected.map((w) => ({
           id: w.id,
           col: Math.max(0, Math.min(w.col + deltaCols, cols - w.w)),
           row: Math.max(0, Math.min(w.row + deltaRows, rows - w.h)),
@@ -1135,21 +739,24 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
   }
 
   const mounted = useSyncExternalStore(
-    (cb) => { cb(); return () => {}; },
+    (cb) => {
+      cb();
+      return () => {};
+    },
     () => true,
     () => false,
   );
 
   return (
     <DndContext
-      sensors={sensors}
+      sensors={isMobile ? [] : sensors}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
       <div className="flex min-h-0 items-start overflow-visible">
         {/* Sidebar palette */}
-        <aside className="sticky top-0 h-screen w-1/4 shrink-0 self-start overflow-y-auto border-r border-border bg-section p-4 space-y-3">
+        {!isMobile && <aside className="sticky top-0 h-screen w-1/4 shrink-0 self-start overflow-y-auto border-r border-border bg-section p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Your Templates
           </p>
@@ -1192,43 +799,45 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
               <PaletteTile key={item.type} {...item} />
             ))}
           </div>
-        </aside>
+        </aside>}
 
         {/* Canvas column */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Page actions bar — top right */}
-          <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border bg-section px-3 py-1">
-            <button
-              type="button"
-              onClick={() => setOverviewMode((v) => !v)}
-              className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <LayoutGrid className="size-3" />
-              {overviewMode ? "Back to editor" : "Page overview"}
-            </button>
-            {!overviewMode && (
-              <>
-                <button
-                  type="button"
-                  onClick={addPage}
-                  className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Plus className="size-3" />
-                  Add page
-                </button>
-                {pages.length > 1 && (
+          {!isMobile && (
+            <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border bg-section px-3 py-1">
+              <button
+                type="button"
+                onClick={() => setOverviewMode((v) => !v)}
+                className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <LayoutGrid className="size-3" />
+                {overviewMode ? "Back to editor" : "Page overview"}
+              </button>
+              {!overviewMode && (
+                <>
                   <button
                     type="button"
-                    onClick={() => deletePage(currentPageIndex)}
-                    className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-destructive"
+                    onClick={addPage}
+                    className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    <Trash2 className="size-3" />
-                    Delete page
+                    <Plus className="size-3" />
+                    Add page
                   </button>
-                )}
-              </>
-            )}
-          </div>
+                  {pages.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => deletePage(currentPageIndex)}
+                      className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-destructive"
+                    >
+                      <Trash2 className="size-3" />
+                      Delete page
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {/* Overview mode */}
           {overviewMode && (
@@ -1237,8 +846,9 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
 
           {/* Canvas display with floating nav arrows */}
           {!overviewMode && (
+            <>
             <div
-              className="relative flex min-h-[calc(100vh-8rem)] items-center justify-center bg-muted/30 p-8"
+              className="relative flex md:min-h-[calc(100vh-8rem)] items-start md:items-center justify-center bg-muted/30 p-2 md:p-8"
               onClick={() => clearSelected()}
             >
               <div
@@ -1266,7 +876,10 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                       rows={rows}
                       selected={selectedIds.has(widget.id)}
                       isToolbarHost={lastSelectedId === widget.id}
+                      wasAutoResized={autoResizedIds.has(widget.id)}
+                      isMobile={isMobile}
                       onSelect={(e) => {
+                        if (isMobile) return;
                         e.stopPropagation();
                         if (e.ctrlKey || e.metaKey) {
                           toggleSelected(widget.id);
@@ -1305,28 +918,30 @@ export function CanvasArea({ templates, onDeleteTemplate }: Props) {
                 </div>
               </div>
 
-              {/* Floating prev arrow */}
+              {/* Floating prev arrow — desktop only */}
               {currentPageIndex > 0 && (
                 <button
                   type="button"
                   onClick={() => setPage(currentPageIndex - 1)}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+                  className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
                 >
                   <ChevronLeft className="size-4" />
                 </button>
               )}
 
-              {/* Floating next arrow */}
+              {/* Floating next arrow — desktop only */}
               {currentPageIndex < pages.length - 1 && (
                 <button
                   type="button"
                   onClick={() => setPage(currentPageIndex + 1)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+                  className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
                 >
                   <ChevronRight className="size-4" />
                 </button>
               )}
             </div>
+
+            </>
           )}
         </div>
 

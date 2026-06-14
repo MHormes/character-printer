@@ -55,25 +55,25 @@ export function ForgeSection({
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2">
         <div
           className={cn(
-            "flex items-center gap-2",
+            "flex min-w-0 flex-1 items-center gap-2",
             collapsible && "cursor-pointer select-none",
           )}
           onClick={toggleCollapse}
         >
           {collapsible &&
             (isCollapsed ? (
-              <ChevronDown className="size-3 text-muted-foreground" />
+              <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
             ) : (
-              <ChevronUp className="size-3 text-muted-foreground" />
+              <ChevronUp className="size-3 shrink-0 text-muted-foreground" />
             ))}
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 className="truncate text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             {title}
           </h2>
         </div>
-        {headerAction}
+        {headerAction && <div className="shrink-0">{headerAction}</div>}
       </div>
       {(!collapsible || !isLoaded || !isCollapsed) && children}
     </section>

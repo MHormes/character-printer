@@ -47,6 +47,7 @@ type CanvasStore = {
     id: string,
     data: Partial<Pick<CanvasWidget, "spellId" | "featureId" | "statId" | "trackerId" | "textSource" | "w" | "h">>,
   ) => void
+  batchUpdateHeights: (updates: { id: string; h: number }[]) => void
   replaceCurrentPage: (cols: number, widgets: CanvasTemplateWidget[]) => void
   reorderPages: (fromIndex: number, toIndex: number) => void
   insertPageAt: (index: number) => void
@@ -341,6 +342,21 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
       widgets: page.widgets.map((widget) => (widget.id === id ? { ...widget, ...data } : widget)),
     })),
   })),
+
+  batchUpdateHeights: (updates) => set((s) => {
+    if (updates.length === 0) return s
+    const map = new Map(updates.map(u => [u.id, u.h]))
+    return {
+      ...pushHistory(s),
+      ...patchPage(s.pages, s.currentPageIndex, (page) => ({
+        ...page,
+        widgets: page.widgets.map((w) => {
+          const newH = map.get(w.id)
+          return newH !== undefined ? { ...w, h: newH } : w
+        }),
+      })),
+    }
+  }),
 
   replaceCurrentPage: (cols, widgets) => set((s) => ({
     ...pushHistory(s),

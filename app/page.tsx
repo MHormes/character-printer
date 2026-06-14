@@ -90,7 +90,7 @@ export default function LandingPage() {
         <OrnamentDivider flip />
 
         <div className="mt-10 relative">
-          <Link href="/login" className={buttonVariants({ variant: "secondary", size: "lg" })}>
+          <Link href="/register" className={buttonVariants({ variant: "secondary", size: "lg" })}>
             Start Building
             <ArrowRight className="w-4 h-4" />
           </Link>

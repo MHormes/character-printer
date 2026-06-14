@@ -11,6 +11,7 @@ import {
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { CharacterData } from "@/lib/types/character"
+import { ImageCropperDialog } from "./image-cropper-dialog"
 
 type CharacterImageFieldProps = {
   characterId: string
@@ -34,6 +35,7 @@ export function CharacterImageField({ characterId, image, onChange }: CharacterI
   const [isUploading, setIsUploading] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [cropFile, setCropFile] = useState<File | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -74,7 +76,16 @@ export function CharacterImageField({ characterId, image, onChange }: CharacterI
       return
     }
 
+    if (inputRef.current) inputRef.current.value = ""
+    setCropFile(file)
+  }
+
+  async function handleCropConfirm(croppedBlob: Blob) {
+    const baseName = (cropFile?.name ?? "portrait").replace(/\.[^.]+$/, "")
+    const file = new File([croppedBlob], `${baseName}.webp`, { type: "image/webp" })
     const previousKey = image?.key ?? null
+    setCropFile(null)
+
     const objectUrl = URL.createObjectURL(file)
     setLocalPreviewUrl((current) => {
       if (current) URL.revokeObjectURL(current)
@@ -112,12 +123,15 @@ export function CharacterImageField({ characterId, image, onChange }: CharacterI
       setError(imageErrorMessage(err))
     } finally {
       setIsUploading(false)
-      if (inputRef.current) inputRef.current.value = ""
       setLocalPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current)
         return null
       })
     }
+  }
+
+  function handleCropCancel() {
+    setCropFile(null)
   }
 
   async function handleRemove() {
@@ -145,7 +159,7 @@ export function CharacterImageField({ characterId, image, onChange }: CharacterI
         Character Image
       </label>
       <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
-        <div className="relative aspect-square overflow-hidden rounded-md border border-border bg-muted">
+        <div className="relative overflow-hidden rounded-md border border-border bg-muted" style={{ aspectRatio: "176/220" }}>
           {visiblePreviewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -220,6 +234,13 @@ export function CharacterImageField({ characterId, image, onChange }: CharacterI
           </div>
         </div>
       </div>
+      {cropFile && (
+        <ImageCropperDialog
+          file={cropFile}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   )
 }

@@ -3,15 +3,7 @@
 import { useCharacterStore } from "@/lib/store/character-store";
 import type { AttributeKey } from "@/lib/types/character";
 import { resolveAttributeScore, resolveAttributeMod } from "@/lib/character/calculations";
-
-const ATTRIBUTE_KEYS: AttributeKey[] = [
-  "str",
-  "dex",
-  "con",
-  "int",
-  "wis",
-  "cha",
-];
+import { ATTRIBUTE_KEYS } from "@/lib/character/defaults";
 
 const ATTRIBUTE_LABELS: Record<AttributeKey, string> = {
   str: "STRENGTH",

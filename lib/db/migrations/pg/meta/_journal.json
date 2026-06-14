@@ -17,6 +17,9 @@
     { "idx": 12, "version": "7", "when": 1780001755454, "tag": "0012_add_username",                  "breakpoints": true },
     { "idx": 13, "version": "7", "when": 1780001755455, "tag": "0013_users_auth_columns",             "breakpoints": true },
     { "idx": 14, "version": "7", "when": 1748736000001, "tag": "0014_fix_column_types",               "breakpoints": true },
-    { "idx": 15, "version": "7", "when": 1748908800001, "tag": "0015_background_fixed_proficiencies", "breakpoints": true }
+    { "idx": 15, "version": "7", "when": 1748908800001, "tag": "0015_background_fixed_proficiencies", "breakpoints": true },
+    { "idx": 16, "version": "7", "when": 1749686400000, "tag": "0016_email_verification",             "breakpoints": true },
+    { "idx": 17, "version": "7", "when": 1781308800000, "tag": "0017_rename_srd_items",               "breakpoints": true },
+    { "idx": 18, "version": "7", "when": 1781363900000, "tag": "0018_password_reset",                 "breakpoints": true }
   ]
 }

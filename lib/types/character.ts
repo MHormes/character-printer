@@ -312,9 +312,12 @@ export type CharacterImage = {
 
 export type Edition = "2014" | "2024";
 
+export type CharacterMode = "player" | "npc";
+
 export type CharacterData = {
   version: string;
   edition: Edition;
+  mode?: CharacterMode;
   profBonusStack: ModifierEntry[];
   selectionIgnores?: SelectionIgnores;
   dismissedClassChoiceKeys?: string[];

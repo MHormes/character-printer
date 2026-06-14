@@ -4,15 +4,7 @@ import { useCharacterStore } from "@/lib/store/character-store"
 import type { AttributeKey } from "@/lib/types/character"
 import { resolveSaveBonus } from "@/lib/character/calculations"
 import { DndFrame } from "./dnd-frame"
-
-const ATTRIBUTE_KEYS: AttributeKey[] = [
-  "str",
-  "dex",
-  "con",
-  "int",
-  "wis",
-  "cha",
-]
+import { ATTRIBUTE_KEYS } from "@/lib/character/defaults"
 
 const SAVE_LABELS: Record<AttributeKey, string> = {
   str: "Strength",

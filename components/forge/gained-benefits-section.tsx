@@ -76,7 +76,7 @@ export function GainedBenefitsSection({
                         onClick={() => onRevert(d.key)}
                       >
                         <RotateCcw className="size-2.5" />
-                        Revert
+                        <span className="hidden md:inline">Revert</span>
                       </Button>
                     </div>
                   ))}

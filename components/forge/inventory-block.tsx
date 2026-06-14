@@ -380,8 +380,8 @@ export function InventoryBlock({
         <div className="size-5 shrink-0" />
         <div className="size-5 shrink-0" />
         <span className="min-w-0 flex-[3]">Name</span>
-        <span className="min-w-[4rem] flex-1 text-center">Weight</span>
-        <span className="min-w-[7rem] flex-[2]">Category</span>
+        <span className="hidden md:inline min-w-[4rem] flex-1 text-center">Weight</span>
+        <span className="hidden md:inline min-w-[7rem] flex-[2]">Category</span>
         <div className="size-5 shrink-0" />
         <div className="size-5 shrink-0" />
       </div>
@@ -596,7 +596,7 @@ function SortableInventoryItem({
             onPatch({ weight: isNaN(n) ? 0 : n });
           }}
           className={cn(
-            "h-7 min-w-[4rem] flex-1 rounded-md border text-center text-xs focus:outline-none focus:border-ring",
+            "hidden md:block h-7 min-w-[4rem] flex-1 rounded-md border text-center text-xs focus:outline-none focus:border-ring",
             item.equipped
               ? "border-input bg-background text-foreground"
               : "border-input/70 bg-muted/20 text-muted-foreground",
@@ -605,7 +605,7 @@ function SortableInventoryItem({
         <Select
           selectSize="sm"
           className={cn(
-            "h-7 min-w-[7rem] flex-[2]",
+            "hidden md:flex h-7 min-w-[7rem] flex-[2]",
             item.equipped ? "" : "border-input/70 bg-muted/20 text-muted-foreground",
           )}
           value={item.category}
