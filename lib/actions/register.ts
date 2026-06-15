@@ -88,7 +88,7 @@ export async function registerAction(
   try {
     await sendEmail({
       to: email,
-      subject: "Verify your Character Printer account",
+      subject: "Verify your Print 2 Play account",
       html: verificationEmail(username, verifyUrl),
     })
   } catch {

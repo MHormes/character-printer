@@ -5,7 +5,7 @@ const maintenanceWorker = {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Maintenance | Character Printer</title>
+  <title>Maintenance | Print 2 Play</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;700;900&display=swap" rel="stylesheet">
@@ -132,7 +132,7 @@ const maintenanceWorker = {
 </head>
 <body>
   <header>
-    <span class="wordmark">Character Printer</span>
+    <span class="wordmark">Print 2 Play</span>
   </header>
 
   <main>

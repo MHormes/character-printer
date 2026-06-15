@@ -64,7 +64,7 @@ export async function generateTotpSetupAction(): Promise<{
 
     const secret = new Secret({ size: 20 })
     const totp = new TOTP({
-      issuer: "Character Printer",
+      issuer: "Print 2 Play",
       label: session.user.username ?? session.user.email ?? "user",
       algorithm: "SHA1",
       digits: 6,

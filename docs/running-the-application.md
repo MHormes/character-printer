@@ -1,6 +1,6 @@
 # Running the Application
 
-This document covers the three ways to run Character Printer: locally with pnpm and SQLite, locally with Docker Compose, and in production with the production Docker Compose.
+This document covers the three ways to run Print2Play: locally with pnpm and SQLite, locally with Docker Compose, and in production with the production Docker Compose.
 
 ---
 
@@ -8,10 +8,10 @@ This document covers the three ways to run Character Printer: locally with pnpm 
 
 The application has two data sources that need to be present for a functioning environment:
 
-| Source | What | Where |
-|--------|------|--------|
-| **Database** | Users, characters, SRD content | PostgreSQL (Docker) or SQLite (local) |
-| **Storage** | Character images | AIStor/S3 (Docker) or `.local-storage/` (local) |
+| Source       | What                           | Where                                           |
+| ------------ | ------------------------------ | ----------------------------------------------- |
+| **Database** | Users, characters, SRD content | PostgreSQL (Docker) or SQLite (local)           |
+| **Storage**  | Character images               | AIStor/S3 (Docker) or `.local-storage/` (local) |
 
 ### How seeding works
 
@@ -98,11 +98,11 @@ Spins up the full stack (Next.js app, PostgreSQL, AIStor) using `docker-compose-
 
 **What runs:**
 
-| Container | Role | Port(s) |
-| --- | --- | --- |
-| `character_printer_app` | Next.js standalone app | `3000` |
-| `character_printer_postgres` | PostgreSQL 17 | `5432` |
-| `character_printer_aistor` | AIStor (S3-compatible) | `9000`, `9001` |
+| Container                    | Role                   | Port(s)        |
+| ---------------------------- | ---------------------- | -------------- |
+| `character_printer_app`      | Next.js standalone app | `3000`         |
+| `character_printer_postgres` | PostgreSQL 17          | `5432`         |
+| `character_printer_aistor`   | AIStor (S3-compatible) | `9000`, `9001` |
 
 > The local compose builds from the Dockerfile, so it reflects the exact production image. Code changes require a rebuild (`bash scripts/setup.sh development`).
 
@@ -142,12 +142,12 @@ The production setup (`docker-compose.yml`) runs on the server and adds a Cloudf
 
 **What runs:**
 
-| Container | Role |
-| --- | --- |
-| `character_printer_app` | Next.js standalone app |
-| `character_printer_postgres` | PostgreSQL 17 |
-| `character_printer_aistor` | AIStor (S3-compatible) |
-| `character_printer_tunnel` | Cloudflare Tunnel (HTTPS) |
+| Container                    | Role                      |
+| ---------------------------- | ------------------------- |
+| `character_printer_app`      | Next.js standalone app    |
+| `character_printer_postgres` | PostgreSQL 17             |
+| `character_printer_aistor`   | AIStor (S3-compatible)    |
+| `character_printer_tunnel`   | Cloudflare Tunnel (HTTPS) |
 
 > The database and AIStor are not exposed on any host port in production — they are only reachable from within the Docker network.
 
@@ -173,18 +173,18 @@ Shell aliases are configured on both the laptop and the server to speed up commo
 
 ### Laptop Aliases
 
-| Alias | Description |
-| --- | --- |
-| `char-connect` | Open an SSH connection to the Character Printer VM. |
-| `char-data` | Runs `scripts/copy_backup.sh` — SSHs in, finds the latest backup, confirms, downloads it to `~/Desktop/CharacterPrinterBackups/`. Optionally stages `csv/` into `database/data/` and `storage/` into `database/storage/` for a local Docker seed. |
-| `char-up` | Build and start the local Docker stack (PostgreSQL + AIStor) via `scripts/setup.sh development`. |
+| Alias          | Description                                                                                                                                                                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `char-connect` | Open an SSH connection to the Print2Play VM.                                                                                                                                                                                                      |
+| `char-data`    | Runs `scripts/copy_backup.sh` — SSHs in, finds the latest backup, confirms, downloads it to `~/Desktop/CharacterPrinterBackups/`. Optionally stages `csv/` into `database/data/` and `storage/` into `database/storage/` for a local Docker seed. |
+| `char-up`      | Build and start the local Docker stack (PostgreSQL + AIStor) via `scripts/setup.sh development`.                                                                                                                                                  |
 
 ### Server Aliases
 
-| Alias | Description |
-| --- | --- |
-| `char-pull` | Pull the latest changes from Git. |
-| `char-deploy` | Run `setup.sh` and deploy the current pull. |
+| Alias         | Description                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `char-pull`   | Pull the latest changes from Git.                                                                                                             |
+| `char-deploy` | Run `setup.sh` and deploy the current pull.                                                                                                   |
 | `char-backup` | Run `backup.sh` — exports all database tables to CSV and mirrors the AIStor bucket, then removes the oldest backup keeping the 3 most recent. |
 
 ### VM OS Updates
@@ -203,11 +203,11 @@ After a reboot the Docker containers come back up automatically (`restart: unles
 
 Three helper scripts in `scripts/` manage the Cloudflare maintenance page independently of deployment:
 
-| Script | Purpose |
-| --- | --- |
-| `scripts/maintenance-on.sh` | Creates a Cloudflare Worker route that serves the maintenance page |
-| `scripts/maintenance-off.sh` | Deletes the Worker route, restoring normal traffic |
-| `scripts/utils.sh` | Sourced by the above; loads `.env.production` and derives domain + worker name |
+| Script                       | Purpose                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| `scripts/maintenance-on.sh`  | Creates a Cloudflare Worker route that serves the maintenance page             |
+| `scripts/maintenance-off.sh` | Deletes the Worker route, restoring normal traffic                             |
+| `scripts/utils.sh`           | Sourced by the above; loads `.env.production` and derives domain + worker name |
 
 These are also called by `scripts/setup.sh production` around the build/restart cycle.
 

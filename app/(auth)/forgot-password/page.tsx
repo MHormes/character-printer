@@ -1,23 +1,6 @@
-import Link from "next/link"
+﻿import Link from "next/link"
+import Image from "next/image"
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form"
-
-const D20Mini = () => (
-  <svg
-    viewBox="0 0 200 230"
-    className="w-8 h-8 text-primary-foreground"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="6"
-    strokeLinejoin="round"
-  >
-    <polygon points="100,5 195,57 195,173 100,225 5,173 5,57" />
-    <polygon points="100,5 147,57 100,85 53,57" />
-    <polygon points="195,57 147,57 100,85 195,173" />
-    <polygon points="5,57 53,57 100,85 5,173" />
-    <polygon points="100,85 147,57 195,173 100,225" />
-    <polygon points="100,85 53,57 5,173 100,225" />
-  </svg>
-)
 
 export default function ForgotPasswordPage() {
   return (
@@ -25,11 +8,8 @@ export default function ForgotPasswordPage() {
 
       {/* Top band */}
       <div className="w-full bg-primary flex flex-col items-center gap-2 py-7 px-8">
-        <D20Mini />
-        <h1 className="font-cinzel text-xl font-bold tracking-widest uppercase text-primary-foreground mt-1">
-          Character Printer
-        </h1>
-        <p className="font-garamond italic text-primary-foreground/70 text-sm">
+        <Image src="/images/p2p-logo.png" alt="Print2Play" width={96} height={96} />
+        <p className="font-garamond italic text-primary-foreground/70 text-sm mt-1">
           Forgot your password?
         </p>
       </div>
@@ -56,3 +36,6 @@ export default function ForgotPasswordPage() {
     </div>
   )
 }
+
+
+

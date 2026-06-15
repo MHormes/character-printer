@@ -7,7 +7,7 @@ interface EmailPayload {
   html: string
 }
 
-const FROM = `"${process.env.MAIL_FROM_NAME ?? "Character Printer"}" <${process.env.MAIL_FROM_ADDRESS ?? "noreply@character-printer.app"}>`
+const FROM = `"${process.env.MAIL_FROM_NAME ?? "Print 2 Play"}" <${process.env.MAIL_FROM_ADDRESS ?? "noreply@character-printer.app"}>`
 
 export async function sendEmail(payload: EmailPayload): Promise<void> {
   const provider = process.env.MAIL_PROVIDER ?? "mailtrap"

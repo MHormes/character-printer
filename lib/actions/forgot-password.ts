@@ -45,7 +45,7 @@ export async function forgotPasswordAction(
   try {
     await sendEmail({
       to: users[0].email,
-      subject: "Reset your Character Printer password",
+      subject: "Reset your Print 2 Play password",
       html: passwordResetEmail(resetUrl),
     })
   } catch (err) {

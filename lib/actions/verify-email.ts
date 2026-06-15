@@ -87,7 +87,7 @@ export async function resendVerificationAction(): Promise<ResendResult> {
 
   await sendEmail({
     to: user.email,
-    subject: "Verify your Character Printer account",
+    subject: "Verify your Print 2 Play account",
     html: resendVerificationEmail(user.username || user.name || "Adventurer", verifyUrl),
   })
 

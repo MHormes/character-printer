@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
+import Image from "next/image";
 import {
   listAllCharacters,
   createCharacter,
@@ -14,6 +15,7 @@ import { Pencil, Scroll, Shield } from "lucide-react";
 import { NewCharacterDialog } from "@/components/characters/new-character-dialog";
 import { DeleteCharacterButton } from "@/components/characters/delete-character-button";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { AppFooter } from "@/components/footer";
 import { Settings, BookOpen } from "lucide-react";
 import { createDemoCharacter } from "@/lib/actions/tour-actions";
 import type { Edition, CharacterMode, AbilityScoreMode } from "@/lib/types/character";
@@ -65,14 +67,15 @@ export default async function CharactersPage() {
   const characters = await listAllCharacters(session.user.id);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Top bar */}
       <header className="flex items-center justify-between bg-primary px-8 py-4">
         <Link
           href="/"
-          className="font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+          className="flex items-center gap-2.5 font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/80 hover:text-primary-foreground transition-colors"
         >
-          Character Printer
+          <Image src="/images/p2p-logo.png" alt="Print2Play" width={52} height={52} />
+          Print2Play
         </Link>
         <div className="flex items-center gap-2">
           {session.user.role === "admin" && (
@@ -106,7 +109,7 @@ export default async function CharactersPage() {
         </div>
       </header>
 
-      <main className="px-8 py-10 max-w-screen-2xl mx-auto">
+      <main className="px-8 py-10 max-w-screen-2xl mx-auto flex-1 w-full">
         {/* Page heading */}
         <div className="mb-10">
           <h1 className="font-cinzel text-5xl md:text-6xl font-black tracking-tight text-foreground mb-4">
@@ -206,6 +209,7 @@ export default async function CharactersPage() {
           </ul>
         )}
       </main>
+      <AppFooter />
     </div>
   );
 }

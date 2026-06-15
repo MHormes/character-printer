@@ -26,7 +26,7 @@ function wrapper(content: string): string {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Character Printer</title>
+  <title>Print 2 Play</title>
 </head>
 <body style="margin:0;padding:0;background:${C.bg};font-family:Georgia,'Times New Roman',serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg};padding:40px 16px;">
@@ -36,7 +36,7 @@ function wrapper(content: string): string {
         <tr>
           <td style="background:${C.primary};padding:32px 40px 24px;text-align:center;">
             ${d20Svg}
-            <div style="font-family:Georgia,serif;font-size:18px;font-weight:bold;letter-spacing:0.25em;text-transform:uppercase;color:${C.primaryFg};margin-bottom:4px;">Character Printer</div>
+            <div style="font-family:Georgia,serif;font-size:18px;font-weight:bold;letter-spacing:0.25em;text-transform:uppercase;color:${C.primaryFg};margin-bottom:4px;">Print 2 Play</div>
           </td>
         </tr>
         <!-- Ornament rule -->
