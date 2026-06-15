@@ -36,6 +36,7 @@ import { ForgeSection } from "@/components/forge/forge-section";
 import { Loader2, User, MessageSquare, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleButton } from "@/components/ui/toggle-button";
+import { AppFooter } from "@/components/footer";
 import type {
   AttributeKey,
   CharacterData,
@@ -1485,6 +1486,7 @@ export default function ForgePage({
             </ForgeSection>
           </div>
         </main>
+        <AppFooter />
       </div>
       <Suspense fallback={null}>
         <TourInitializer characterId={id} />

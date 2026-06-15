@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Geist, Geist_Mono, Cinzel, EB_Garamond } from "next/font/google";
 import { Providers } from "@/components/providers/session-provider";
 import "./globals.css";
@@ -9,8 +9,12 @@ const cinzel = Cinzel({ variable: "--font-cinzel", subsets: ["latin"], weight: [
 const garamond = EB_Garamond({ variable: "--font-garamond", subsets: ["latin"], style: ["normal", "italic"] });
 
 export const metadata: Metadata = {
-  title: "Character Printer",
+  title: "Print2Play",
   description: "D&D 5e character sheet builder and print canvas",
+  icons: {
+    icon: "/images/p2p-logo.png",
+    apple: "/images/p2p-logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -27,3 +31,4 @@ export default function RootLayout({
     </html>
   );
 }
+

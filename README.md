@@ -1,4 +1,4 @@
-# Character Printer
+# Print2Play
 
 A D&D 5e character sheet builder with a drag-and-drop print canvas. Design your sheet, fill in your character, print it exactly how you want it.
 

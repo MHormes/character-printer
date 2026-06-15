@@ -2,6 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { registerAction, type RegisterResult } from "@/lib/actions/register"
@@ -19,6 +20,7 @@ export function RegisterForm() {
   const router = useRouter()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [pending] = useTransition()
 
   const [state, formAction] = useActionState<RegisterResult | null, FormData>(
@@ -139,11 +141,33 @@ export function RegisterForm() {
         )}
       </div>
 
+      {/* Terms agreement */}
+      <div className="flex items-start gap-2.5">
+        <input
+          type="checkbox"
+          id="terms"
+          name="terms"
+          checked={agreedToTerms}
+          onChange={e => setAgreedToTerms(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border accent-foreground"
+        />
+        <label htmlFor="terms" className="font-garamond text-sm text-muted-foreground cursor-pointer leading-snug">
+          I agree to the{" "}
+          <Link href="/terms" target="_blank" className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors">
+            Terms of Use
+          </Link>
+          {" "}and{" "}
+          <Link href="/privacy" target="_blank" className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors">
+            Privacy Policy
+          </Link>
+        </label>
+      </div>
+
       <Button
         type="submit"
         className="w-full mt-1"
         size="lg"
-        disabled={pending || !allRulesPassed || !passwordsMatch}
+        disabled={pending || !allRulesPassed || !passwordsMatch || !agreedToTerms}
       >
         {pending ? "Creating account…" : "Create Account"}
       </Button>
