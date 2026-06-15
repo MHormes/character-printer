@@ -132,7 +132,7 @@ export default function LandingPage() {
             {
               icon: Scroll,
               title: "Build",
-              desc: "Automate stats, class features, race traits, and proficiencies through an intuitive forge.",
+              desc: "Automate stat changes, class features, proficiencies and lots more through an intuitive forge.",
             },
             {
               icon: LayoutGrid,
