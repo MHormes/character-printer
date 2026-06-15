@@ -15,13 +15,16 @@ type StatBlockProps = {
   level: number
   pb: number
   showManualControls: boolean
+  tourId?: string
+  forceExpandModifiers?: boolean
   onBaseChange: (value: number) => void
   onStackChange: (stack: ModifierEntry[]) => void
   onOverrideChange: (override: number | null) => void
 }
 
-export function StatBlock({ label, data, attrs, level, pb, showManualControls, onBaseChange, onStackChange, onOverrideChange }: StatBlockProps) {
+export function StatBlock({ label, data, attrs, level, pb, showManualControls, tourId, forceExpandModifiers, onBaseChange, onStackChange, onOverrideChange }: StatBlockProps) {
   const [expanded, setExpanded] = useState(false)
+  const isExpanded = expanded || (forceExpandModifiers ?? false)
 
   const calculated = resolveAttributeScore(data)
   const total = data.override ?? calculated
@@ -104,20 +107,24 @@ export function StatBlock({ label, data, attrs, level, pb, showManualControls, o
         <>
           <button
             type="button"
+            data-tour-id={tourId === "str" ? "str-modifier-stack" : undefined}
             onClick={() => setExpanded((v) => !v)}
             className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
-            {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+            {isExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
             Modifiers
-            {!expanded && data.stack.length > 0 && (
+            {!isExpanded && data.stack.length > 0 && (
               <span className="ml-auto tabular-nums">
                 {stackTotal >= 0 ? `+${stackTotal}` : stackTotal}
               </span>
             )}
           </button>
 
-          {expanded && (
-            <div className="flex flex-col gap-1.5">
+          {isExpanded && (
+            <div
+              className="flex flex-col gap-1.5"
+              data-tour-id={tourId === "str" ? "str-modifier-list" : undefined}
+            >
               {data.stack.map((mod) =>
                 mod.sourceId ? (
                   <div key={mod.id} className={cn("flex items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5", !mod.isActive && "opacity-40")}>
@@ -188,6 +195,7 @@ export function StatBlock({ label, data, attrs, level, pb, showManualControls, o
             <input
               type="text"
               inputMode="numeric"
+              data-tour-id={tourId === "str" ? "str-override" : undefined}
               value={data.override !== null ? data.override : ""}
               placeholder={calculated.toString()}
               onChange={(e) => handleTotalChange(e.target.value)}

@@ -14,7 +14,8 @@ import { Pencil, Scroll, Shield } from "lucide-react";
 import { NewCharacterDialog } from "@/components/characters/new-character-dialog";
 import { DeleteCharacterButton } from "@/components/characters/delete-character-button";
 import { LogoutButton } from "@/components/auth/logout-button";
-import { Settings } from "lucide-react";
+import { Settings, BookOpen } from "lucide-react";
+import { createDemoCharacter } from "@/lib/actions/tour-actions";
 import type { Edition, CharacterMode, AbilityScoreMode } from "@/lib/types/character";
 
 const EDITION_LABELS: Record<Edition, string> = {
@@ -49,6 +50,14 @@ async function deleteAction(formData: FormData) {
   revalidatePath("/characters");
 }
 
+async function startTourAction() {
+  "use server";
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const { id } = await createDemoCharacter(session.user.id);
+  redirect(`/forge/${id}?tour=true`);
+}
+
 export default async function CharactersPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -76,6 +85,16 @@ export default async function CharactersPage() {
             </Link>
           )}
           <NewCharacterDialog createAction={createAction} size="sm" />
+          <form action={startTourAction}>
+            <button
+              type="submit"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+              aria-label="Start guide"
+            >
+              <BookOpen className="size-3.5" />
+              Guide
+            </button>
+          </form>
           <Link
             href="/settings"
             className={buttonVariants({ variant: "secondary", size: "icon-sm" })}

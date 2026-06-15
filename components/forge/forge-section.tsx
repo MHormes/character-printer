@@ -10,6 +10,8 @@ type Props = {
   children: React.ReactNode;
   collapsible?: boolean;
   defaultCollapsed?: boolean;
+  forceExpanded?: boolean;
+  headerTourId?: string;
 };
 
 export function ForgeSection({
@@ -19,6 +21,8 @@ export function ForgeSection({
   children,
   collapsible = false,
   defaultCollapsed = false,
+  forceExpanded = false,
+  headerTourId,
 }: Props) {
   const params = useParams();
   const charId = params?.id as string;
@@ -38,6 +42,14 @@ export function ForgeSection({
       setIsLoaded(true);
     });
   }, [collapsible, storageKey]);
+
+  useEffect(() => {
+    if (forceExpanded && storageKey) {
+      localStorage.setItem(storageKey, "false");
+    }
+  }, [forceExpanded, storageKey]);
+
+  const effectiveCollapsed = forceExpanded ? false : isCollapsed;
 
   function toggleCollapse() {
     if (!collapsible) return;
@@ -61,10 +73,11 @@ export function ForgeSection({
             "flex min-w-0 flex-1 items-center gap-2",
             collapsible && "cursor-pointer select-none",
           )}
+          data-tour-id={headerTourId}
           onClick={toggleCollapse}
         >
           {collapsible &&
-            (isCollapsed ? (
+            (effectiveCollapsed ? (
               <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
             ) : (
               <ChevronUp className="size-3 shrink-0 text-muted-foreground" />
@@ -75,7 +88,7 @@ export function ForgeSection({
         </div>
         {headerAction && <div className="shrink-0">{headerAction}</div>}
       </div>
-      {(!collapsible || !isLoaded || !isCollapsed) && children}
+      {(!collapsible || !isLoaded || !effectiveCollapsed) && children}
     </section>
   );
 }

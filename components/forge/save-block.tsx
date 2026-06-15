@@ -34,6 +34,7 @@ type SaveBlockProps = {
   attrs: Record<AttributeKey, AttributeData>;
   level: number;
   showManualControls: boolean;
+  tourId?: string;
   onProficiencyChange: (proficient: boolean) => void;
   onStackChange: (stack: ModifierEntry[]) => void;
   onOverrideChange: (override: number | null) => void;
@@ -52,6 +53,7 @@ export function SaveBlock({
   attrs,
   level,
   showManualControls,
+  tourId,
 }: SaveBlockProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -127,6 +129,7 @@ export function SaveBlock({
           aria-label={
             data.proficient ? "Remove proficiency" : "Add proficiency"
           }
+          data-tour-id={tourId === "str" ? "save-proficiency" : undefined}
           onClick={toggleProficiency}
           className="flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
         >

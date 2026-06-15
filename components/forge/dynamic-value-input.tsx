@@ -46,7 +46,7 @@ export function DynamicValueInput({
 
   if (disabled) {
     return (
-      <div className="flex h-6 items-center rounded-md border border-input bg-background">
+      <div className="flex h-6 w-14 items-center rounded-md border border-input bg-background">
         <span className="select-none pl-2 text-xs text-foreground">+</span>
         <span className="px-1.5 text-xs tabular-nums">{value}</span>
       </div>
@@ -55,48 +55,61 @@ export function DynamicValueInput({
 
   if (isDynamic) {
     return (
-      <div className="flex flex-wrap items-center gap-1">
-        <Select
-          selectSize="sm"
-          value={sourceToValue(valueSource)}
-          onChange={e => onChange(resolved, valueToSource(e.target.value), 1, 0)}
-          className="h-6 min-w-0 flex-1"
-        >
-          <optgroup label="Attribute modifier">
-            {ATTR_KEYS.map(k => (
-              <option key={k} value={`attr_mod:${k}`}>{ATTR_LABELS[k]} mod</option>
-            ))}
-          </optgroup>
-          <optgroup label="Level">
-            <option value="level">Level</option>
-            <option value="half_level_up">½ level ↑</option>
-            <option value="half_level_down">½ level ↓</option>
-          </optgroup>
-          <optgroup label="Other">
-            <option value="prof_bonus">Prof bonus</option>
-          </optgroup>
-        </Select>
-        <span className="text-xs text-foreground">×</span>
-        <input
-          type="number"
-          value={valueMultiplier ?? 1}
-          onChange={e => onChange(resolved, valueSource, parseFloat(e.target.value) || 1, valueOffset ?? 0)}
-          className="h-6 w-10 rounded-md border border-input bg-background px-1.5 text-xs tabular-nums focus:outline-none focus:border-ring"
-        />
-        <span className="text-xs text-foreground">+</span>
-        <input
-          type="number"
-          value={valueOffset ?? 0}
-          onChange={e => onChange(resolved, valueSource, valueMultiplier ?? 1, parseInt(e.target.value) || 0)}
-          className="h-6 w-10 rounded-md border border-input bg-background px-1.5 text-xs tabular-nums focus:outline-none focus:border-ring"
-        />
-        <span className="flex h-6 items-center justify-center rounded-md border border-input bg-muted/40 px-2 text-xs tabular-nums text-foreground">
-          ={resolved}
-        </span>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1">
+          <Select
+            selectSize="sm"
+            value={sourceToValue(valueSource)}
+            onChange={e => onChange(resolved, valueToSource(e.target.value), 1, 0)}
+            className="h-6 min-w-0 flex-1"
+          >
+            <optgroup label="Attribute modifier">
+              {ATTR_KEYS.map(k => (
+                <option key={k} value={`attr_mod:${k}`}>{ATTR_LABELS[k]} mod</option>
+              ))}
+            </optgroup>
+            <optgroup label="Level">
+              <option value="level">Level</option>
+              <option value="half_level_up">½ level ↑</option>
+              <option value="half_level_down">½ level ↓</option>
+            </optgroup>
+            <optgroup label="Other">
+              <option value="prof_bonus">Prof bonus</option>
+            </optgroup>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground">×</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={valueMultiplier ?? 1}
+            onChange={e => {
+              const n = parseFloat(e.target.value)
+              if (!isNaN(n)) onChange(resolved, valueSource, n, valueOffset ?? 0)
+            }}
+            className="h-6 w-8 rounded-md border border-input bg-background px-1 text-center text-xs tabular-nums focus:outline-none focus:border-ring"
+          />
+          <span className="text-xs text-muted-foreground">+</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={valueOffset ?? 0}
+            onChange={e => {
+              const raw = e.target.value
+              if (raw === "" || raw === "-") return
+              const n = parseInt(raw, 10)
+              if (!isNaN(n)) onChange(resolved, valueSource, valueMultiplier ?? 1, n)
+            }}
+            className="h-6 w-8 rounded-md border border-input bg-background px-1 text-center text-xs tabular-nums focus:outline-none focus:border-ring"
+          />
+          <span className="flex h-6 flex-1 items-center justify-end rounded-md border border-input bg-muted/40 px-2 text-xs tabular-nums text-foreground">
+            ={resolved}
+          </span>
+        </div>
         <ToggleButton
           isActive={true}
           compact
-          tooltip="Use fixed value"
           onClick={() => onChange(resolved, undefined, undefined, undefined)}
         >
           <Sigma className="size-3" />
@@ -106,8 +119,8 @@ export function DynamicValueInput({
   }
 
   return (
-    <div className="flex items-center gap-1">
-      <div className="flex h-6 flex-1 items-center rounded-md border border-input bg-background focus-within:border-ring">
+    <div className="flex flex-col gap-1">
+      <div className="flex h-6 w-14 items-center rounded-md border border-input bg-background focus-within:border-ring">
         <span className="select-none pl-2 text-xs text-foreground">+</span>
         <input
           type="text"
@@ -129,7 +142,6 @@ export function DynamicValueInput({
       <ToggleButton
         isActive={false}
         compact
-        tooltip="Base on stat"
         onClick={() => onChange(value, { kind: "level" }, 1, 0)}
       >
         <Sigma className="size-3" />
