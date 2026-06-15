@@ -33,6 +33,7 @@ export function TourOverlay() {
 
   useEffect(() => {
     useTourStore.persist.rehydrate()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
   }, [])
 
@@ -44,6 +45,7 @@ export function TourOverlay() {
     if (!active) return
     const currentStep = TOUR_STEPS[step]
     if (!currentStep?.targetSelector) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTargetRect(null)
       return
     }

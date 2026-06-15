@@ -46,9 +46,10 @@ export function ForgeSection({
   useEffect(() => {
     if (forceExpanded && storageKey) {
       localStorage.setItem(storageKey, "false");
-      setIsCollapsed(false);
     }
   }, [forceExpanded, storageKey]);
+
+  const effectiveCollapsed = forceExpanded ? false : isCollapsed;
 
   function toggleCollapse() {
     if (!collapsible) return;
@@ -76,7 +77,7 @@ export function ForgeSection({
           onClick={toggleCollapse}
         >
           {collapsible &&
-            (isCollapsed ? (
+            (effectiveCollapsed ? (
               <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
             ) : (
               <ChevronUp className="size-3 shrink-0 text-muted-foreground" />
@@ -87,7 +88,7 @@ export function ForgeSection({
         </div>
         {headerAction && <div className="shrink-0">{headerAction}</div>}
       </div>
-      {(!collapsible || !isLoaded || !isCollapsed || forceExpanded) && children}
+      {(!collapsible || !isLoaded || !effectiveCollapsed) && children}
     </section>
   );
 }
