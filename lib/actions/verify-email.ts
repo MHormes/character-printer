@@ -82,7 +82,7 @@ export async function resendVerificationAction(): Promise<ResendResult> {
     .set({ verificationToken, verificationTokenExpiry, emailVerificationSentAt: now })
     .where(eq(dbUsers.id, user.id))
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+  const baseUrl = process.env["NEXTAUTH_URL"] ?? "http://localhost:3000"
   const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`
 
   await sendEmail({
