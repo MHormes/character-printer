@@ -48,8 +48,9 @@ const PASSWORD  = __ENV.K6_PASSWORD || "K6TestUser123!";
 
 export const options = {
   stages: [
-    { duration: "30s", target: 1  },  // baseline — verify 0 errors before scaling
-    { duration: "30s", target: 0  },
+    { duration: "1m",  target: 250 },
+    { duration: "2m",  target: 250 },
+    { duration: "30s", target: 0   },
   ],
   thresholds: {
     http_req_failed:   ["rate<0.01"],
@@ -111,7 +112,7 @@ export default function () {
   res = http.post(`${BASE_URL}/forge/${characterId}`, saveBody, {
     headers: {
       "Content-Type": "text/plain;charset=UTF-8",
-      "Next-Action": NEXT_ACTION_ID,
+      "Next-Action": '70fa93a807a5d85730e8982f0f6cbb4b9d83798064',
     },
   });
   check(res, { "forge save (action) 200": (r) => r.status === 200 });
