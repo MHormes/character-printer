@@ -131,8 +131,8 @@ for (let i = 1; i <= POOL_SIZE; i++) {
   const charId = `k6-char-${idx}`;
 
   const { rows: [{ id: userId }] } = await pool.query(
-    `INSERT INTO users (id, email, username, name, password_hash, role, email_verified, created_at, updated_at)
-     VALUES (gen_random_uuid(), $1, $2, $3, $4, 'user', NOW(), NOW(), NOW())
+    `INSERT INTO users (id, email, username, name, password_hash, role, email_verified, created_at)
+     VALUES (gen_random_uuid(), $1, $2, $3, $4, 'user', NOW(), NOW())
      ON CONFLICT (email) DO UPDATE SET email_verified = NOW(), password_hash = EXCLUDED.password_hash
      RETURNING id`,
     [email, uname, uname, hash]
