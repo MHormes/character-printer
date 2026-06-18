@@ -82,7 +82,7 @@ export async function registerAction(
     emailVerificationSentAt: now,
   })
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+  const baseUrl = process.env["NEXTAUTH_URL"] ?? "http://localhost:3000"
   const verifyUrl = `${baseUrl}/verify?token=${verificationToken}`
 
   try {

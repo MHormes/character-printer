@@ -39,7 +39,7 @@ export async function forgotPasswordAction(
     .set({ passwordResetToken: token, passwordResetTokenExpiry: expiry })
     .where(eq(dbUsers.id, users[0].id))
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+  const baseUrl = process.env["NEXTAUTH_URL"] ?? "http://localhost:3000"
   const resetUrl = `${baseUrl}/reset-password?token=${token}`
 
   try {
