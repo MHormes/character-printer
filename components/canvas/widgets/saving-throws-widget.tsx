@@ -33,7 +33,7 @@ export function SavingThrowsWidget() {
       style={{ display: "block", width: "100%", height: "100%" }}
       preserveAspectRatio="xMidYMid meet"
     >
-      <DndFrame x={3} y={3} w={82} h={70} cornerOff={10} />
+      <DndFrame x={2.5} y={3} w={83} h={70} cornerOff={10} />
 
       {/* Rows */}
       {ATTRIBUTE_KEYS.map((key, i) => {
@@ -44,14 +44,14 @@ export function SavingThrowsWidget() {
         return (
           <g key={key}>
             {save.proficient
-              ? <circle cx="10" cy={cy} r="3.0" fill="#1a1208" />
-              : <circle cx="10" cy={cy} r="3.0" fill="none" stroke="#1a1208" strokeWidth="0.8" />
+              ? <circle cx="12" cy={cy} r="3.0" fill="#1a1208" />
+              : <circle cx="12" cy={cy} r="3.0" fill="none" stroke="#1a1208" strokeWidth="0.8" />
             }
-            <text x="27" y={cy} textAnchor="end" dominantBaseline="middle"
+            <text x="29" y={cy} textAnchor="end" dominantBaseline="middle"
               fontSize="7" fontWeight="600"
               fontFamily="Georgia, 'Times New Roman', serif" fill="#1a1208"
             >{fmt(value)}</text>
-            <text x="30" y={cy} textAnchor="start" dominantBaseline="middle"
+            <text x="32" y={cy} textAnchor="start" dominantBaseline="middle"
               fontSize="7" fontWeight="400"
               fontFamily="Georgia, 'Times New Roman', serif" fill="#1a1208"
             >{SAVE_LABELS[key]}</text>
@@ -60,7 +60,7 @@ export function SavingThrowsWidget() {
       })}
 
       {/* Divider + bottom label */}
-      <line x1="6" y1="63" x2="82" y2="63" stroke="#1a1208" strokeWidth="0.5" />
+      <line x1="5.5" y1="63" x2="82.5" y2="63" stroke="#1a1208" strokeWidth="0.5" />
       <text x="44" y="68" textAnchor="middle" dominantBaseline="middle"
         fontSize="5.5" fontWeight="700"
         fontFamily="Georgia, 'Times New Roman', serif"
