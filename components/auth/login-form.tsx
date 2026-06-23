@@ -19,6 +19,8 @@ export function LoginForm() {
   const [step, setStep] = useState<"credentials" | "totp">("credentials")
   const [savedUsername, setSavedUsername] = useState("")
   const [savedPassword, setSavedPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
+  const [savedRememberMe, setSavedRememberMe] = useState(false)
 
   async function handleCredentials(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -31,6 +33,7 @@ export function LoginForm() {
     const result = await signIn("credentials", {
       username,
       password,
+      rememberMe: String(rememberMe),
       redirect: false,
       callbackUrl,
     })
@@ -38,6 +41,7 @@ export function LoginForm() {
     if (result?.error === "2FA_REQUIRED") {
       setSavedUsername(username)
       setSavedPassword(password)
+      setSavedRememberMe(rememberMe)
       setStep("totp")
       setPending(false)
     } else if (result?.error) {
@@ -60,6 +64,7 @@ export function LoginForm() {
       username: savedUsername,
       password: savedPassword,
       totpCode,
+      rememberMe: String(savedRememberMe),
       redirect: false,
       callbackUrl,
     })
@@ -165,7 +170,19 @@ export function LoginForm() {
         />
       </div>
 
-      <div className="text-right -mt-2">
+      <div className="flex items-center justify-between -mt-2">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="rememberMe"
+            checked={rememberMe}
+            onChange={e => setRememberMe(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+          <label htmlFor="rememberMe" className="text-xs text-muted-foreground font-garamond cursor-pointer">
+            Remember me
+          </label>
+        </div>
         <a
           href="/forgot-password"
           className="text-xs text-muted-foreground hover:text-foreground transition-colors font-garamond"

@@ -11,7 +11,7 @@ import { TOTP, Secret } from "otpauth"
 const anyDb = db as any
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/login" },
   providers: [
     CredentialsProvider({
@@ -20,6 +20,7 @@ export const authOptions: NextAuthOptions = {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
         totpCode: { label: "Authenticator Code", type: "text" },
+        rememberMe: { label: "Remember Me", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) return null
@@ -58,6 +59,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           emailVerified: !!user.emailVerified,
           disabled: false,
+          rememberMe: credentials.rememberMe,
         }
       },
     }),
@@ -69,20 +71,30 @@ export const authOptions: NextAuthOptions = {
         token.username = user.username
         token.role = user.role
         token.disabled = false
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        token.rememberMe = (user as any).rememberMe === "true"
+        if (!token.rememberMe) {
+          token.sessionExpiry = Date.now() + 24 * 60 * 60 * 1000
+        }
         const loginRows = await anyDb
           .select({ emailVerified: dbUsers.emailVerified })
           .from(dbUsers)
           .where(eq(dbUsers.id, user.id as string))
           .limit(1)
         token.emailVerified = !!loginRows[0]?.emailVerified
-      } else if ((!token.emailVerified || token.disabled) && token.id) {
-        const rows = await anyDb
-          .select({ emailVerified: dbUsers.emailVerified, disabled: dbUsers.disabled })
-          .from(dbUsers)
-          .where(eq(dbUsers.id, token.id as string))
-          .limit(1)
-        token.emailVerified = !!rows[0]?.emailVerified
-        token.disabled = !!rows[0]?.disabled
+      } else {
+        if (!token.rememberMe && token.sessionExpiry && Date.now() > (token.sessionExpiry as number)) {
+          return null as never
+        }
+        if ((!token.emailVerified || token.disabled) && token.id) {
+          const rows = await anyDb
+            .select({ emailVerified: dbUsers.emailVerified, disabled: dbUsers.disabled })
+            .from(dbUsers)
+            .where(eq(dbUsers.id, token.id as string))
+            .limit(1)
+          token.emailVerified = !!rows[0]?.emailVerified
+          token.disabled = !!rows[0]?.disabled
+        }
       }
       return token
     },
