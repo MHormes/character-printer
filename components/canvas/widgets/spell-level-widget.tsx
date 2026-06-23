@@ -56,15 +56,6 @@ export function SpellLevelBlock({ level }: { level: number }) {
       style={{ display: "block", width: "100%" }}
     >
       <defs>
-        <clipPath id={clipId}>
-          <rect
-            x={MARGIN}
-            y={hdrY}
-            width={SVG_W - MARGIN * 2}
-            height={HEADER_H}
-            rx={7}
-          />
-        </clipPath>
         <clipPath id={`${clipId}-name`}>
           <rect x={14} y={listStart} width={NAME_MAX_X - 14} height={svgH} />
         </clipPath>
@@ -79,13 +70,9 @@ export function SpellLevelBlock({ level }: { level: number }) {
         rx={7}
         fill="#f5f0e8"
       />
-      <rect
-        x={MARGIN}
-        y={hdrY}
-        width={BADGE_W}
-        height={HEADER_H}
+      <path
+        d={`M ${MARGIN + 7},${hdrY} L ${MARGIN + BADGE_W},${hdrY} L ${MARGIN + BADGE_W},${hdrY + HEADER_H} L ${MARGIN + 7},${hdrY + HEADER_H} A 7,7 0 0 1 ${MARGIN},${hdrY + HEADER_H / 2} A 7,7 0 0 1 ${MARGIN + 7},${hdrY} Z`}
         fill="#e0d8c8"
-        clipPath={`url(#${clipId})`}
       />
       <rect
         x={MARGIN}
