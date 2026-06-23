@@ -462,7 +462,8 @@ export function applyClasses(
       // Level down: remove features for levels > current
       next.features = next.features.filter((f) => {
         if (!f.sourceId?.startsWith(`class:${cls.classId}:`)) return true
-        const featLvl = parseInt(f.sourceId.split(":")[2], 10)
+        const parts = f.sourceId.split(":")
+        const featLvl = parseInt(parts[parts.length - 1], 10)
         return featLvl <= cls.level
       })
     }
