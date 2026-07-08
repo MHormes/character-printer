@@ -89,7 +89,7 @@ export default function LandingPage() {
       <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24 relative overflow-hidden bg-primary">
         {/* D20 watermark */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-[0.06]">
-          <div className="w-[540px] h-[540px] text-primary-foreground">
+          <div className="w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] md:w-[540px] md:h-[540px] text-primary-foreground">
             <D20 />
           </div>
         </div>
@@ -101,9 +101,9 @@ export default function LandingPage() {
             D&amp;D 5e
           </p>
           <h1 className="font-cinzel font-normal tracking-tight text-primary-foreground flex flex-col items-center">
-            <span className="text-6xl md:text-8xl leading-none">Print</span>
-            <span className="text-4xl md:text-6xl leading-none">2</span>
-            <span className="text-6xl md:text-8xl leading-none">Play</span>
+            <span className="text-5xl sm:text-6xl md:text-8xl leading-none">Print</span>
+            <span className="text-3xl sm:text-4xl md:text-6xl leading-none">2</span>
+            <span className="text-5xl sm:text-6xl md:text-8xl leading-none">Play</span>
           </h1>
           <p className="font-garamond italic text-xl md:text-2xl text-primary-foreground/70 max-w-sm mx-auto leading-relaxed">
             Build your sheet, design your layout,

@@ -52,9 +52,10 @@ function initPbScores(): Record<AttributeKey, number> {
 type Props = {
   createAction: (formData: FormData) => Promise<void>;
   size?: "default" | "sm";
+  className?: string;
 };
 
-export function NewCharacterDialog({ createAction, size = "default" }: Props) {
+export function NewCharacterDialog({ createAction, size = "default", className }: Props) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("ruleset");
   const [selected, setSelected] = useState<CharacterOption>(CHARACTER_OPTIONS[0]);
@@ -130,6 +131,7 @@ export function NewCharacterDialog({ createAction, size = "default" }: Props) {
         type="button"
         size={size}
         variant={size === "sm" ? "secondary" : "default"}
+        className={className}
         onClick={() => setOpen(true)}
       >
         <Plus className={size === "sm" ? "w-3.5 h-3.5" : "w-4 h-4"} />
