@@ -11,12 +11,11 @@ import {
 } from "@/lib/actions/character";
 import { auth } from "@/lib/auth";
 import { buttonVariants } from "@/components/ui/button";
-import { Pencil, Scroll, Shield } from "lucide-react";
+import { Pencil, Scroll } from "lucide-react";
 import { NewCharacterDialog } from "@/components/characters/new-character-dialog";
 import { DeleteCharacterButton } from "@/components/characters/delete-character-button";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { CharactersHeaderActions } from "@/components/characters/characters-header-actions";
 import { AppFooter } from "@/components/footer";
-import { Settings, BookOpen } from "lucide-react";
 import { createDemoCharacter } from "@/lib/actions/tour-actions";
 import type { Edition, CharacterMode, AbilityScoreMode } from "@/lib/types/character";
 
@@ -69,7 +68,7 @@ export default async function CharactersPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top bar */}
-      <header className="flex items-center justify-between bg-primary px-8 py-4">
+      <header className="flex items-center justify-between bg-primary px-4 md:px-8 py-4">
         <Link
           href="/"
           className="flex items-center gap-2.5 font-cinzel text-xs tracking-[0.3em] uppercase font-semibold text-primary-foreground/80 hover:text-primary-foreground transition-colors"
@@ -77,36 +76,11 @@ export default async function CharactersPage() {
           <Image src="/images/p2p-logo.png" alt="Print2Play" width={52} height={52} />
           Print2Play
         </Link>
-        <div className="flex items-center gap-2">
-          {session.user.role === "admin" && (
-            <Link
-              href="/admin/users"
-              className={buttonVariants({ variant: "secondary", size: "sm" })}
-            >
-              <Shield className="size-3.5" />
-              Admin
-            </Link>
-          )}
-          <NewCharacterDialog createAction={createAction} size="sm" />
-          <form action={startTourAction}>
-            <button
-              type="submit"
-              className={buttonVariants({ variant: "secondary", size: "sm" })}
-              aria-label="Start guide"
-            >
-              <BookOpen className="size-3.5" />
-              Guide
-            </button>
-          </form>
-          <Link
-            href="/settings"
-            className={buttonVariants({ variant: "secondary", size: "icon-sm" })}
-            aria-label="Settings"
-          >
-            <Settings className="size-3.5" />
-          </Link>
-          <LogoutButton variant="secondary" />
-        </div>
+        <CharactersHeaderActions
+          isAdmin={session.user.role === "admin"}
+          createAction={createAction}
+          startTourAction={startTourAction}
+        />
       </header>
 
       <main className="px-8 py-10 max-w-screen-2xl mx-auto flex-1 w-full">
