@@ -3,7 +3,7 @@
 import { DndFrame } from "./dnd-frame"
 
 // viewBox 68×45 — matches w=3, h=2 grid cell
-// Checkbox is always blank on print — checked off by hand when the reaction is spent.
+// Pip is always blank on print — filled in by hand when the reaction is spent.
 export function ReactionUsedWidget() {
   const ff = "Georgia, 'Times New Roman', serif"
 
@@ -16,14 +16,11 @@ export function ReactionUsedWidget() {
     >
       <DndFrame x={3} y={3} w={62} h={39} cornerOff={9} />
 
-      <rect x="8" y="16" width="13" height="13" fill="#f5f0e8" stroke="#1a1208" strokeWidth="1" />
+      <circle cx="16" cy="22.5" r="5.5" fill="#f5f0e8" stroke="#1a1208" strokeWidth="1" />
 
       <text x="26" y="23" dominantBaseline="middle"
         fontSize="5.5" fontWeight="700" fontFamily={ff} letterSpacing="0.1" fill="#1a1208"
-      >REACTION</text>
-      <text x="26" y="31" dominantBaseline="middle"
-        fontSize="5.5" fontWeight="700" fontFamily={ff} letterSpacing="0.1" fill="#1a1208"
-      >USED</text>
+      >REACTED</text>
     </svg>
   )
 }

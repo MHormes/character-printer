@@ -361,7 +361,7 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
     { type: "TempHp" as const, label: "Temp HP", w: 4, h: 4 },
     { type: "HitDice" as const, label: "Hit Dice", w: 4, h: 4 },
     { type: "DeathSaves" as const, label: "Death Saves", w: 4, h: 4 },
-    { type: "ExhaustionTracker" as const, label: "Exhaustion", w: 6, h: 2 },
+    { type: "ExhaustionTracker" as const, label: "Exhaustion", w: 4, h: 4 },
     { type: "ReactionUsed" as const, label: "Reaction Used", w: 3, h: 2 },
     // Actions & inventory
     { type: "Attacks" as const, label: "Attacks", w: 9, h: attacksH },
