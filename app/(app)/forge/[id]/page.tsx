@@ -241,13 +241,10 @@ export default function ForgePage({
     }
 
     if (step.flags?.openChoicesPanel) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpenChoicePanel("race");
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTourForceShowDismissed(step.flags?.openDismissed ?? false);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTourForceExpandModifiers(step.flags?.expandModifiers ?? false);
 
     if (step.flags?.enableManual && !manualControlsEnabled) {

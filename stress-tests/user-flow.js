@@ -62,7 +62,7 @@ function jitter(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-export default function () {
+export default function userFlow() {
   // Each VU gets a fixed slot in the pool → unique DB rows per VU
   const slot = String((__VU - 1) % POOL_SIZE + 1).padStart(3, "0");
   const username    = `k6user_${slot}`;
