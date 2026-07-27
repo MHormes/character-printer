@@ -1,14 +1,17 @@
 "use client";
 
 import { useCharacterStore } from "@/lib/store/character-store";
-import { sumStack } from "@/lib/character/calculations";
-import type { SpellEntry } from "@/lib/types/character";
+import { sumStack, resolveAttributeMod } from "@/lib/character/calculations";
+import { formatDamageLines } from "@/lib/character/damage";
+import type { SpellEntry, AttributeKey } from "@/lib/types/character";
 
 const SVG_W = 120;
 const MARGIN = 3;
 const HEADER_H = 14;
 const BADGE_W = 20;
 const ROW_H = 11;
+const DMG_LINE_H = 4.5; // extra height per printed damage line below the spell name
+const DMG_MAX_LINE_LEN = 20;
 const BOTTOM_PAD = 3;
 const ROW_RIGHT = SVG_W - MARGIN - 1; // 116 — right content edge
 const TAG_SIZE = 4; // square/circle badge size
@@ -36,8 +39,21 @@ function isReaction(castingTime: string): boolean {
 type BadgeKind = "square" | "circle";
 type BadgeDef = { kind: BadgeKind; label: string };
 
-export function spellLevelSvgH(n: number): number {
-  return MARGIN + HEADER_H + (n > 0 ? n * ROW_H : 0) + BOTTOM_PAD;
+function spellRowH(s: SpellEntry, attrMod: (key: AttributeKey) => number): number {
+  return ROW_H + formatDamageLines(s.damageStack, attrMod, DMG_MAX_LINE_LEN).length * DMG_LINE_H;
+}
+
+// Approximate height for external layout sizing (no character context available yet,
+// so bonus numbers are ignored — this only needs to be close, not exact).
+export function spellLevelSvgH(spells: SpellEntry[]): number {
+  const rowsH = spells.reduce((sum, s) => sum + spellRowH(s, () => 0), 0);
+  return MARGIN + HEADER_H + rowsH + BOTTOM_PAD;
+}
+
+// Whether any spell prints a damage line — external layout sizing rounds height up
+// rather than to nearest when this is true, so adding damage reliably grows the widget.
+export function spellLevelHasWrap(spells: SpellEntry[]): boolean {
+  return spells.some((s) => formatDamageLines(s.damageStack, () => 0, DMG_MAX_LINE_LEN).length > 0);
 }
 
 export function SpellLevelBlock({ level }: { level: number }) {
@@ -54,9 +70,19 @@ export function SpellLevelBlock({ level }: { level: number }) {
     ? (slotRaw.override ?? slotRaw.base + sumStack(slotRaw.stack))
     : 0;
 
-  const svgH = spellLevelSvgH(n);
-  const hdrY = MARGIN;
+  const attrMod = (key: AttributeKey) => resolveAttributeMod(character.attributes[key]);
   const listStart = MARGIN + HEADER_H;
+  const rowHeights = spells.map((s) => spellRowH(s, attrMod));
+  const rowTops: number[] = [];
+  {
+    let y = listStart;
+    for (const h of rowHeights) {
+      rowTops.push(y);
+      y += h;
+    }
+  }
+  const svgH = listStart + rowHeights.reduce((a, b) => a + b, 0) + BOTTOM_PAD;
+  const hdrY = MARGIN;
   const clipId = `spell-level-clip-${level}`;
 
   return (
@@ -169,8 +195,9 @@ export function SpellLevelBlock({ level }: { level: number }) {
       {/* Spell list */}
       {n > 0 &&
         spells.map((spell, i) => {
-          const rowY = listStart + ROW_H * i;
+          const rowY = rowTops[i];
           const rowCY = rowY + ROW_H / 2;
+          const dmgLines = formatDamageLines(spell.damageStack, attrMod, DMG_MAX_LINE_LEN);
 
           const hasC = spell.tags.concentration;
           const hasR = spell.tags.ritual;
@@ -286,6 +313,21 @@ export function SpellLevelBlock({ level }: { level: number }) {
                   {comp}
                 </text>
               )}
+
+              {/* Damage/effect line(s) — printed below the name when the spell has any */}
+              {dmgLines.map((line, li) => (
+                <text
+                  key={li}
+                  x={14}
+                  y={rowY + ROW_H + DMG_LINE_H * li + DMG_LINE_H / 2}
+                  dominantBaseline="middle"
+                  fontSize="4"
+                  fontFamily={ff}
+                  fill="#6a5a48"
+                >
+                  {line}
+                </text>
+              ))}
             </g>
           );
         })}

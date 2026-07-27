@@ -288,17 +288,19 @@ Each Attack or Spell entry contains:
   - `Flat Bonus` (Integer): optional fixed bonus.
   - `Type`: (e.g., "Slashing", "Fire").
   - `Is_Active`: Toggle for conditional damage (e.g., "Sneak Attack").
+  - `Or_Group` (Nullable String): entries sharing a non-null value are mutually-exclusive alternatives (see 7.3) instead of simultaneous lines.
   - **Collapsed display:** stat mod and flat bonus are summed into a single total (e.g., `1d8+3` not `1d8+2+1`).
 - **Properties/Notes:** A text area for range, save types, or flavor text.
 
 ### 7.3 Damage Logic
 
-By using a **Damage Stack**, a single attack can resolve multiple lines of math simultaneously:
+The Damage Stack supports two ways multiple entries combine:
 
-- _Example (Flame Tongue):_
+- **AND (simultaneous):** entries with no `Or_Group` all apply at once. _Example (Flame Tongue):_
   1. `2d6 + Str` (Slashing)
   2. `2d6` (Fire)
-- This ensures that on the Canvas/Print tab, the user sees the full breakdown of what happens when they hit.
+  This ensures that on the Canvas/Print tab, the user sees the full breakdown of what happens when they hit.
+- **OR (alternative):** entries sharing the same `Or_Group` are alternatives, not stacked — shown combined as one line, e.g. `1d6/1d8` for a versatile weapon's 1H/2H dice, or a choice such as necrotic-or-radiant damage. Only one meaning applies per hit; the pair is a printing convenience, not added damage.
 
 ### 7.4 User Interaction
 

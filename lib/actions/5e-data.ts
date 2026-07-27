@@ -50,6 +50,9 @@ export type ClassStartingEquipmentRow = typeof dbClassStartingEquipment.$inferSe
   damageDiceCount: number | null;
   damageDieType: string | null;
   damageType: string | null;
+  twoHandedDiceCount: number | null;
+  twoHandedDieType: string | null;
+  twoHandedDamageType: string | null;
   properties: string | null;
   rangeNormal: number | null;
   rangeLong: number | null;
@@ -614,6 +617,9 @@ export async function getAllClassStartingEquipment(system = "dnd5e"): Promise<Cl
       damageDiceCount: dbItems.damageDiceCount,
       damageDieType: dbItems.damageDieType,
       damageType: dbItems.damageType,
+      twoHandedDiceCount: dbItems.twoHandedDiceCount,
+      twoHandedDieType: dbItems.twoHandedDieType,
+      twoHandedDamageType: dbItems.twoHandedDamageType,
       properties: dbItems.properties,
       rangeNormal: dbItems.rangeNormal,
       rangeLong: dbItems.rangeLong,

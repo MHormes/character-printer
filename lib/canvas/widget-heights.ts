@@ -1,7 +1,7 @@
 import { slimToolSvgH } from "@/components/canvas/widgets/slim-tool-prof-widget";
 import { slimOtherSvgH } from "@/components/canvas/widgets/slim-other-prof-widget";
-import { attacksSvgH } from "@/components/canvas/widgets/attacks-widget";
-import { slimAttacksSvgH } from "@/components/canvas/widgets/slim-attacks-widget";
+import { attacksSvgH, attacksHasWrap } from "@/components/canvas/widgets/attacks-widget";
+import { slimAttacksSvgH, slimAttacksHasWrap } from "@/components/canvas/widgets/slim-attacks-widget";
 import { equipmentSvgH } from "@/components/canvas/widgets/equipment-widget";
 import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
 import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
@@ -9,12 +9,19 @@ import { attunedItemsSvgH } from "@/components/canvas/widgets/attuned-items-widg
 import { characteristicsSvgH } from "@/components/canvas/widgets/characteristics-widget";
 import { bioTextSvgH } from "@/components/canvas/widgets/bio-text-widget";
 import { featureCardGridH } from "@/components/canvas/widgets/feature-card-widget";
-import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
+import { spellLevelSvgH, spellLevelHasWrap } from "@/components/canvas/widgets/spell-level-widget";
 import { otherProfSvgH } from "@/components/canvas/widgets/other-proficiencies-widget";
 import { toolProfSvgH } from "@/components/canvas/widgets/tool-proficiencies-widget";
 import { characteristicCardSvgH } from "@/components/canvas/widgets/characteristic-card-widget";
 import type { CanvasWidget } from "@/lib/types/canvas";
 import type { CharacterData } from "@/lib/types/character";
+
+// A single wrapped row only adds a fraction of a whole grid row's worth of height,
+// which Math.round can silently absorb (rounding back down to the current size).
+// Round up instead whenever something is actually wrapping, so growth is never invisible.
+export function roundForWrap(raw: number, hasWrap: boolean): number {
+  return hasWrap ? Math.ceil(raw) : Math.round(raw);
+}
 
 export function computeIdealWidgetH(
   widget: CanvasWidget,
@@ -24,7 +31,6 @@ export function computeIdealWidgetH(
 ): number | null {
   const toolCount = character?.otherProficiencies.filter((p) => p.category === "Tool").length ?? 0;
   const otherCount = character?.otherProficiencies.filter((p) => p.category !== "Tool").length ?? 0;
-  const actionsCount = character?.actions.length ?? 0;
   const inventoryCount = character?.inventory.length ?? 0;
   const trackersCount = character?.trackers.length ?? 0;
   const featuresCount = character?.features.length ?? 0;
@@ -39,10 +45,16 @@ export function computeIdealWidgetH(
       return Math.max(2, Math.round((slimToolSvgH(toolCount) * widget.w * rows * 210) / (cols * 297 * 164)));
     case "SlimOtherProf":
       return Math.max(2, Math.round((slimOtherSvgH(otherCount) * widget.w * rows * 210) / (cols * 297 * 185)));
-    case "Attacks":
-      return Math.max(2, Math.round((attacksSvgH(actionsCount) * widget.w * rows * 210) / (cols * 297 * 176)));
-    case "SlimAttacks":
-      return Math.max(2, Math.round((slimAttacksSvgH(actionsCount) * widget.w * rows * 210) / (cols * 297 * 176)));
+    case "Attacks": {
+      const actions = character?.actions ?? [];
+      const raw = (attacksSvgH(actions) * widget.w * rows * 210) / (cols * 297 * 176);
+      return Math.max(2, roundForWrap(raw, attacksHasWrap(actions)));
+    }
+    case "SlimAttacks": {
+      const actions = character?.actions ?? [];
+      const raw = (slimAttacksSvgH(actions) * widget.w * rows * 210) / (cols * 297 * 176);
+      return Math.max(2, roundForWrap(raw, slimAttacksHasWrap(actions)));
+    }
     case "Equipment":
       return Math.max(4, Math.round((equipmentSvgH(inventoryCount) * widget.w * rows * 210) / (cols * 297 * 132)));
     case "Trackers":
@@ -70,10 +82,11 @@ export function computeIdealWidgetH(
     case "SpellLevel8":
     case "SpellLevel9": {
       const level = parseInt(widget.type.replace("SpellLevel", ""), 10);
-      const count = character?.spells.list.filter((s) => s.level === level).length ?? 0;
+      const spellsAtLevel = character?.spells.list.filter((s) => s.level === level) ?? [];
+      const raw = (spellLevelSvgH(spellsAtLevel) * widget.w * rows * 210) / (cols * 297 * 120);
       return Math.max(
-        count > 0 ? 3 : 2,
-        Math.round((spellLevelSvgH(count) * widget.w * rows * 210) / (cols * 297 * 120)),
+        spellsAtLevel.length > 0 ? 3 : 2,
+        roundForWrap(raw, spellLevelHasWrap(spellsAtLevel)),
       );
     }
     case "FeatureCard": {

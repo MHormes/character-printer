@@ -118,6 +118,10 @@ export type DamageEntry = {
   flatBonus: number;
   type: string;
   active: boolean;
+  // Entries sharing a non-null orGroup are mutually-exclusive alternatives (OR) rendered as one
+  // combined "X/Y" line — e.g. versatile 1H/2H dice, or a choice of damage type (necrotic or radiant).
+  // null = independent line, ANDed together with other entries.
+  orGroup: string | null;
 };
 
 export type ActionEntry = {

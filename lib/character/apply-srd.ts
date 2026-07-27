@@ -1,4 +1,5 @@
-import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, DieType, TrackerEntry } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, FeatureEntry, ClassChoiceMade, RaceChoiceMade, InventoryItem, OtherProficiency, ModifierTarget, ActionEntry, DamageEntry, TrackerEntry } from "@/lib/types/character"
+import { buildWeaponDamageStack } from "@/lib/character/damage"
 import type {
   RaceRow,
   SubraceRow,
@@ -1019,15 +1020,15 @@ export function applyClassStartingEquipment(
         const props: string[] = row.properties ? JSON.parse(row.properties) : []
         const isFinesse = props.includes("Finesse")
         const isRanged = row.weaponRange === "Ranged"
-        const primaryDmg: DamageEntry = {
-          diceCount: row.damageDiceCount,
-          dieType: row.damageDieType as DieType,
+        const dmgStack: DamageEntry[] = buildWeaponDamageStack({
+          damageDiceCount: row.damageDiceCount,
+          damageDieType: row.damageDieType,
+          damageType: row.damageType,
+          twoHandedDiceCount: row.twoHandedDiceCount,
+          twoHandedDieType: row.twoHandedDieType,
+          twoHandedDamageType: row.twoHandedDamageType,
           stat: isFinesse || isRanged ? "dex" : "str",
-          flatBonus: 0,
-          type: row.damageType ?? "Bludgeoning",
-          active: true,
-        }
-        const dmgStack: DamageEntry[] = [primaryDmg]
+        })
         const action: ActionEntry = {
           id: crypto.randomUUID(),
           name: row.itemName,
@@ -1111,27 +1112,15 @@ export function applyItemFromSrdToCharacter(
     const isRanged = srdItem.weaponRange === "Ranged";
     const atkStat: ActionEntry["attackStat"] = isRanged ? "dex" : "str";
 
-    const primaryDmg: DamageEntry = {
-      diceCount: srdItem.damageDiceCount!,
-      dieType: srdItem.damageDieType as DieType,
+    const damageStack: DamageEntry[] = buildWeaponDamageStack({
+      damageDiceCount: srdItem.damageDiceCount!,
+      damageDieType: srdItem.damageDieType!,
+      damageType: srdItem.damageType,
+      twoHandedDiceCount: srdItem.twoHandedDiceCount,
+      twoHandedDieType: srdItem.twoHandedDieType,
+      twoHandedDamageType: srdItem.twoHandedDamageType,
       stat: isFinesse || isRanged ? "dex" : "str",
-      flatBonus: 0,
-      type: srdItem.damageType ?? "Bludgeoning",
-      active: true,
-    };
-
-    const damageStack: DamageEntry[] = [primaryDmg];
-
-    if (srdItem.twoHandedDiceCount && srdItem.twoHandedDieType) {
-      damageStack.push({
-        diceCount: srdItem.twoHandedDiceCount!,
-        dieType: srdItem.twoHandedDieType as DieType,
-        stat: "str",
-        flatBonus: 0,
-        type: srdItem.twoHandedDamageType ?? primaryDmg.type,
-        active: false,
-      });
-    }
+    });
 
     const rangePart = srdItem.rangeNormal
       ? `Range ${srdItem.rangeNormal}${srdItem.rangeLong ? `/${srdItem.rangeLong}` : ""} ft`

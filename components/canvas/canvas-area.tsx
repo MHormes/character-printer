@@ -37,7 +37,7 @@ import {
   buildTemplateFeatures,
   buildTemplateBio,
 } from "@/lib/canvas/template-builders";
-import { computeIdealWidgetH } from "@/lib/canvas/widget-heights";
+import { computeIdealWidgetH, roundForWrap } from "@/lib/canvas/widget-heights";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useCharacterStore } from "@/lib/store/character-store";
 import {
@@ -55,14 +55,14 @@ import {
 } from "@/components/canvas/widgets/spell-card-widget";
 import { slimToolSvgH } from "@/components/canvas/widgets/slim-tool-prof-widget";
 import { slimOtherSvgH } from "@/components/canvas/widgets/slim-other-prof-widget";
-import { attacksSvgH } from "@/components/canvas/widgets/attacks-widget";
-import { slimAttacksSvgH } from "@/components/canvas/widgets/slim-attacks-widget";
+import { attacksSvgH, attacksHasWrap } from "@/components/canvas/widgets/attacks-widget";
+import { slimAttacksSvgH, slimAttacksHasWrap } from "@/components/canvas/widgets/slim-attacks-widget";
 import { equipmentSvgH } from "@/components/canvas/widgets/equipment-widget";
 import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
 import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
 import { attunedItemsSvgH } from "@/components/canvas/widgets/attuned-items-widget";
 import { characteristicsSvgH } from "@/components/canvas/widgets/characteristics-widget";
-import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
+import { spellLevelSvgH, spellLevelHasWrap } from "@/components/canvas/widgets/spell-level-widget";
 import { otherProfSvgH } from "@/components/canvas/widgets/other-proficiencies-widget";
 import { toolProfSvgH } from "@/components/canvas/widgets/tool-proficiencies-widget";
 
@@ -172,7 +172,6 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
   const otherCount =
     character?.otherProficiencies.filter((p) => p.category !== "Tool").length ??
     0;
-  const actionsCount = character?.actions.length ?? 0;
   const inventoryCount = character?.inventory.length ?? 0;
   const trackersCount = character?.trackers.length ?? 0;
   const featuresCount = character?.features.length ?? 0;
@@ -202,14 +201,16 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
   );
   const attacksH = Math.max(
     2,
-    Math.round(
-      (attacksSvgH(actionsCount) * 9 * rows * 210) / (cols * 297 * 176),
+    roundForWrap(
+      (attacksSvgH(character?.actions ?? []) * 9 * rows * 210) / (cols * 297 * 176),
+      attacksHasWrap(character?.actions ?? []),
     ),
   );
   const slimAttacksH = Math.max(
     2,
-    Math.round(
-      (slimAttacksSvgH(actionsCount) * 9 * rows * 210) / (cols * 297 * 176),
+    roundForWrap(
+      (slimAttacksSvgH(character?.actions ?? []) * 9 * rows * 210) / (cols * 297 * 176),
+      slimAttacksHasWrap(character?.actions ?? []),
     ),
   );
   const equipmentH = Math.max(
@@ -258,11 +259,14 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
   );
 
   const spellLevelH = (level: number) => {
-    const count =
-      character?.spells.list.filter((s) => s.level === level).length ?? 0;
+    const spellsAtLevel =
+      character?.spells.list.filter((s) => s.level === level) ?? [];
     return Math.max(
-      count > 0 ? 3 : 2,
-      Math.round((spellLevelSvgH(count) * 9 * rows * 210) / (cols * 297 * 120)),
+      spellsAtLevel.length > 0 ? 3 : 2,
+      roundForWrap(
+        (spellLevelSvgH(spellsAtLevel) * 9 * rows * 210) / (cols * 297 * 120),
+        spellLevelHasWrap(spellsAtLevel),
+      ),
     );
   };
 
