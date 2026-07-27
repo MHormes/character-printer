@@ -606,7 +606,7 @@ export default function ForgePage({
       description: choice.spellDescription,
       upcastDescription: "",
       components: choice.spellComponents,
-      tags: { ...choice.spellTags, prepared: true },
+      tags: { ...choice.spellTags, alwaysPrepared: true },
       sourceId: `${choice.sourceId}:cantrip`,
     });
     replaceCharacter(updated);

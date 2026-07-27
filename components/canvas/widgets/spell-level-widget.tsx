@@ -216,18 +216,18 @@ export function SpellLevelBlock({ level }: { level: number }) {
                 />
               )}
 
-              {/* Bullet */}
+              {/* Bullet — solid diamond for always-prepared spells, faint hollow circle otherwise */}
               <text
                 x={8}
                 y={rowCY}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fontSize="7"
+                fontSize={spell.tags.alwaysPrepared ? "4.5" : "7"}
                 fontFamily={ff}
                 fill="#1a1208"
-                opacity="0.35"
+                opacity={spell.tags.alwaysPrepared ? 1 : 0.35}
               >
-                ○
+                {spell.tags.alwaysPrepared ? "◆" : "○"}
               </text>
 
               {/* Spell name — clipped to leave room for badge column */}

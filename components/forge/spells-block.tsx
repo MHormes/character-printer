@@ -307,7 +307,7 @@ export function SpellsBlock({
       mode: "Plain", castingStat: null, fixedDC: null, saveStat: null,
       damageStack: [], description: "", upcastDescription: "",
       components: { verbal: false, somatic: false, material: false, materialDesc: "" },
-      tags: { ritual: false, concentration: false, prepared: true },
+      tags: { ritual: false, concentration: false, alwaysPrepared: false },
     }])
     setExpandedIds(prev => new Set([...prev, id]))
   }
@@ -358,7 +358,7 @@ export function SpellsBlock({
       tags: {
         ritual: spell.ritual,
         concentration: spell.concentration,
-        prepared: true,
+        alwaysPrepared: false,
       },
     }
     onListChange([...list, entry])
@@ -678,9 +678,9 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
         </button>
 
         <button type="button"
-          onClick={() => onPatch({ tags: { ...spell.tags, prepared: !spell.tags.prepared } })}
-          title="Prepared"
-          className={`shrink-0 size-2 rounded-full border transition-colors ${spell.tags.prepared ? "border-foreground bg-foreground" : "border-muted-foreground"}`}
+          onClick={() => onPatch({ tags: { ...spell.tags, alwaysPrepared: !spell.tags.alwaysPrepared } })}
+          title="Mark as always prepared"
+          className={`shrink-0 size-2 rotate-45 border transition-colors ${spell.tags.alwaysPrepared ? "border-foreground bg-foreground" : "border-muted-foreground"}`}
         />
 
         <Input type="text" value={spell.name} placeholder="Spell name"

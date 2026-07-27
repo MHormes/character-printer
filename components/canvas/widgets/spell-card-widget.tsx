@@ -430,7 +430,7 @@ const DANCING_LIGHTS: SpellEntry = {
     material: true,
     materialDesc: "a bit of phosphorus or wychwood, or a glowworm",
   },
-  tags: { ritual: false, concentration: false, prepared: true },
+  tags: { ritual: false, concentration: false, alwaysPrepared: false },
 };
 
 function spellRowToEntry(row: SpellRow): SpellEntry {
@@ -455,7 +455,7 @@ function spellRowToEntry(row: SpellRow): SpellEntry {
       material: row.material,
       materialDesc: row.materialDesc ?? "",
     },
-    tags: { ritual: row.ritual, concentration: row.concentration, prepared: false },
+    tags: { ritual: row.ritual, concentration: row.concentration, alwaysPrepared: false },
   };
 }
 

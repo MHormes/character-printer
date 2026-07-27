@@ -186,7 +186,7 @@ export type SpellEntry = {
   description: string;
   upcastDescription: string;
   components: { verbal: boolean; somatic: boolean; material: boolean; materialDesc: string };
-  tags: { ritual: boolean; concentration: boolean; prepared: boolean };
+  tags: { ritual: boolean; concentration: boolean; alwaysPrepared: boolean };
   sourceId?: string;
 };
 
