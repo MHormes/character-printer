@@ -25,6 +25,7 @@ function sign(n: number): string {
 
 type ActionsBlockProps = {
   actions: ActionEntry[]
+  spellSourceIds?: Set<string>
   castingStat: AttributeKey | null
   attributes: Record<AttributeKey, AttributeData>
   proficiencyBonus: number
@@ -36,7 +37,7 @@ type ActionsBlockProps = {
 }
 
 export function ActionsBlock({
-  actions, castingStat, attributes, proficiencyBonus, attackStack, dcStack, showManualControls = false, onChange, onCastingStatChange,
+  actions, spellSourceIds, castingStat, attributes, proficiencyBonus, attackStack, dcStack, showManualControls = false, onChange, onCastingStatChange,
 }: ActionsBlockProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -122,6 +123,7 @@ export function ActionsBlock({
               <SortableActionItem
                 key={action.id}
                 action={action}
+                isSpellSourced={!!action.sourceId && (spellSourceIds?.has(action.sourceId) ?? false)}
                 expanded={expandedIds.has(action.id)}
                 spellDC={spellDC}
                 spellAttackBonus={spellAttackBonus}
@@ -151,6 +153,7 @@ export function ActionsBlock({
 
 type SortableActionItemProps = {
   action: ActionEntry
+  isSpellSourced: boolean
   expanded: boolean
   spellDC: number
   spellAttackBonus: number
@@ -166,7 +169,7 @@ type SortableActionItemProps = {
 }
 
 function SortableActionItem({
-  action, expanded, spellDC, spellAttackBonus, headerLabel, damageLabel, calcAttackToHit,
+  action, isSpellSourced, expanded, spellDC, spellAttackBonus, headerLabel, damageLabel, calcAttackToHit,
   manualMode = false, onToggle, onPatch, onDelete,
 }: SortableActionItemProps) {
   const { attributes: dndAttrs, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: action.id })
@@ -222,7 +225,24 @@ function SortableActionItem({
         )}
       </div>
 
-      {expanded && (
+      {expanded && isSpellSourced && (
+        <div className="space-y-2 border-t border-border p-3 text-xs text-muted-foreground">
+          <p>Synced from the spell list — edit &ldquo;{action.name}&rdquo; there to change its stats.</p>
+          <div className="flex flex-wrap gap-1.5">
+            <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
+              {headerLabel}
+            </span>
+            {damageLabel && (
+              <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
+                {damageLabel}
+              </span>
+            )}
+          </div>
+          {action.notes && <p className="text-card-foreground">{action.notes}</p>}
+        </div>
+      )}
+
+      {expanded && !isSpellSourced && (
         <div className="space-y-3 border-t border-border p-3">
           {/* Mode selector */}
           <div className="flex items-center gap-2">

@@ -5,6 +5,7 @@ import { immer } from "zustand/middleware/immer";
 import type { CharacterData, AttributeKey, SkillState, FeatureEntry, TrackerEntry, SpellEntry, StatBox } from "@/lib/types/character";
 import { syncInventoryToStacks, syncGlobalSkillToInitiative, syncJoatToStacks } from "@/lib/character/modifier-sync";
 import { materializeDynamicModifiers } from "@/lib/character/calculations";
+import { buildActionFromSpell } from "@/lib/character/action-sync";
 
 type CharacterStore = {
   character: CharacterData | null;
@@ -346,11 +347,13 @@ export const useCharacterStore = create<CharacterStore>()(
             .map(old => old.id)
         );
         state.character.spells.list = list;
-        if (removedIds.size > 0) {
-          state.character.actions = state.character.actions.filter(
-            a => !a.sourceId || !removedIds.has(a.sourceId)
-          );
-        }
+        state.character.actions = state.character.actions
+          .filter(a => !a.sourceId || !removedIds.has(a.sourceId))
+          .map(a => {
+            if (!a.sourceId) return a;
+            const spell = list.find(s => s.id === a.sourceId);
+            return spell ? buildActionFromSpell(spell, a.id) : a;
+          });
         state.isDirty = true;
       }),
 

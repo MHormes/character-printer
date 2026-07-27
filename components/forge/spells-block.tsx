@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import type { SpellEntry, ActionEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry, CharacterData } from "@/lib/types/character"
 import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack, sumStack } from "@/lib/character/calculations"
 import { formatDamageStack, toggleOrLink } from "@/lib/character/damage"
+import { buildActionFromSpell } from "@/lib/character/action-sync"
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import type { DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
@@ -41,25 +42,6 @@ const DIE_TYPES: DieType[] = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"]
 const LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 function sign(n: number) { return n >= 0 ? `+${n}` : String(n) }
-
-function spellToAction(spell: SpellEntry): ActionEntry {
-  return {
-    id: crypto.randomUUID(),
-    name: spell.name,
-    mode: spell.mode,
-    attackStat: null,
-    attackProficient: true,
-    attackBonus: 0,
-    fixedDC: spell.fixedDC,
-    damageStack: spell.damageStack.map(d => ({ ...d })),
-    notes: [
-      spell.level === 0 ? "Cantrip" : `Level ${spell.level}`,
-      spell.castingTime,
-      spell.range,
-    ].filter(Boolean).join(" · "),
-    sourceId: spell.id,
-  }
-}
 
 // ─── Spell picker ─────────────────────────────────────────────────────────────
 
@@ -549,7 +531,7 @@ export function SpellsBlock({
                       onDelete={() => onListChange(list.filter(s => s.id !== spell.id))}
                       onPatchDmg={(idx, u) => patchSpell(spell.id, { damageStack: spell.damageStack.map((d, i) => i === idx ? { ...d, ...u } : d) })}
                       onDeleteDmg={idx => patchSpell(spell.id, { damageStack: spell.damageStack.filter((_, i) => i !== idx) })}
-                      onAddToAttacks={onAddToAttacks ? () => onAddToAttacks(spellToAction(spell)) : undefined}
+                      onAddToAttacks={onAddToAttacks ? () => onAddToAttacks(buildActionFromSpell(spell)) : undefined}
                     />
                   ))}
                 </SortableContext>

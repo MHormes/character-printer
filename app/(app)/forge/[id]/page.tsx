@@ -903,6 +903,7 @@ export default function ForgePage({
     spells,
   } = character;
   const pb = resolvePb(character);
+  const spellSourceIds = new Set(spells.list.map((s) => s.id));
 
   function renderManualSectionToggle(section: ManualSectionId) {
     if (!manualControlsEnabled) return null;
@@ -1396,6 +1397,7 @@ export default function ForgePage({
               >
                 <ActionsBlock
                   actions={actions}
+                  spellSourceIds={spellSourceIds}
                   castingStat={spells.globalCastingStat}
                   attributes={attributes}
                   proficiencyBonus={pb}
@@ -1478,7 +1480,10 @@ export default function ForgePage({
                 showManualControls={isManualSectionVisible("spells")}
                 onSlotsChange={setSpellSlots}
                 onListChange={setSpellList}
-                onAddToAttacks={(action) => setActions([...actions, action])}
+                onAddToAttacks={(action) => {
+                  if (actions.some((a) => a.sourceId === action.sourceId)) return;
+                  setActions([...actions, action]);
+                }}
               />
             </ForgeSection>
           </div>
