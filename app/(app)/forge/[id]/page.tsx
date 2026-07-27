@@ -241,13 +241,10 @@ export default function ForgePage({
     }
 
     if (step.flags?.openChoicesPanel) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpenChoicePanel("race");
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTourForceShowDismissed(step.flags?.openDismissed ?? false);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTourForceExpandModifiers(step.flags?.expandModifiers ?? false);
 
     if (step.flags?.enableManual && !manualControlsEnabled) {
@@ -606,7 +603,7 @@ export default function ForgePage({
       description: choice.spellDescription,
       upcastDescription: "",
       components: choice.spellComponents,
-      tags: { ...choice.spellTags, prepared: true },
+      tags: { ...choice.spellTags, alwaysPrepared: true },
       sourceId: `${choice.sourceId}:cantrip`,
     });
     replaceCharacter(updated);
@@ -906,6 +903,7 @@ export default function ForgePage({
     spells,
   } = character;
   const pb = resolvePb(character);
+  const spellSourceIds = new Set(spells.list.map((s) => s.id));
 
   function renderManualSectionToggle(section: ManualSectionId) {
     if (!manualControlsEnabled) return null;
@@ -1399,6 +1397,7 @@ export default function ForgePage({
               >
                 <ActionsBlock
                   actions={actions}
+                  spellSourceIds={spellSourceIds}
                   castingStat={spells.globalCastingStat}
                   attributes={attributes}
                   proficiencyBonus={pb}
@@ -1481,7 +1480,10 @@ export default function ForgePage({
                 showManualControls={isManualSectionVisible("spells")}
                 onSlotsChange={setSpellSlots}
                 onListChange={setSpellList}
-                onAddToAttacks={(action) => setActions([...actions, action])}
+                onAddToAttacks={(action) => {
+                  if (actions.some((a) => a.sourceId === action.sourceId)) return;
+                  setActions([...actions, action]);
+                }}
               />
             </ForgeSection>
           </div>

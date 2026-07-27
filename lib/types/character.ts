@@ -94,6 +94,7 @@ export type InventoryItem = {
   weight: number;
   category: "Weapon" | "Armor" | "Tool" | "Consumable" | "Wondrous" | "Mundane";
   equipped: boolean;
+  attuned?: boolean;
   modifiers: { id: string; target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[];
   // Armor data — populated when item is imported from SRD
   acSetsFormula?: boolean | null;   // true = drives AC formula; false = bonus-only (shield); undefined = legacy (treated as true)
@@ -117,6 +118,10 @@ export type DamageEntry = {
   flatBonus: number;
   type: string;
   active: boolean;
+  // Entries sharing a non-null orGroup are mutually-exclusive alternatives (OR) rendered as one
+  // combined "X/Y" line — e.g. versatile 1H/2H dice, or a choice of damage type (necrotic or radiant).
+  // null = independent line, ANDed together with other entries.
+  orGroup: string | null;
 };
 
 export type ActionEntry = {
@@ -185,7 +190,7 @@ export type SpellEntry = {
   description: string;
   upcastDescription: string;
   components: { verbal: boolean; somatic: boolean; material: boolean; materialDesc: string };
-  tags: { ritual: boolean; concentration: boolean; prepared: boolean };
+  tags: { ritual: boolean; concentration: boolean; alwaysPrepared: boolean };
   sourceId?: string;
 };
 

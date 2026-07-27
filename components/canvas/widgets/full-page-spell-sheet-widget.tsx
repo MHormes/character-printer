@@ -3,7 +3,8 @@
 import type { CSSProperties } from "react";
 import { useCharacterStore } from "@/lib/store/character-store";
 import { SpellcastingInfoWidget } from "./spellcasting-info-widget";
-import { SpellLevelBlock, spellLevelSvgH } from "./spell-level-widget";
+import { SpellLevelBlock, spellLevelSvgH, spellLevelHasWrap } from "./spell-level-widget";
+import { roundForWrap } from "@/lib/canvas/widget-heights";
 
 // Mirrors TemplatePage2 exactly (28 cols × 40 rows, A4 ratio)
 const C = 28;
@@ -30,10 +31,11 @@ export function FullPageSpellSheetWidget() {
   const rows = rowsForCols(C);
 
   const getH = (lvl: number) => {
-    const count = spells.filter((s) => s.level === lvl).length;
+    const spellsAtLevel = spells.filter((s) => s.level === lvl);
+    const raw = (spellLevelSvgH(spellsAtLevel) * 9 * rows * 210) / (C * 297 * 120);
     return Math.max(
-      count > 0 ? 3 : 2,
-      Math.round((spellLevelSvgH(count) * 9 * rows * 210) / (C * 297 * 120)),
+      spellsAtLevel.length > 0 ? 3 : 2,
+      roundForWrap(raw, spellLevelHasWrap(spellsAtLevel)),
     );
   };
 

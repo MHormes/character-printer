@@ -1,19 +1,38 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { SpellEntry } from "@/lib/types/character";
+import type { SpellEntry, DamageEntry } from "@/lib/types/character";
 import type { AttributeKey } from "@/lib/types/character";
 import { useCharacterStore } from "@/lib/store/character-store";
+import { resolveAttributeMod } from "@/lib/character/calculations";
+import { formatDamageStack } from "@/lib/character/damage";
 import { getSpell } from "@/lib/actions/5e-data";
 import type { SpellRow } from "@/lib/actions/5e-data";
 
 export const SPELL_CARD_GRID_W = 7;
 export const SPELL_CARD_GRID_H = 13;
 
-export function spellCardDescCap(hasMaterial: boolean): number {
+const CARD_TEXT_W = 164; // CW(180) - PAD(8)*2
+const DMG_LINE_H = 7.5;
+
+// Wrapped damage/effect line(s) for the card's fixed-width text column — empty when the spell has no damage.
+export function spellCardDmgLines(
+  damageStack: DamageEntry[] | undefined,
+  attrMod: (key: AttributeKey) => number,
+): string[] {
+  const label = formatDamageStack(damageStack, attrMod);
+  return label ? wrapText(label, CARD_TEXT_W, 6.5) : [];
+}
+
+function dmgBlockH(dmgLineCount: number): number {
+  return dmgLineCount > 0 ? dmgLineCount * DMG_LINE_H + 4 : 0;
+}
+
+export function spellCardDescCap(hasMaterial: boolean, dmgLineCount = 0): number {
   const LINE_H = 6.5 * 1.45;
-  const charsPerLine = Math.floor(164 / (6.5 * 0.5));
-  const CH = 330, DESC_Y = 87;
+  const charsPerLine = Math.floor(CARD_TEXT_W / (6.5 * 0.5));
+  const CH = 330;
+  const DESC_Y = 87 + dmgBlockH(dmgLineCount);
   const COMP_H = hasMaterial ? 7.5 + 10 : 0;
   const COMP_Y = hasMaterial ? CH - COMP_H - 8 : CH;
   const DESC_H = COMP_Y - DESC_Y - (hasMaterial ? 3 : 6);
@@ -23,16 +42,17 @@ export function spellCardDescCap(hasMaterial: boolean): number {
 export function spellDescEffectiveLength(desc: string): number {
   const PARA_GAP = 6.5 * 0.65;
   const LINE_H = 6.5 * 1.45;
-  const charsPerLine = Math.floor(164 / (6.5 * 0.5));
+  const charsPerLine = Math.floor(CARD_TEXT_W / (6.5 * 0.5));
   const extraParas = Math.max(0, desc.split(/\n\n+/).length - 1);
   return desc.length + extraParas * Math.round((PARA_GAP / LINE_H) * charsPerLine);
 }
 
-export function spellDescFitsCard(desc: string, hasMaterial: boolean): boolean {
+export function spellDescFitsCard(desc: string, hasMaterial: boolean, dmgLineCount = 0): boolean {
   const FONT_SIZE = 6.5;
   const LINE_H = FONT_SIZE * 1.45;
   const PARA_GAP = FONT_SIZE * 0.65;
-  const CH = 330, DESC_Y = 87;
+  const CH = 330;
+  const DESC_Y = 87 + dmgBlockH(dmgLineCount);
   const COMP_H = hasMaterial ? 7.5 + 10 : 0;
   const COMP_Y = hasMaterial ? CH - COMP_H - 8 : CH;
   const DESC_H = COMP_Y - DESC_Y - (hasMaterial ? 3 : 6);
@@ -40,7 +60,7 @@ export function spellDescFitsCard(desc: string, hasMaterial: boolean): boolean {
   for (let pi = 0, paras = desc.split(/\n\n+/); pi < paras.length; pi++) {
     if (curY > DESC_Y + DESC_H) return false;
     if (pi > 0) curY += PARA_GAP;
-    for (const _ of wrapText(paras[pi].replace(/\n/g, " ").trim(), 164, FONT_SIZE)) {
+    for (const _ of wrapText(paras[pi].replace(/\n/g, " ").trim(), CARD_TEXT_W, FONT_SIZE)) {
       if (curY > DESC_Y + DESC_H) return false;
       curY += LINE_H;
     }
@@ -80,7 +100,13 @@ function wrapText(text: string, width: number, fontSize: number): string[] {
   return lines;
 }
 
-export function SpellCardSvg({ spell }: { spell: SpellEntry }) {
+export function SpellCardSvg({
+  spell,
+  attrMod = () => 0,
+}: {
+  spell: SpellEntry;
+  attrMod?: (key: AttributeKey) => number;
+}) {
   const CW = 180,
     CH = 330,
     PAD = 8,
@@ -103,9 +129,11 @@ export function SpellCardSvg({ spell }: { spell: SpellEntry }) {
       )
     : [];
 
+  const dmgLines = spellCardDmgLines(spell.damageStack, attrMod);
+
   const COMP_H = hasMatDesc ? matLines.length * 7.5 + 10 : 0;
   const COMP_Y = hasMatDesc ? CH - COMP_H - 8 : CH;
-  const DESC_Y = DIV2_Y + 3;
+  const DESC_Y = DIV2_Y + 3 + dmgBlockH(dmgLines.length);
   const DESC_H = COMP_Y - DESC_Y - (hasMatDesc ? 3 : 6);
 
   const FONT_SIZE = 6.5;
@@ -358,6 +386,26 @@ export function SpellCardSvg({ spell }: { spell: SpellEntry }) {
         opacity="0.35"
       />
 
+      {/* ── Damage / effect ── */}
+      {dmgLines.length > 0 && (
+        <>
+          {dmgLines.map((line, i) => (
+            <text
+              key={i}
+              x={PAD}
+              y={DIV2_Y + 3 + FONT_SIZE + i * DMG_LINE_H}
+              fontSize={FONT_SIZE}
+              fontWeight="700"
+              fontFamily={ff}
+              fill="#7a4a18"
+            >
+              {i === 0 && <tspan fontSize="4.5" fontWeight="700" fill="#6a5a48" letterSpacing="0.4">DAMAGE  </tspan>}
+              {line}
+            </text>
+          ))}
+        </>
+      )}
+
       {/* ── Description text ── */}
       {textLines.map((line, i) => (
         <text
@@ -430,7 +478,7 @@ const DANCING_LIGHTS: SpellEntry = {
     material: true,
     materialDesc: "a bit of phosphorus or wychwood, or a glowworm",
   },
-  tags: { ritual: false, concentration: false, prepared: true },
+  tags: { ritual: false, concentration: false, alwaysPrepared: false },
 };
 
 function spellRowToEntry(row: SpellRow): SpellEntry {
@@ -455,7 +503,7 @@ function spellRowToEntry(row: SpellRow): SpellEntry {
       material: row.material,
       materialDesc: row.materialDesc ?? "",
     },
-    tags: { ritual: row.ritual, concentration: row.concentration, prepared: false },
+    tags: { ritual: row.ritual, concentration: row.concentration, alwaysPrepared: false },
   };
 }
 
@@ -477,5 +525,8 @@ export function SpellCardWidget({ spellId }: { spellId?: string }) {
   }, [spellId, charSpell]);
 
   const spell = charSpell ?? dbSpell ?? DANCING_LIGHTS;
-  return <SpellCardSvg spell={spell} />;
+  const attrMod = character
+    ? (key: AttributeKey) => resolveAttributeMod(character.attributes[key])
+    : undefined;
+  return <SpellCardSvg spell={spell} attrMod={attrMod} />;
 }

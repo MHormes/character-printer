@@ -5,6 +5,7 @@ import { immer } from "zustand/middleware/immer";
 import type { CharacterData, AttributeKey, SkillState, FeatureEntry, TrackerEntry, SpellEntry, StatBox } from "@/lib/types/character";
 import { syncInventoryToStacks, syncGlobalSkillToInitiative, syncJoatToStacks } from "@/lib/character/modifier-sync";
 import { materializeDynamicModifiers } from "@/lib/character/calculations";
+import { buildActionFromSpell } from "@/lib/character/action-sync";
 
 type CharacterStore = {
   character: CharacterData | null;
@@ -269,11 +270,26 @@ export const useCharacterStore = create<CharacterStore>()(
             .filter(old => !list.some(n => n.id === old.id))
             .map(old => old.id)
         );
+        const renamedNames = new Map(
+          state.character.inventory
+            .filter(old => {
+              const updated = list.find(n => n.id === old.id);
+              return updated && updated.name !== old.name;
+            })
+            .map(old => [old.id, list.find(n => n.id === old.id)!.name])
+        );
         state.character.inventory = list;
         if (removedIds.size > 0) {
           state.character.actions = state.character.actions.filter(
             a => !a.sourceId || !removedIds.has(a.sourceId)
           );
+        }
+        if (renamedNames.size > 0) {
+          state.character.actions.forEach(a => {
+            if (a.sourceId && renamedNames.has(a.sourceId)) {
+              a.name = renamedNames.get(a.sourceId)!;
+            }
+          });
         }
         syncInventoryToStacks(state.character as unknown as CharacterData, list);
         state.isDirty = true;
@@ -331,11 +347,13 @@ export const useCharacterStore = create<CharacterStore>()(
             .map(old => old.id)
         );
         state.character.spells.list = list;
-        if (removedIds.size > 0) {
-          state.character.actions = state.character.actions.filter(
-            a => !a.sourceId || !removedIds.has(a.sourceId)
-          );
-        }
+        state.character.actions = state.character.actions
+          .filter(a => !a.sourceId || !removedIds.has(a.sourceId))
+          .map(a => {
+            if (!a.sourceId) return a;
+            const spell = list.find(s => s.id === a.sourceId);
+            return spell ? buildActionFromSpell(spell, a.id) : a;
+          });
         state.isDirty = true;
       }),
 

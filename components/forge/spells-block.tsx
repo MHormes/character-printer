@@ -7,13 +7,15 @@ import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import type { SpellEntry, ActionEntry, ActionMode, DamageEntry, DieType, AttributeKey, AttributeData, ModifierEntry, CharacterData } from "@/lib/types/character"
 import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack, sumStack } from "@/lib/character/calculations"
+import { formatDamageStack, toggleOrLink } from "@/lib/character/damage"
+import { buildActionFromSpell } from "@/lib/character/action-sync"
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import type { DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { searchSpells } from "@/lib/actions/5e-data"
 import type { ClassRow, SpellRow } from "@/lib/actions/5e-data"
-import { spellCardDescCap, spellDescFitsCard, spellDescEffectiveLength } from "@/components/canvas/widgets/spell-card-widget"
+import { spellCardDescCap, spellDescFitsCard, spellDescEffectiveLength, spellCardDmgLines } from "@/components/canvas/widgets/spell-card-widget"
 
 type SlotData = { base: number; stack: ModifierEntry[]; override: number | null }
 
@@ -40,25 +42,6 @@ const DIE_TYPES: DieType[] = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"]
 const LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 function sign(n: number) { return n >= 0 ? `+${n}` : String(n) }
-
-function spellToAction(spell: SpellEntry): ActionEntry {
-  return {
-    id: crypto.randomUUID(),
-    name: spell.name,
-    mode: spell.mode,
-    attackStat: null,
-    attackProficient: true,
-    attackBonus: 0,
-    fixedDC: spell.fixedDC,
-    damageStack: spell.damageStack.map(d => ({ ...d })),
-    notes: [
-      spell.level === 0 ? "Cantrip" : `Level ${spell.level}`,
-      spell.castingTime,
-      spell.range,
-    ].filter(Boolean).join(" · "),
-    sourceId: spell.id,
-  }
-}
 
 // ─── Spell picker ─────────────────────────────────────────────────────────────
 
@@ -307,7 +290,7 @@ export function SpellsBlock({
       mode: "Plain", castingStat: null, fixedDC: null, saveStat: null,
       damageStack: [], description: "", upcastDescription: "",
       components: { verbal: false, somatic: false, material: false, materialDesc: "" },
-      tags: { ritual: false, concentration: false, prepared: true },
+      tags: { ritual: false, concentration: false, alwaysPrepared: false },
     }])
     setExpandedIds(prev => new Set([...prev, id]))
   }
@@ -331,6 +314,7 @@ export function SpellsBlock({
             flatBonus: 0,
             type: spell.damageTypeName ?? "",
             active: true,
+            orGroup: null,
           }]
         : []
 
@@ -358,7 +342,7 @@ export function SpellsBlock({
       tags: {
         ritual: spell.ritual,
         concentration: spell.concentration,
-        prepared: true,
+        alwaysPrepared: false,
       },
     }
     onListChange([...list, entry])
@@ -547,7 +531,7 @@ export function SpellsBlock({
                       onDelete={() => onListChange(list.filter(s => s.id !== spell.id))}
                       onPatchDmg={(idx, u) => patchSpell(spell.id, { damageStack: spell.damageStack.map((d, i) => i === idx ? { ...d, ...u } : d) })}
                       onDeleteDmg={idx => patchSpell(spell.id, { damageStack: spell.damageStack.filter((_, i) => i !== idx) })}
-                      onAddToAttacks={onAddToAttacks ? () => onAddToAttacks(spellToAction(spell)) : undefined}
+                      onAddToAttacks={onAddToAttacks ? () => onAddToAttacks(buildActionFromSpell(spell)) : undefined}
                     />
                   ))}
                 </SortableContext>
@@ -655,14 +639,7 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
   }
 
   function calcDamageLabel(): string {
-    const active = (spell.damageStack ?? []).filter(d => d.active)
-    if (active.length === 0) return ""
-    return active.map(d => {
-      const total = (d.stat ? attrMod(d.stat) : 0) + (d.flatBonus ?? 0)
-      const bonusPart = total !== 0 ? sign(total) : ""
-      const typePart = d.type ? ` ${d.type}` : ""
-      return `${d.diceCount}${d.dieType}${bonusPart}${typePart}`
-    }).join(" + ")
+    return formatDamageStack(spell.damageStack, attrMod)
   }
 
   const label = headerLabel()
@@ -678,9 +655,9 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
         </button>
 
         <button type="button"
-          onClick={() => onPatch({ tags: { ...spell.tags, prepared: !spell.tags.prepared } })}
-          title="Prepared"
-          className={`shrink-0 size-2 rounded-full border transition-colors ${spell.tags.prepared ? "border-foreground bg-foreground" : "border-muted-foreground"}`}
+          onClick={() => onPatch({ tags: { ...spell.tags, alwaysPrepared: !spell.tags.alwaysPrepared } })}
+          title="Mark as always prepared"
+          className={`shrink-0 size-2 rotate-45 border transition-colors ${spell.tags.alwaysPrepared ? "border-foreground bg-foreground" : "border-muted-foreground"}`}
         />
 
         <Input type="text" value={spell.name} placeholder="Spell name"
@@ -854,8 +831,25 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
             <span className="text-xs text-muted-foreground">
               {spell.mode === "Heal" ? "Healing" : "Damage / Effect"}
             </span>
-            {(spell.damageStack ?? []).map((dmg, idx) => (
-              <div key={idx} className={cn("flex flex-wrap items-center gap-1.5", !dmg.active && "opacity-50")}>
+            {(spell.damageStack ?? []).map((dmg, idx) => {
+              const linkedWithPrev = idx > 0 && dmg.orGroup !== null && dmg.orGroup === (spell.damageStack ?? [])[idx - 1].orGroup
+              return (
+              <div key={idx} className="flex flex-wrap items-center gap-1.5">
+                {idx > 0 && (
+                  <button type="button"
+                    onClick={() => onPatch({ damageStack: toggleOrLink(spell.damageStack ?? [], idx) })}
+                    title={linkedWithPrev
+                      ? "Alternative to row above (OR) — click to make simultaneous (AND)"
+                      : "Simultaneous with row above (AND) — click to make an alternative (OR)"}
+                    className={cn(
+                      "flex h-4 w-7 shrink-0 items-center justify-center rounded text-[9px] font-semibold tracking-wide transition-colors",
+                      linkedWithPrev
+                        ? "bg-foreground/15 text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-foreground/10",
+                    )}>
+                    {linkedWithPrev ? "OR" : "AND"}
+                  </button>
+                )}
                 <input
                   type="text" inputMode="numeric"
                   value={(dmg.diceCount ?? 0) === 0 ? "" : String(dmg.diceCount)}
@@ -897,19 +891,15 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
                     onChange={e => onPatchDmg(idx, { type: e.target.value })}
                     className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
                   />
-                  <button type="button" onClick={() => onPatchDmg(idx, { active: !dmg.active })}
-                    className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
-                    {dmg.active ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
-                  </button>
                   <button type="button" onClick={() => onDeleteDmg(idx)}
                     className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
                     <X className="size-2.5" />
                   </button>
                 </div>
               </div>
-            ))}
+            )})}
             <button type="button"
-              onClick={() => onPatch({ damageStack: [...(spell.damageStack ?? []), { diceCount: 1, dieType: "d6", stat: null, flatBonus: 0, type: "", active: true }] })}
+              onClick={() => onPatch({ damageStack: [...(spell.damageStack ?? []), { diceCount: 1, dieType: "d6", stat: null, flatBonus: 0, type: "", active: true, orGroup: null }] })}
               className="flex h-5 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
               <Plus className="size-3" />
               {spell.mode === "Heal" ? "Add healing" : "Add damage / effect"}
@@ -930,8 +920,9 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
           <div className="space-y-1">
             {(() => {
               const hasMat = spell.components.material && !!spell.components.materialDesc.trim()
-              const descCap = spellCardDescCap(hasMat)
-              const descOverLimit = !spellDescFitsCard(spell.description, hasMat)
+              const dmgLineCount = spellCardDmgLines(spell.damageStack, attrMod).length
+              const descCap = spellCardDescCap(hasMat, dmgLineCount)
+              const descOverLimit = !spellDescFitsCard(spell.description, hasMat, dmgLineCount)
               return (
                 <>
                   <div className="flex items-center justify-between">

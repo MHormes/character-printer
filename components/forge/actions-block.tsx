@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, ChevronRight, GripVertical, X, Plus, CircleDot, Circle, RotateCcw, Lock } from "lucide-react"
+import { ChevronDown, ChevronRight, GripVertical, X, Plus, RotateCcw, Lock } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import type { ActionEntry, ActionMode, DieType, DamageEntry, AttributeKey, AttributeData, ModifierEntry, CharacterData } from "@/lib/types/character"
 import { resolveAttributeMod, resolveSpellDc, resolveSpellAttack } from "@/lib/character/calculations"
+import { formatDamageStack, toggleOrLink } from "@/lib/character/damage"
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import type { DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable"
@@ -24,6 +25,7 @@ function sign(n: number): string {
 
 type ActionsBlockProps = {
   actions: ActionEntry[]
+  spellSourceIds?: Set<string>
   castingStat: AttributeKey | null
   attributes: Record<AttributeKey, AttributeData>
   proficiencyBonus: number
@@ -35,7 +37,7 @@ type ActionsBlockProps = {
 }
 
 export function ActionsBlock({
-  actions, castingStat, attributes, proficiencyBonus, attackStack, dcStack, showManualControls = false, onChange, onCastingStatChange,
+  actions, spellSourceIds, castingStat, attributes, proficiencyBonus, attackStack, dcStack, showManualControls = false, onChange, onCastingStatChange,
 }: ActionsBlockProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -63,15 +65,7 @@ export function ActionsBlock({
   }
 
   function calcDamageLabel(action: ActionEntry): string {
-    const active = action.damageStack.filter(d => d.active)
-    if (active.length === 0) return ""
-    return active.map(d => {
-      const dice = `${d.diceCount}${d.dieType}`
-      const total = (d.stat ? resolveAttributeMod(attributes[d.stat]) : 0) + (d.flatBonus ?? 0)
-      const bonusPart = total !== 0 ? sign(total) : ""
-      const typePart = d.type ? ` ${d.type}` : ""
-      return `${dice}${bonusPart}${typePart}`
-    }).join(" + ")
+    return formatDamageStack(action.damageStack, (key) => resolveAttributeMod(attributes[key]))
   }
 
   function toggleExpand(id: string) {
@@ -129,6 +123,7 @@ export function ActionsBlock({
               <SortableActionItem
                 key={action.id}
                 action={action}
+                isSpellSourced={!!action.sourceId && (spellSourceIds?.has(action.sourceId) ?? false)}
                 expanded={expandedIds.has(action.id)}
                 spellDC={spellDC}
                 spellAttackBonus={spellAttackBonus}
@@ -158,6 +153,7 @@ export function ActionsBlock({
 
 type SortableActionItemProps = {
   action: ActionEntry
+  isSpellSourced: boolean
   expanded: boolean
   spellDC: number
   spellAttackBonus: number
@@ -173,7 +169,7 @@ type SortableActionItemProps = {
 }
 
 function SortableActionItem({
-  action, expanded, spellDC, spellAttackBonus, headerLabel, damageLabel, calcAttackToHit,
+  action, isSpellSourced, expanded, spellDC, spellAttackBonus, headerLabel, damageLabel, calcAttackToHit,
   manualMode = false, onToggle, onPatch, onDelete,
 }: SortableActionItemProps) {
   const { attributes: dndAttrs, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: action.id })
@@ -229,7 +225,24 @@ function SortableActionItem({
         )}
       </div>
 
-      {expanded && (
+      {expanded && isSpellSourced && (
+        <div className="space-y-2 border-t border-border p-3 text-xs text-muted-foreground">
+          <p>Synced from the spell list — edit &ldquo;{action.name}&rdquo; there to change its stats.</p>
+          <div className="flex flex-wrap gap-1.5">
+            <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
+              {headerLabel}
+            </span>
+            {damageLabel && (
+              <span className="rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] text-foreground tabular-nums">
+                {damageLabel}
+              </span>
+            )}
+          </div>
+          {action.notes && <p className="text-card-foreground">{action.notes}</p>}
+        </div>
+      )}
+
+      {expanded && !isSpellSourced && (
         <div className="space-y-3 border-t border-border p-3">
           {/* Mode selector */}
           <div className="flex items-center gap-2">
@@ -329,8 +342,24 @@ function SortableActionItem({
               function patchDmg(patch: Partial<DamageEntry>) {
                 onPatch({ damageStack: action.damageStack.map((d, j) => j === i ? { ...d, ...patch } : d) })
               }
+              const linkedWithPrev = i > 0 && dmg.orGroup !== null && dmg.orGroup === action.damageStack[i - 1].orGroup
               return (
-                <div key={i} className={cn("flex flex-wrap items-center gap-1.5", !dmg.active && "opacity-50")}>
+                <div key={i} className="flex flex-wrap items-center gap-1.5">
+                  {i > 0 && (
+                    <button type="button"
+                      onClick={() => onPatch({ damageStack: toggleOrLink(action.damageStack, i) })}
+                      title={linkedWithPrev
+                        ? "Alternative to row above (OR) — click to make simultaneous (AND)"
+                        : "Simultaneous with row above (AND) — click to make an alternative (OR)"}
+                      className={cn(
+                        "flex h-4 w-7 shrink-0 items-center justify-center rounded text-[9px] font-semibold tracking-wide transition-colors",
+                        linkedWithPrev
+                          ? "bg-foreground/15 text-foreground"
+                          : "text-muted-foreground hover:text-foreground hover:bg-foreground/10",
+                      )}>
+                      {linkedWithPrev ? "OR" : "AND"}
+                    </button>
+                  )}
                   <input
                     type="text" inputMode="numeric"
                     value={(dmg.diceCount ?? 0) === 0 ? "" : String(dmg.diceCount)}
@@ -374,10 +403,6 @@ function SortableActionItem({
                       onChange={(e) => patchDmg({ type: e.target.value })}
                       className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:border-ring"
                     />
-                    <button type="button" onClick={() => patchDmg({ active: !dmg.active })}
-                      className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
-                      {dmg.active ? <CircleDot className="size-2.5" /> : <Circle className="size-2.5" />}
-                    </button>
                     <button type="button"
                       onClick={() => onPatch({ damageStack: action.damageStack.filter((_, j) => j !== i) })}
                       className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive">
@@ -388,7 +413,7 @@ function SortableActionItem({
               )
             })}
             <button type="button"
-              onClick={() => onPatch({ damageStack: [...action.damageStack, { diceCount: 1, dieType: "d6", stat: null, flatBonus: 0, type: "", active: true }] })}
+              onClick={() => onPatch({ damageStack: [...action.damageStack, { diceCount: 1, dieType: "d6", stat: null, flatBonus: 0, type: "", active: true, orGroup: null }] })}
               className="flex h-6 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
               <Plus className="size-3" />
               {action.mode === "Heal" ? "Add healing" : "Add damage"}

@@ -2,20 +2,35 @@
 
 import { useCharacterStore } from "@/lib/store/character-store";
 import { resolveSpellDc, resolveSpellAttack, resolvePb } from "@/lib/character/calculations";
+import { formatDamageLines } from "@/lib/character/damage";
 import { DndFrame } from "./dnd-frame";
-import type { ActionEntry } from "@/lib/types/character";
+import type { ActionEntry, AttributeKey } from "@/lib/types/character";
 
 // viewBox width 176 — matches w=9 palette columns
 const C1 = 82;
 const C2 = 106;
 const RIGHT = 173;
 const ROW_H = 12;
+const ROW_WRAP_EXTRA = 6; // extra height for a row whose damage needs a 2nd line (AND overflow)
+const DMG_LINE_GAP = 6;
 const HEADER_Y = 20; // 3 top margin + 17 header area
 const BOTTOM_H = 21; // divider + label below frame
 
-// SVG height: 3 + 17 header + n×12 rows + 21 bottom
-export function attacksSvgH(n: number) {
-  return HEADER_Y + ROW_H * n + BOTTOM_H;
+function actionRowH(a: ActionEntry, attrMod: (key: AttributeKey) => number) {
+  return ROW_H + (formatDamageLines(a.damageStack, attrMod).length > 1 ? ROW_WRAP_EXTRA : 0);
+}
+
+// Approximate height for external layout sizing (no character context available yet,
+// so bonus numbers are ignored — this only needs to be close, not exact).
+export function attacksSvgH(actions: ActionEntry[]) {
+  const rowsH = actions.reduce((sum, a) => sum + actionRowH(a, () => 0), 0);
+  return HEADER_Y + rowsH + BOTTOM_H;
+}
+
+// Whether any row needs its 2nd (AND-overflow) line — external layout sizing rounds
+// height up rather than to nearest when this is true, so a wrap reliably grows the widget.
+export function attacksHasWrap(actions: ActionEntry[]): boolean {
+  return actions.some((a) => formatDamageLines(a.damageStack, () => 0).length > 1);
 }
 
 export function AttacksWidget() {
@@ -43,19 +58,19 @@ export function AttacksWidget() {
     return fmtBonus(statMod + (a.attackProficient ? pb : 0) + a.attackBonus);
   }
 
-  function dmgStr(a: ActionEntry) {
-    const d = a.damageStack.find((e) => e.active);
-    if (!d) return "—";
-    const statMod = d.stat ? attrMod(d.stat) : 0;
-    const bonus = d.flatBonus + statMod;
-    const bStr = bonus > 0 ? `+${bonus}` : bonus < 0 ? `${bonus}` : "";
-    return `${d.diceCount}${d.dieType}${bStr} ${d.type}`;
+  const rowHeights = actions.map((a) => actionRowH(a, attrMod));
+  const rowTops: number[] = [];
+  {
+    let y = HEADER_Y;
+    for (const h of rowHeights) {
+      rowTops.push(y);
+      y += h;
+    }
   }
-
-  const svgH = attacksSvgH(actions.length);
+  const rowsTotalH = rowHeights.reduce((s, h) => s + h, 0);
+  const svgH = HEADER_Y + rowsTotalH + BOTTOM_H;
   const frameH = svgH - 3 - BOTTOM_H;
   const frameBot = 3 + frameH;
-  const rowCY = (i: number) => HEADER_Y + ROW_H * i + ROW_H / 2;
 
   const ff = "Georgia, 'Times New Roman', serif";
   const tf = {
@@ -129,51 +144,60 @@ export function AttacksWidget() {
           —
         </text>
       )}
-      {actions.map((a, i) => (
-        <g key={a.id}>
-          <text
-            x={7}
-            y={rowCY(i)}
-            textAnchor="start"
-            {...df}
-            fontSize="6"
-            fontWeight="600"
-          >
-            {a.name}
-          </text>
-          <text
-            x={(C1 + C2) / 2}
-            y={rowCY(i)}
-            textAnchor="middle"
-            {...df}
-            fontSize="6.5"
-            fontWeight="700"
-          >
-            {atkStr(a)}
-          </text>
-          <text
-            x={C2 + 2}
-            y={rowCY(i)}
-            textAnchor="start"
-            {...df}
-            fontSize="5.5"
-            fontWeight="400"
-          >
-            {dmgStr(a)}
-          </text>
-          {i < actions.length - 1 && (
-            <line
-              x1={3}
-              y1={HEADER_Y + ROW_H * (i + 1)}
-              x2={RIGHT}
-              y2={HEADER_Y + ROW_H * (i + 1)}
-              stroke="#1a1208"
-              strokeWidth="0.3"
-              opacity="0.5"
-            />
-          )}
-        </g>
-      ))}
+      {actions.map((a, i) => {
+        const rowTop = rowTops[i];
+        const rowCenter = rowTop + rowHeights[i] / 2;
+        const dmgLines = formatDamageLines(a.damageStack, attrMod);
+        return (
+          <g key={a.id}>
+            <text
+              x={7}
+              y={rowCenter}
+              textAnchor="start"
+              {...df}
+              fontSize="6"
+              fontWeight="600"
+            >
+              {a.name}
+            </text>
+            <text
+              x={(C1 + C2) / 2}
+              y={rowCenter}
+              textAnchor="middle"
+              {...df}
+              fontSize="6.5"
+              fontWeight="700"
+            >
+              {atkStr(a)}
+            </text>
+            {dmgLines.length > 1 ? (
+              <>
+                <text x={C2 + 2} y={rowCenter - DMG_LINE_GAP / 2} textAnchor="start" {...df} fontSize="5.5" fontWeight="400">
+                  {dmgLines[0]}
+                </text>
+                <text x={C2 + 2} y={rowCenter + DMG_LINE_GAP / 2} textAnchor="start" {...df} fontSize="5.5" fontWeight="400">
+                  {dmgLines[1]}
+                </text>
+              </>
+            ) : (
+              <text x={C2 + 2} y={rowCenter} textAnchor="start" {...df} fontSize="5.5" fontWeight="400">
+                {dmgLines[0] ?? "—"}
+              </text>
+            )}
+            {i < actions.length - 1 && (
+              <line
+                x1={3}
+                y1={rowTops[i + 1]}
+                x2={RIGHT}
+                y2={rowTops[i + 1]}
+                stroke="#1a1208"
+                strokeWidth="0.3"
+                opacity="0.5"
+              />
+            )}
+          </g>
+        );
+      })}
 
       <line
         x1={6}
