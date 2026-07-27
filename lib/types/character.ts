@@ -94,6 +94,7 @@ export type InventoryItem = {
   weight: number;
   category: "Weapon" | "Armor" | "Tool" | "Consumable" | "Wondrous" | "Mundane";
   equipped: boolean;
+  attuned?: boolean;
   modifiers: { id: string; target: ModifierTarget; value: number; type: "Bonus" | "Set To" }[];
   // Armor data — populated when item is imported from SRD
   acSetsFormula?: boolean | null;   // true = drives AC formula; false = bonus-only (shield); undefined = legacy (treated as true)

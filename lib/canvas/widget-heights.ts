@@ -5,6 +5,7 @@ import { slimAttacksSvgH } from "@/components/canvas/widgets/slim-attacks-widget
 import { equipmentSvgH } from "@/components/canvas/widgets/equipment-widget";
 import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
 import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
+import { attunedItemsSvgH } from "@/components/canvas/widgets/attuned-items-widget";
 import { characteristicsSvgH } from "@/components/canvas/widgets/characteristics-widget";
 import { bioTextSvgH } from "@/components/canvas/widgets/bio-text-widget";
 import { featureCardGridH } from "@/components/canvas/widgets/feature-card-widget";
@@ -27,6 +28,7 @@ export function computeIdealWidgetH(
   const inventoryCount = character?.inventory.length ?? 0;
   const trackersCount = character?.trackers.length ?? 0;
   const featuresCount = character?.features.length ?? 0;
+  const attunedCount = character?.inventory.filter((i) => i.attuned).length ?? 0;
 
   switch (widget.type) {
     case "ToolProficiencies":
@@ -50,6 +52,8 @@ export function computeIdealWidgetH(
       );
     case "Features":
       return Math.max(2, Math.round((featuresSvgH(featuresCount) * widget.w * rows * 210) / (cols * 297 * 96)));
+    case "AttunedItems":
+      return Math.max(2, Math.round((attunedItemsSvgH(attunedCount) * widget.w * rows * 210) / (cols * 297 * 96)));
     case "Characteristics":
       return Math.max(
         4,

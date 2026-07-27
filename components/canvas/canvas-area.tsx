@@ -60,6 +60,7 @@ import { slimAttacksSvgH } from "@/components/canvas/widgets/slim-attacks-widget
 import { equipmentSvgH } from "@/components/canvas/widgets/equipment-widget";
 import { trackerSvgH } from "@/components/canvas/widgets/tracker-widget";
 import { featuresSvgH } from "@/components/canvas/widgets/features-widget";
+import { attunedItemsSvgH } from "@/components/canvas/widgets/attuned-items-widget";
 import { characteristicsSvgH } from "@/components/canvas/widgets/characteristics-widget";
 import { spellLevelSvgH } from "@/components/canvas/widgets/spell-level-widget";
 import { otherProfSvgH } from "@/components/canvas/widgets/other-proficiencies-widget";
@@ -175,6 +176,7 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
   const inventoryCount = character?.inventory.length ?? 0;
   const trackersCount = character?.trackers.length ?? 0;
   const featuresCount = character?.features.length ?? 0;
+  const attunedCount = character?.inventory.filter((i) => i.attuned).length ?? 0;
   const validSpellIds = new Set(
     character?.spells.list.map((spell) => spell.id) ?? [],
   );
@@ -226,6 +228,12 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
     2,
     Math.round(
       (featuresSvgH(featuresCount) * 6 * rows * 210) / (cols * 297 * 96),
+    ),
+  );
+  const attunedItemsH = Math.max(
+    2,
+    Math.round(
+      (attunedItemsSvgH(attunedCount) * 6 * rows * 210) / (cols * 297 * 96),
     ),
   );
   const characteristicsH = Math.max(
@@ -353,6 +361,8 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
     { type: "TempHp" as const, label: "Temp HP", w: 4, h: 4 },
     { type: "HitDice" as const, label: "Hit Dice", w: 4, h: 4 },
     { type: "DeathSaves" as const, label: "Death Saves", w: 4, h: 4 },
+    { type: "ExhaustionTracker" as const, label: "Exhaustion", w: 6, h: 2 },
+    { type: "ReactionUsed" as const, label: "Reaction Used", w: 3, h: 2 },
     // Actions & inventory
     { type: "Attacks" as const, label: "Attacks", w: 9, h: attacksH },
     {
@@ -367,9 +377,11 @@ export function CanvasArea({ templates, onDeleteTemplate, isMobile = false }: Pr
     { type: "TrackerCard" as const, label: "Tracker Card", w: 3, h: 4 },
     { type: "Features" as const, label: "Features", w: 6, h: featuresH },
     { type: "FeatureCard" as const, label: "Feature Card", w: 9, h: 5 },
+    { type: "AttunedItems" as const, label: "Attuned Items", w: 6, h: attunedItemsH },
 
     { type: "BioText" as const, label: "Bio Card", w: 6, h: 5 },
     { type: "StatBox" as const, label: "Stat Box", w: 3, h: 4 },
+    { type: "ConcentrationTracker" as const, label: "Concentration", w: 3, h: 4 },
   ];
 
   const FULL_PAGE_ITEMS = [
