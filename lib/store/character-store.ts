@@ -269,11 +269,26 @@ export const useCharacterStore = create<CharacterStore>()(
             .filter(old => !list.some(n => n.id === old.id))
             .map(old => old.id)
         );
+        const renamedNames = new Map(
+          state.character.inventory
+            .filter(old => {
+              const updated = list.find(n => n.id === old.id);
+              return updated && updated.name !== old.name;
+            })
+            .map(old => [old.id, list.find(n => n.id === old.id)!.name])
+        );
         state.character.inventory = list;
         if (removedIds.size > 0) {
           state.character.actions = state.character.actions.filter(
             a => !a.sourceId || !removedIds.has(a.sourceId)
           );
+        }
+        if (renamedNames.size > 0) {
+          state.character.actions.forEach(a => {
+            if (a.sourceId && renamedNames.has(a.sourceId)) {
+              a.name = renamedNames.get(a.sourceId)!;
+            }
+          });
         }
         syncInventoryToStacks(state.character as unknown as CharacterData, list);
         state.isDirty = true;
