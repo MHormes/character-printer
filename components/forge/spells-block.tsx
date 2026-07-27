@@ -856,10 +856,13 @@ function SpellRow({ spell, expanded, spellDC, spellAttack, globalCastingStat, at
                   placeholder="1"
                   onChange={e => {
                     const raw = e.target.value
-                    if (raw === "") { onPatchDmg(idx, { diceCount: 1 }); return }
+                    if (raw === "") { onPatchDmg(idx, { diceCount: 0 }); return }
                     if (!/^\d+$/.test(raw)) return
                     const n = parseInt(raw, 10)
                     if (!isNaN(n)) onPatchDmg(idx, { diceCount: n })
+                  }}
+                  onBlur={() => {
+                    if ((dmg.diceCount ?? 0) === 0) onPatchDmg(idx, { diceCount: 1 })
                   }}
                   className="h-6 w-8 rounded-md border border-input bg-background text-center text-xs placeholder:text-card-foreground/40 focus:outline-none focus:border-ring"
                 />
