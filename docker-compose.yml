@@ -64,16 +64,6 @@ services:
       - ./minio.license:/minio.license
     restart: unless-stopped
 
-  tunnel:
-    image: cloudflare/cloudflared:latest
-    container_name: ${TUNNEL_CONTAINER_NAME:-character_printer_tunnel}
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run
-    environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
-    depends_on:
-      - app
-
 volumes:
   postgres_data:
     name: ${POSTGRES_VOLUME_NAME:-character_printer_postgres_data}

@@ -1,10 +1,12 @@
 #!/bin/bash
 # Run on a copied staging VM to switch from prod to staging config.
-# Swaps tunnel token, disables email, disables cache, rebuilds and restarts.
+# Disables email, disables cache, rebuilds and restarts. Cloudflare routing
+# to the staging hostname is handled by the shared cloudflared LXC, not by
+# this script — update its tunnel config separately so staging.yourdomain.com
+# points here.
 #
 # Prerequisites in .env.production:
 #   NEXTAUTH_URL_STAGING=https://staging.yourdomain.com
-#   CLOUDFLARE_TUNNEL_TOKEN_STAGING=<staging tunnel token from Cloudflare Zero Trust>
 #   NEXT_PRIVATE_SKIP_FETCH_CACHE=    ← must exist as an empty line (sed target)
 set -e
 
@@ -18,18 +20,15 @@ fi
 
 source <(grep -v '^#' "$ENV_FILE" | grep '=')
 
-: "${CLOUDFLARE_TUNNEL_TOKEN_STAGING:?CLOUDFLARE_TUNNEL_TOKEN_STAGING not set in .env.production}"
 : "${NEXTAUTH_URL_STAGING:?NEXTAUTH_URL_STAGING not set in .env.production}"
 
 sed -i \
-    -e "s|^CLOUDFLARE_TUNNEL_TOKEN=.*|CLOUDFLARE_TUNNEL_TOKEN=$CLOUDFLARE_TUNNEL_TOKEN_STAGING|" \
     -e "s|^MAIL_PROVIDER=.*|MAIL_PROVIDER=disabled|" \
     -e "s|^NEXTAUTH_URL=.*|NEXTAUTH_URL=$NEXTAUTH_URL_STAGING|" \
     -e "s|^NEXT_PRIVATE_SKIP_FETCH_CACHE=.*|NEXT_PRIVATE_SKIP_FETCH_CACHE=1|" \
     "$ENV_FILE"
 
 echo "Switched to staging config."
-echo "  Tunnel : staging"
 echo "  Email  : disabled"
 echo "  Cache  : disabled"
 echo "  URL    : $NEXTAUTH_URL_STAGING"

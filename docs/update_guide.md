@@ -14,8 +14,9 @@ Run after server OS updates are done (see global `update_guide.md`). Do all step
 **`docker-compose.yml`** — check for updates:
 
 - `postgres` — `postgres:x-alpine` — bump patch/minor freely; major needs migration check
-- `tunnel` — `cloudflare/cloudflared:latest` — always pulls latest, nothing to pin
 - `aistor` — `quay.io/minio/aistor/minio:latest` — always pulls latest, nothing to pin
+
+> Cloudflare Tunnel runs in a separate shared LXC container, not in this compose file — update it independently.
 
 > **Major version bumps** (Node LTS major, Postgres major) — read changelog first, don't just bump.
 
