@@ -110,14 +110,14 @@ Spins up the full stack (Next.js app, PostgreSQL, AIStor) using `docker-compose-
 
 ## 3. Production Docker Compose
 
-The production setup (`docker-compose.yml`) runs on the server and adds a Cloudflare Tunnel container for public HTTPS access. The database and AIStor ports are not exposed to the host — all traffic goes through the tunnel.
+The production setup (`docker-compose.yml`) runs on the server. Public HTTPS access is provided by Cloudflare Tunnel, which runs in a separate, shared LXC container on the same Proxmox host (not in this repo's Docker Compose) — that LXC proxies to this VM's published app port. The database and AIStor ports are not exposed to the host.
 
 **Prerequisites:**
 
 - `.env.production` configured on the server
-- Valid `CLOUDFLARE_TUNNEL_TOKEN` in `.env.production`
 - Docker installed on the server
 - `minio.license` present at the project root
+- The shared cloudflared LXC configured with a route for this VM (managed outside this repo)
 
 **Steps:**
 
@@ -142,14 +142,13 @@ The production setup (`docker-compose.yml`) runs on the server and adds a Cloudf
 
 **What runs:**
 
-| Container                    | Role                      |
-| ---------------------------- | ------------------------- |
-| `character_printer_app`      | Next.js standalone app    |
-| `character_printer_postgres` | PostgreSQL 17             |
-| `character_printer_aistor`   | AIStor (S3-compatible)    |
-| `character_printer_tunnel`   | Cloudflare Tunnel (HTTPS) |
+| Container                    | Role                    |
+| ----------------------------- | ----------------------- |
+| `character_printer_app`      | Next.js standalone app  |
+| `character_printer_postgres` | PostgreSQL 17           |
+| `character_printer_aistor`   | AIStor (S3-compatible)  |
 
-> The database and AIStor are not exposed on any host port in production — they are only reachable from within the Docker network.
+> The database and AIStor are not exposed on any host port in production — they are only reachable from within the Docker network. HTTPS/routing is handled outside this compose file by the shared cloudflared LXC.
 
 ---
 
