@@ -13,8 +13,12 @@ Run after server OS updates are done (see global `update_guide.md`). Do all step
 
 **`docker-compose.yml`** — check for updates:
 
-- `postgres` — `postgres:x-alpine` — bump patch/minor freely; major needs migration check
+- `postgres` — `postgres:17-alpine` — bump patch/minor freely; major needs migration check
+  - Tags: https://hub.docker.com/_/postgres/tags?name=alpine
+  - Support/EOL per major: https://www.postgresql.org/support/versioning/
+  - Release notes: https://www.postgresql.org/docs/release/
 - `aistor` — `quay.io/minio/aistor/minio:latest` — always pulls latest, nothing to pin
+  - Tags (named `RELEASE.<date>`): https://quay.io/repository/minio/aistor/minio?tab=tags
 
 > Cloudflare Tunnel runs in a separate shared LXC container, not in this compose file — update it independently.
 
