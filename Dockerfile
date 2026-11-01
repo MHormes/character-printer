@@ -4,7 +4,7 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN apk add --no-cache python3 make g++
-RUN npm install -g pnpm@11
+RUN npm install -g pnpm@12.17.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild esbuild sharp unrs-resolver
 
@@ -19,7 +19,7 @@ ENV NEXTAUTH_URL=http://localhost:3000
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm install -g pnpm@11
+RUN npm install -g pnpm@12.17.0
 RUN pnpm run build:container
 
 FROM node:26-alpine AS runner
