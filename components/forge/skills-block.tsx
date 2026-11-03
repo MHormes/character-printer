@@ -286,7 +286,7 @@ export function SkillsBlock({
         );
       })}
 
-      <div className="mt-2 flex flex-col gap-1 rounded-md border border-border bg-card/60 p-2">
+      <div className="mt-2 flex flex-col gap-1 rounded-md border border-border bg-card p-2">
         <div className="flex items-center gap-2">
           <span className="flex-1 text-xs font-medium text-card-foreground">
             Passive Perception
