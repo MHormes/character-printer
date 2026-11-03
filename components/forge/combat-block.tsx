@@ -508,26 +508,28 @@ export function CombatBlock({
           Speed
         </h3>
 
-        <div className="flex items-center gap-1.5">
-          <span className="shrink-0 text-xs text-muted-foreground">Base</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={data.speed.base === 0 ? "" : String(data.speed.base)}
-            placeholder="30"
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === "") {
-                onSpeedChange({ ...data.speed, base: 0 });
-                return;
-              }
-              const n = parseInt(raw, 10);
-              if (!isNaN(n)) onSpeedChange({ ...data.speed, base: n });
-            }}
-            className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
-          />
-          <span className="shrink-0 text-xs text-muted-foreground">ft</span>
-        </div>
+        {showManualControls && (
+          <div className="flex items-center gap-1.5">
+            <span className="shrink-0 text-xs text-muted-foreground">Base</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={data.speed.base === 0 ? "" : String(data.speed.base)}
+              placeholder="30"
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === "") {
+                  onSpeedChange({ ...data.speed, base: 0 });
+                  return;
+                }
+                const n = parseInt(raw, 10);
+                if (!isNaN(n)) onSpeedChange({ ...data.speed, base: n });
+              }}
+              className="h-6 min-w-0 flex-1 rounded-md border border-input bg-background text-center text-xs focus:outline-none focus:border-ring"
+            />
+            <span className="shrink-0 text-xs text-muted-foreground">ft</span>
+          </div>
+        )}
 
         {showManualControls && (
           <ModStack

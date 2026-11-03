@@ -406,15 +406,15 @@ export function SpellsBlock({
                     </div>
                   )}
                   <span className="text-[10px] text-muted-foreground">slots</span>
-                  <div className="flex h-5 items-center rounded border border-input bg-muted/30 px-1.5">
-                    <span className="text-[10px] text-muted-foreground uppercase mr-1">Derived</span>
-                    <span className="text-[10px] font-medium tabular-nums text-foreground">{slot.base}</span>
+                  <div className="flex h-5 items-center rounded border border-input bg-secondary px-1.5">
+                    <span className="text-[10px] font-medium text-secondary-foreground uppercase mr-1">Derived</span>
+                    <span className="text-xs font-semibold tabular-nums text-secondary-foreground">{slot.base}</span>
                   </div>
                   {showManualControls && (
                     <button
                       type="button"
                       onClick={() => toggleSlotExpand(slotLevelKey)}
-                      className="flex h-5 items-center gap-1 rounded border border-input bg-background px-1.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+                      className="flex h-5 items-center gap-1 rounded border border-input bg-secondary px-1.5 text-[10px] font-medium text-secondary-foreground transition-colors hover:text-foreground"
                     >
                       {slotExpanded ? <ChevronDown className="size-2.5" /> : <ChevronRight className="size-2.5" />}
                       Mods
@@ -429,7 +429,7 @@ export function SpellsBlock({
 
             <div className="space-y-1">
               {showManualControls && slot && slotExpanded && (
-                <div className="mb-2 flex flex-col gap-1.5 rounded-md border border-border bg-card/60 p-2">
+                <div className="mb-2 flex flex-col gap-1.5 rounded-md border border-border bg-card p-2">
                   {slot.stack.map((mod) =>
                     mod.sourceId ? (
                       <div

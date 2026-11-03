@@ -101,9 +101,15 @@ export default function LandingPage() {
             D&amp;D 5e
           </p>
           <h1 className="font-cinzel font-normal tracking-tight text-primary-foreground flex flex-col items-center">
-            <span className="text-5xl sm:text-6xl md:text-8xl leading-none">Print</span>
-            <span className="text-3xl sm:text-4xl md:text-6xl leading-none">2</span>
-            <span className="text-5xl sm:text-6xl md:text-8xl leading-none">Play</span>
+            <span className="text-5xl sm:text-6xl md:text-8xl leading-none">
+              Print
+            </span>
+            <span className="text-3xl sm:text-4xl md:text-6xl leading-none">
+              2
+            </span>
+            <span className="text-5xl sm:text-6xl md:text-8xl leading-none">
+              Play
+            </span>
           </h1>
           <p className="font-garamond italic text-xl md:text-2xl text-primary-foreground/70 max-w-sm mx-auto leading-relaxed">
             Build your sheet, design your layout,
@@ -119,7 +125,7 @@ export default function LandingPage() {
             href="/register"
             className={buttonVariants({ variant: "secondary", size: "lg" })}
           >
-            Start Buildingl
+            Start Building!
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

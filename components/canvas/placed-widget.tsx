@@ -54,6 +54,7 @@ import { CharacterInfoCompactWidget } from "@/components/canvas/widgets/characte
 import { CharacterAppearanceWidget } from "@/components/canvas/widgets/character-appearance-widget";
 import { CharacterPortraitWidget } from "@/components/canvas/widgets/character-portrait-widget";
 import { StatBoxWidget } from "@/components/canvas/widgets/stat-box-widget"
+import { resolveStatBoxDisplay } from "@/lib/character/calculations"
 import { SingleTrackerWidget } from "@/components/canvas/widgets/single-tracker-widget";
 import { CharacteristicsWidget } from "@/components/canvas/widgets/characteristics-widget";
 import { CharacteristicCardWidget, characteristicCardSvgH, CHAR_CARD_SOURCES } from "@/components/canvas/widgets/characteristic-card-widget";
@@ -447,7 +448,7 @@ export function PlacedWidget({
                 )}
               >
                 <span className="text-xs font-medium text-foreground">{stat.title || "Untitled"}</span>
-                <span className="text-xs text-muted-foreground">{stat.value}</span>
+                <span className="text-xs text-muted-foreground">{character ? resolveStatBoxDisplay(stat, character) : stat.value}</span>
               </button>
             ))}
           </div>

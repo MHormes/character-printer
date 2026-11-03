@@ -171,7 +171,15 @@ export type TrackerEntry = {
 export type StatBox = {
   id: string;
   title: string;
-  value: string;
+  value: string;            // plain-text value (used when `calculated` is falsy)
+  // Optional calculated mode — same math as TrackerEntry. Off by default.
+  calculated?: boolean;
+  base?: number;
+  baseSource?: TrackerBaseSource;
+  baseMultiplier?: number;
+  baseOffset?: number;
+  stack?: ModifierEntry[];
+  override?: number | null;
 };
 
 export type SpellEntry = {
