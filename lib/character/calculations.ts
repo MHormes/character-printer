@@ -1,4 +1,4 @@
-import type { CharacterData, AttributeKey, AttributeData, ModifierEntry, TrackerBaseSource } from "@/lib/types/character"
+import type { CharacterData, AttributeKey, AttributeData, ModifierEntry, TrackerBaseSource, StatBox } from "@/lib/types/character"
 
 export function sumStack(stack: ModifierEntry[]): number {
   return (stack ?? [])
@@ -215,6 +215,30 @@ export function materializeDynamicModifiers(c: CharacterData): void {
   for (const slot of Object.values(c.spells.slots)) materializeStack(slot.stack)
   materializeStack(c.profBonusStack)
   for (const tracker of c.trackers) materializeStack(tracker.stack)
+  for (const stat of c.statBoxes ?? []) if (stat.stack) materializeStack(stat.stack)
+}
+
+/** Calculated total for a stat box in calculated mode (tracker-style math). */
+export function resolveStatBoxTotal(
+  stat: StatBox,
+  attrs: Record<AttributeKey, AttributeData>,
+  level: number,
+  pb: number,
+): number {
+  if (stat.override != null) return stat.override
+  const base = resolveTrackerBase(
+    { base: stat.base ?? 0, baseSource: stat.baseSource, baseMultiplier: stat.baseMultiplier, baseOffset: stat.baseOffset },
+    attrs, level, pb,
+  )
+  return base + (stat.stack ?? [])
+    .filter((m) => m.isActive)
+    .reduce((s, m) => s + resolveModifierValue(m, attrs, level, pb), 0)
+}
+
+/** Display string for a stat box: plain text, or calculated total when enabled. */
+export function resolveStatBoxDisplay(stat: StatBox, c: CharacterData): string {
+  if (!stat.calculated) return stat.value
+  return String(resolveStatBoxTotal(stat, c.attributes, c.identity?.level ?? 1, resolvePb(c)))
 }
 
 export function resolveEquippedWeight(c: CharacterData): number {

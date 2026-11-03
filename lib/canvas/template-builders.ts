@@ -146,7 +146,9 @@ export function buildTemplateFeatures(
 ): { cols?: number; widgets: Omit<CanvasWidget, "id">[] }[] {
   const templateCols = DEFAULT_CANVAS_COLS;
   const templateRows = rowsForCols(templateCols);
-  const COL_STARTS = [0, 10, 20];
+  // Columns packed edge-to-edge so every card is CARD_W wide (matches standalone cards);
+  // spare grid square(s) fall on the far right.
+  const COL_STARTS = [0, 9, 18];
   const CARD_W = 9;
 
   const pages: { cols?: number; widgets: Omit<CanvasWidget, "id">[] }[] = [];

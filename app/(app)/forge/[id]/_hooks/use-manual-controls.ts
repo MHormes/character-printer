@@ -8,6 +8,7 @@ export type ManualSectionId =
   | "skills"
   | "combat"
   | "trackers"
+  | "statBoxes"
   | "spells"
   | "otherProficiencies"
   | "actions";
@@ -25,6 +26,7 @@ const DEFAULT_MANUAL_UI_PREFS: ForgeManualUiPrefs = {
     skills: false,
     combat: false,
     trackers: false,
+    statBoxes: false,
     spells: false,
     otherProficiencies: false,
     actions: false,

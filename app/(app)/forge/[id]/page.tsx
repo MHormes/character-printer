@@ -1438,11 +1438,16 @@ export default function ForgePage({
 
             <ForgeSection
               title="Custom Stats"
-              className="w-full md:w-72 shrink-0"
+              className="flex-1 min-w-0"
+              headerAction={renderManualSectionToggle("statBoxes")}
               collapsible={true}
             >
               <StatBoxesBlock
                 statBoxes={statBoxes ?? []}
+                showManualControls={isManualSectionVisible("statBoxes")}
+                attributes={attributes}
+                level={identity.level}
+                pb={pb}
                 onChange={setStatBoxes}
               />
             </ForgeSection>

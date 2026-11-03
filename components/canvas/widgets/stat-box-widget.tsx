@@ -2,6 +2,7 @@
 
 import { useCharacterStore } from "@/lib/store/character-store"
 import type { StatBox } from "@/lib/types/character"
+import { resolveStatBoxDisplay } from "@/lib/character/calculations"
 import { DndFrame } from "./dnd-frame"
 
 const PLACEHOLDER: StatBox = {
@@ -35,11 +36,12 @@ function wrapTitle(title: string): string[] {
 }
 
 export function StatBoxWidget({ statId }: { statId?: string }) {
-  const statBoxes = useCharacterStore((s) => s.character?.statBoxes ?? [])
-  const stat = statBoxes.find((s) => s.id === statId) ?? PLACEHOLDER
+  const character = useCharacterStore((s) => s.character)
+  const stat = character?.statBoxes?.find((s) => s.id === statId) ?? PLACEHOLDER
+  const display = character ? resolveStatBoxDisplay(stat, character) : stat.value
 
   const ff = "Georgia, 'Times New Roman', serif"
-  const valueLines = wrap(stat.value || "-", 15)
+  const valueLines = wrap(display || "-", 15)
   const titleLines = wrapTitle(stat.title)
 
   const longest = valueLines.reduce((a, b) => (a.length > b.length ? a : b), "")

@@ -1,0 +1,13 @@
+# Custom stat boxes: optional calculated mode
+
+Goal: StatBox stays plain text by default; Σ toggle switches it to tracker-style calc
+(base source / multiplier / offset / modifier stack / override).
+
+Files:
+- lib/types/character.ts — StatBox gets optional `calculated`, `base`, `baseSource`, `baseMultiplier`, `baseOffset`, `stack`, `override`.
+- lib/character/calculations.ts — `resolveStatBoxValue(stat, character)`; materialize stat box stacks.
+- components/forge/stat-boxes-block.tsx — Σ toggle + calc editor (mirrors trackers-block).
+- components/canvas/widgets/stat-box-widget.tsx — render resolved value when calculated.
+- app/(app)/forge/[id]/page.tsx + _hooks/use-manual-controls.ts — pass attrs/level/pb, manual toggle "statBoxes".
+
+No DB migration (character stored as JSON).
