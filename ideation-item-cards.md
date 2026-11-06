@@ -1,6 +1,6 @@
 # Item Cards - design your own printable magic item cards
 
-> **Status:** Draft v0.1 (ideation). Not yet implemented. Open questions are collected in section 9.
+> **Status:** Draft v0.2 (ideation). Not yet implemented. Decisions from review are recorded in section 9.
 > Companion to `ideation.md` (character sheets). Reuses the Canvas engine described there in section 12.
 
 ---
@@ -24,8 +24,8 @@ notes) is printed as an empty field to fill in with a pencil.
 
 ## 2. Entry Points & Routing
 
-- **Dashboard:** next to the existing "Create character" button there is a **"Create item"** button. The list shows
-  characters and items (as separate sections or a filter, see open questions).
+- **Dashboard:** next to the existing "Create character" button there is a **"Create item"** button. Items get their
+  own **item dashboard**, built like the character dashboard (list of cards with open / delete actions).
 - **Item cards are standalone:** they belong to a user, not to a character.
 - **Two pages per item**, mirroring the character Forge / Canvas split (names provisional, follow the existing
   `forge/[id]` and `canvas/[id]` pattern under `app/(app)/`):
@@ -40,26 +40,42 @@ notes) is printed as an empty field to fill in with a pencil.
 
 The size of a card is **fixed**. It never grows or shrinks with its content.
 
-| Concept      | Size                         | Notes                                                    |
-| ------------ | ---------------------------- | -------------------------------------------------------- |
-| Card side    | A6 landscape, 148 × 105 mm   | One face of the card (front or back).                    |
-| Card (sheet) | A5 landscape, 210 × 148 mm\* | Front and back placed next to each other; fold in half.  |
+| Concept      | Size                       | Notes                                                   |
+| ------------ | -------------------------- | ------------------------------------------------------- |
+| Card side    | A6, 148 × 105 mm           | One face of the card (front or back).                   |
+| Card (sheet) | A5, 210 × 148 mm           | Front and back placed next to each other; fold in half. |
 
-\* See open question 9.1: front and back side by side on A5 landscape gives two A6 **portrait** halves
-(105 × 148 mm), while the reference card is landscape. To be decided.
+### 3.1 Orientation
 
-### 3.1 Print Modes
+- **Default: landscape** card sides (148 × 105 mm), as in the reference card. Front and back are stacked on an A5
+  **portrait** sheet and folded horizontally.
+- **Toggle to portrait:** a single click rotates the card to portrait sides (105 × 148 mm), placed next to each other
+  on an A5 **landscape** sheet and folded vertically.
+- Orientation is stored per item. Switching orientation swaps the grid's columns / rows; boxes that no longer fit are
+  clamped to the grid and get the overflow warning (5.4).
 
-The user toggles between two print modes. The physical card size is the same in both.
+### 3.2 Print Modes
 
-- **A5 mode:** one card per A5 sheet. Front and back next to each other with a fold line in the middle.
-- **A4 mode:** two A5 cards on one A4 sheet (stacked), with cut lines between them and fold lines through each card.
-  Cards are **not** scaled up to fill the A4.
+The physical card size is the same in every mode. Cards are never scaled up to fill the paper.
 
-### 3.2 Print Marks
+- **A5 fold mode:** one card per A5 sheet. Front and back next to each other with a fold line between them.
+- **A4 fold mode:** two A5 cards on one A4 sheet, with cut lines between them and a fold line through each card.
+- **Duplex mode:** fronts on one page and backs on the next, with the backs mirrored so they line up when printed
+  double-sided. No fold line.
 
-- Fold line: thin dashed line between front and back.
-- Cut lines (A4 mode): crop marks or a thin dashed line between the two cards.
+### 3.3 Printing One or Many
+
+- **Single item (default path):** the Print / Export button on the Item Canvas prints just that card. This must stay a
+  one-click action.
+- **Batch:** on the item dashboard the user can select several items and print them in one job. Cards are packed into
+  the chosen mode (e.g. 4 items in A4 fold mode = 2 sheets). Selection is optional and never in the way of printing
+  a single card.
+- **Output:** browser print and **PDF export**, reusing the approach of `lib/canvas/export-pdf.ts`.
+
+### 3.4 Print Marks
+
+- Fold line: thin dashed line between front and back (fold modes only).
+- Cut lines: crop marks or a thin dashed line between cards on A4.
 - Margins: a small safe area inside each side, so content is not lost to printer margins or the fold.
 
 ---
@@ -85,7 +101,7 @@ same section / field components in `components/forge` where possible.
 | `properties`         | string[]    | Tag field, see 4.2.                                                         |
 | `statLine`           | string?     | E.g. "AC 12 + Dex", "1d8 slashing (1d10 versatile)".                        |
 | `charges`            | object?     | `{ max: number, recharge?: string }`, e.g. `{ max: 3, recharge: "1d3 at dawn" }`. |
-| `description`        | rich text   | Main rules and flavour text. Basic formatting (bold, italic, paragraphs).   |
+| `description`        | markdown    | Main rules and flavour text. Markdown: bold, italic, paragraphs, lists.     |
 | `textBlocks`         | list        | Extra named free-text blocks: `{ id, label, content }`. Shown on the card via Text Boxes. |
 | `source`             | string?     | E.g. "BMT, page 67".                                                        |
 | `itemImage`          | image ref?  | Uploaded picture of the item.                                               |
@@ -104,7 +120,7 @@ same section / field components in `components/forge` where possible.
 - This copies name, type, weight, properties, damage / two-handed (versatile) dice and armor values into the card's
   fields. The stat line is generated from them (e.g. "AC 12 + Dex").
 - After copying, every field is editable. There is no live link to the SRD item.
-- Both rule sets (2014 / 2024) should be searchable, see open question 9.5.
+- The search covers **both rule sets** at once. Results are labelled, e.g. "Longsword (2014)" and "Longsword (2024)".
 
 ---
 
@@ -123,8 +139,9 @@ from a palette. All item data lives in the Item Forge (section 4); the Canvas on
   Canvas palette lists them, and a Text Box is bound to one of them. Unused blocks are visibly marked as "not on card".
 - **Inline editing:** the Canvas may allow editing text directly in a box for convenience, but the edit writes back to
   the Forge field. There is no box-local content.
-- **Undo / redo:** Ctrl+Z / Ctrl+Shift+Z on both pages for layout and data changes. A persistent edit history is a
-  later improvement (open question).
+- **Undo / redo:** Ctrl+Z / Ctrl+Shift+Z within a session, for layout changes on the Item Canvas. Follow the
+  character canvas implementation in `lib/store/canvas-store.ts` (snapshot `history` / `future` stacks, `MAX_HISTORY`).
+  No persistent version history.
 
 ### 5.1 Layout
 
@@ -136,7 +153,10 @@ from a palette. All item data lives in the Item Forge (section 4); the Canvas on
 
 - Each side has its own grid with square cells, same mechanics as the character canvas: snap-to-grid, drag to move,
   resize, lock, delete (ideation.md 11.3 - 11.5).
-- Rotation is probably not needed on cards (open question).
+- **Grid size:** not decided yet. Keep it in one constant (e.g. `ITEM_CARD_GRID_COLS` next to `DEFAULT_CANVAS_COLS`
+  in `lib/types/canvas.ts`) with rows derived from the side's aspect ratio, so it can be tuned later. Hardcoded is
+  fine, but never spread through components.
+- Box rotation: not needed initially.
 - Reuse the dnd-kit setup and widget patterns from `components/canvas` where possible. A shared grid component is
   preferred over a copy.
 
@@ -146,12 +166,15 @@ from a palette. All item data lives in the Item Forge (section 4); the Canvas on
   the Canvas write back to the Forge (see 5.0).
 - A field can appear on either side. The user decides how much text goes on the front.
 
-### 5.4 Overflow Warning
+### 5.4 Overflow & Font Size
 
 - Because the card size is fixed, text can be too long for its box.
+- Text is **clipped** at the box edge, never auto-shrunk without the user asking.
 - When a box's content overflows, the box shows a **visible warning** in the editor (e.g. a warning icon and outline
   in the destructive color). The warning is never printed.
-- The text is clipped, not auto-shrunk (open question: offer an optional auto-fit font size).
+- Every text box has a **font size control** in its toolbar, so the user can fix overflow themselves.
+- Optional **"Fit text"** button: sets the largest font size at which the content fits. A one-off action, not a live
+  auto-fit.
 
 ### 5.5 Templates
 
@@ -176,7 +199,7 @@ As with the character printer, there should be many box types. Each is a ready-t
 | Stat Line          | `statLine`                       | E.g. "AC 12 + Dex".                                                    |
 | Item Image         | `itemImage`                      | Framed picture.                                                        |
 | Text Box           | one Forge text block (`textBlocks[id]`) | Open text, for anything. Content lives in the Forge.           |
-| Description        | `description`                    | Rich text.                                                             |
+| Description        | `description`                    | Rendered markdown.                                                     |
 | Charges Counter    | `charges`                        | `____ / 3` plus recharge text. The used number is **always blank**.    |
 | Charge Pips        | `charges`                        | Optional alternative: a row of empty circles to tick off.              |
 | Text Panel         | -                                | A framed, readable panel that sits on top of a background image.      |
@@ -191,8 +214,7 @@ pencil during play. This matches the `Blank` print state of the character canvas
 
 ## 7. Visual Style
 
-- **Background:** per card, either a solid color or an uploaded image. Applies to front and back. Open question:
-  a separate background per side?
+- **Background:** one background per card, either a solid color or an uploaded image, applied to both sides.
 - **Back side option:** the back can also be left with only the background (no boxes), for a clean card back.
 - **Frame:** a border around each side (the reference uses a brown rounded frame). Frame color selectable.
 - **Fonts:** a heading font for the name and a readable body font. Pick from a small curated set.
@@ -223,6 +245,7 @@ pencil during play. This matches the `Blank` print state of the character canvas
             "source": "BMT, page 67", "itemImage": "<ref>",
             "background": { "kind": "image", "ref": "<ref>" } },
   "layout": {
+    "orientation": "landscape",
     "cols": 12,
     "front": { "widgets": [] },
     "back":  { "widgets": [], "backgroundOnly": false }
@@ -237,23 +260,30 @@ pencil during play. This matches the `Blank` print state of the character canvas
 
 ---
 
-## 9. Open Questions & Gaps
+## 9. Decisions Log & Remaining Gaps
 
-1. **Orientation vs. fold:** the reference card is landscape (148 × 105 mm per side). Two landscape A6 sides form an
-   A5 **portrait** sheet folded horizontally, or an A5 landscape sheet gives two portrait sides. Which one? Are both
-   orientations needed?
-2. **Double-sided printing:** besides the fold layout, should there be a mode that prints fronts and backs on
-   separate pages for duplex printing (mirrored alignment)?
-3. **Export:** browser print only, or also PDF export as with the character canvas (`lib/canvas/export-pdf.ts`)?
-4. **Multiple cards per print job:** print a selection of items in one go (e.g. 4 items = 2 A4 sheets)?
-5. **SRD rule set:** search both 2014 and 2024 items, or let the user pick?
-6. **Rich text:** how much formatting does the description need (bold, italic, lists, inline dice like **1d3**)?
-7. **Overflow:** clip with warning only, or also an optional auto-fit font size?
-8. **Background per side:** one background for the whole card, or separately for front and back?
-9. **Dashboard:** one combined list with a filter, or separate sections for characters and items?
-10. **Card grid:** how many columns per side? Is rotation of boxes needed?
-11. **Edit history:** is undo / redo within a session enough, or should there be a persistent version history?
-12. **Future:** add a card to a character's inventory (and generate modifiers), share items with the party, NPC sheets.
+### 9.1 Decided (review 2026-11-06)
+
+| Topic              | Decision                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| Orientation        | Landscape by default, one-click toggle to portrait (3.1).                            |
+| Duplex             | Supported as a print mode (3.2).                                                     |
+| Export             | Browser print and PDF (3.3).                                                         |
+| Batch printing     | Yes, from the item dashboard, without slowing down single-card printing (3.3).      |
+| SRD search         | Searches 2014 and 2024 together, results labelled by rule set (4.3).                 |
+| Description        | Markdown (4.1).                                                                      |
+| Overflow           | Clip + warning, per-box font size, optional "Fit text" (5.4).                        |
+| Background         | One background for the whole card (7).                                               |
+| Dashboard          | Separate item dashboard, like the character dashboard (2).                           |
+| Grid               | To be tuned later; single constant, not spread through code (5.2).                   |
+| History            | Session undo / redo like the character canvas; no saved versions (5.0).              |
+| Out of scope       | Inventory link, sharing with the party, NPC sheets.                                  |
+
+### 9.2 Still Open
+
+1. **Second reference:** a Mythcover card with text on the front will be added; it may influence the default
+   template (5.5) and box styling.
+2. **Fonts and frames:** which curated fonts and frame styles to offer.
 
 ---
 
@@ -264,5 +294,6 @@ pencil during play. This matches the `Blank` print state of the character canvas
 2. **Item Forge:** core fields, text blocks, properties tag field, image uploads, background.
 3. **Card editor:** front/back grids reusing the canvas engine, default template, core boxes (Name, Type Line,
    Image, Description, Stat Line, Charges Counter, Text Box).
-4. **Print:** A5 and A4 modes with fold and cut lines.
-5. **Polish:** SRD pre-fill, overflow warnings, remaining boxes, saved templates.
+4. **Print:** A5 / A4 fold modes, orientation toggle, single-card print and PDF export.
+5. **Polish:** SRD pre-fill, overflow warnings and font controls, remaining boxes, duplex, batch printing from the
+   dashboard, saved templates.
