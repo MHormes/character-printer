@@ -227,7 +227,9 @@ pencil during play. This matches the `Blank` print state of the character canvas
 - Draft armor card "Gloomwrought Studded Leather Armor" (shared in the project thread): landscape, name + type line +
   stat line next to the image on the front; description, charges, source and weight on a text panel over a tavern
   background on the back.
-- A Mythcover card with text on the front will be added as a second reference.
+- "Mythcarver (Awakened)" weapon card: same layout. Front has name, type line ("Legendary (requires attunement by a
+  bard)"), damage stat line ("1d8 slashing") and properties ("Finesse, versatile (1d10), Vestige"); back has a
+  semi-transparent text panel with markdown-style bold keywords. Confirms the default template; no spec changes.
 
 ---
 
@@ -281,9 +283,7 @@ pencil during play. This matches the `Blank` print state of the character canvas
 
 ### 9.2 Still Open
 
-1. **Second reference:** a Mythcover card with text on the front will be added; it may influence the default
-   template (5.5) and box styling.
-2. **Fonts and frames:** which curated fonts and frame styles to offer.
+1. **Fonts and frames:** which curated fonts and frame styles to offer.
 
 ---
 
