@@ -1,6 +1,6 @@
 # Companion Cards - design your own printable companion cards
 
-> **Status:** Draft v0.1 (ideation). Not yet implemented. **Built after the Item Cards POC.**
+> **Status:** Draft v0.2 (ideation). Not yet implemented. **Built after the Item Cards POC.**
 > Sibling of `ideation-item-cards.md`. Everything generic (physical format, printing, card theme with fonts / colours
 > / sizes, Text Style controls, editor engine, generic boxes, data envelope) is defined in
 > **`ideation-cards-shared.md`** and is not repeated here.
@@ -35,8 +35,9 @@ empty fields to fill in with a pencil.
 
 - **In scope:** creating, editing, listing, deleting and printing companion cards. Companion-specific boxes
   (statblock and its parts, traits, actions, ...). Computed ability modifiers.
-- **Out of scope (for now):** linking a companion to a character, scaling with the owner's level, running combat or
-  tracking HP digitally, full monster / NPC sheets (open question 9.2).
+- **Out of scope:** linking a companion to a character or scaling with the owner's level (companions stay
+  standalone, like items), SRD pre-fill, NPC / monster sheets (this tool is for companions only), running combat or
+  tracking HP digitally.
 
 ---
 
@@ -44,9 +45,10 @@ empty fields to fill in with a pencil.
 
 Mirrors Item Cards (`ideation-item-cards.md` section 2):
 
-- **Dashboard:** a **"Create companion"** button next to "Create character" and "Create item". Companions get a
-  dashboard like items (list, open, delete, multi-select for batch printing).
-- **Standalone:** a companion belongs to a user, not to a character (for now).
+- **Dashboard:** a **"Create companion"** button next to "Create character" and "Create item". Companions get
+  their **own companion tab / dashboard**, separate from the item one (list, open, delete, multi-select for batch
+  printing).
+- **Standalone:** a companion belongs to a user, not to a character. No link to a character is planned.
 - **Two pages:** **Companion Forge** (e.g. `companion-forge/[id]`) for all data and **Companion Canvas**
   (e.g. `companion-canvas/[id]`) for the card layout, with the same header switch.
 
@@ -85,7 +87,7 @@ Plain values, **no Base + Stack** (companions don't get item modifiers). Only mo
 | `armorClass`      | `{ value, note? }`           | Note e.g. "natural armor".                                         |
 | `hitPoints`       | `{ max, formula? }`          | E.g. `{ max: 19, formula: "3d10+3" }`. **Current HP always prints blank.** |
 | `speed`           | `{ walk, fly?, swim?, climb?, burrow?, hover? }` | In ft. Rendered as "60 ft., fly 30 ft.".       |
-| `abilities`       | `{ str, dex, con, int, wis, cha }` | Scores. Modifier = `floor((score - 10) / 2)`, reusing `lib/character/calculations.ts`. |
+| `abilities`       | `{ str, dex, con, int, wis, cha }` | Total scores. Modifier = `floor((score - 10) / 2)`, reusing `lib/character/calculations.ts`. |
 | `proficiencyBonus`| number                       | Defaults from CR (table in `ideation.md` / rules), editable.       |
 | `savingThrows`    | `{ ability, bonus? }[]`      | Proficient saves; bonus computed (mod + PB) unless overridden.     |
 | `skills`          | `{ skill, bonus?, expertise? }[]` | E.g. Perception +3. Computed unless overridden.               |
@@ -96,7 +98,6 @@ Plain values, **no Base + Stack** (companions don't get item modifiers). Only mo
 | `senses`          | `{ sense, range }[]` + `passivePerception` | Darkvision 60 ft., ... Passive Perception computed (10 + Wis + Perception) unless overridden. |
 | `languages`       | string[]                     | Empty renders as "-".                                              |
 | `challenge`       | `{ rating, xp? }`            | E.g. `{ rating: "1/2", xp: 100 }`. XP from CR by default.          |
-| `initiative`      | number?                      | 2024 statblocks show it; computed from Dex unless overridden.      |
 
 **Computed vs. typed:** every computed value (modifiers, saves, skills, passive perception, PB, XP) shows its
 computed value in the Forge and can be **overridden** with a typed value. A typed override is clearly marked.
@@ -138,11 +139,10 @@ Based on the reference card:
   languages, challenge, PB).
 - **Back:** background only plus a Text Panel with the **Traits** and **Actions** sections.
 
-### 5.2 Rule-set variants
+### 5.2 One statblock style
 
-2014 and 2024 statblocks differ (2024 puts saves in the ability table and adds Initiative). Each companion has a
-`ruleset` (`2014 | 2024`, default from the user's last choice). Boxes that differ, mainly **Ability Scores**, render
-in the matching style. See open question 9.2.
+There is **one statblock style**, no 2014 / 2024 variants: all six ability scores as a total score plus its
+modifier, e.g. "STR 18 (+4)". Companions have no rule-set setting.
 
 ---
 
@@ -166,8 +166,8 @@ expose text parts (e.g. `label` / `value`) as in shared section 3.2.
 | Box                 | Bound to                                      | Printed output                                                    |
 | ------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
 | Creature Line       | `size`, `creatureType`, `alignment`           | "Large beast, unaligned".                                         |
-| Core Stats          | `armorClass`, `hitPoints`, `speed` (+ `initiative` in 2024) | "AC 11 / Hit Points 19 (3d10+3) / Speed 60 ft." Stacked or one line. |
-| Ability Scores      | `abilities` (+ saves in 2024)                 | Score + modifier. Variants: 3 × 2 grid (reference), 6 × 1 row, 2024 table with save column. |
+| Core Stats          | `armorClass`, `hitPoints`, `speed`            | "AC 11 / Hit Points 19 (3d10+3) / Speed 60 ft." Stacked or one line. |
+| Ability Scores      | `abilities`                                   | Total score + modifier. Layout variants: 3 × 2 grid (reference), 6 × 1 row. |
 | Saving Throws       | `savingThrows`                                | "Str +6, Con +3".                                                 |
 | Skills              | `skills`                                      | "Athletics +6, Perception +3".                                    |
 | Proficiencies       | `savingThrows`, `skills`                      | Combined saves + skills block, for small cards.                   |
@@ -194,7 +194,8 @@ render nothing in print.
 ## 7. Storage
 
 - Same envelope as items (shared section 6) with `kind: "companion"`.
-- Table: `companion_cards` mirroring `item_cards`, **or** a generic `cards` table decided during the refactor (9.2).
+- Table: `companion_cards` mirroring `item_cards`. If the item tool moves to a generic table during the refactor,
+  companions follow that decision.
 - Server actions `lib/actions/companion-card.ts` (or the generic card actions after the refactor), store
   `lib/store/companion-card-store.ts` on top of the shared card editor store.
 
@@ -203,7 +204,7 @@ render nothing in print.
   "kind": "companion",
   "data": {
     "name": "Gerard", "species": "Warhorse", "size": "large", "creatureType": "Beast", "alignment": "Unaligned",
-    "role": "Mount", "ruleset": "2014",
+    "role": "Mount",
     "armorClass": { "value": 11 }, "hitPoints": { "max": 19, "formula": "3d10+3" }, "speed": { "walk": 60 },
     "abilities": { "str": 18, "dex": 12, "con": 13, "int": 2, "wis": 12, "cha": 7 },
     "proficiencyBonus": 2, "savingThrows": [], "skills": [],
@@ -226,7 +227,7 @@ render nothing in print.
 1. **Data & routing:** storage, server actions, store, "Create companion" button, empty Forge and Canvas pages.
 2. **Companion Forge:** identity, statblock with computed values + overrides, features lists, image upload.
 3. **Card editor:** companion boxes on the shared engine, default template from the reference.
-4. **Polish:** 2024 variants, attack helper, Full Statblock box, SRD pre-fill (if chosen), batch printing.
+4. **Polish:** attack helper, Full Statblock box, batch printing.
 
 ---
 
@@ -241,17 +242,18 @@ render nothing in print.
 | Build order         | Item POC first, refine, refactor generic parts, then Companion Cards.          |
 | Format              | Same as items: A6 sides, A5 fold, landscape default (reference is landscape).  |
 
-### 9.2 Open
+### 9.2 Decided (review 2026-11-06)
 
-1. **SRD pre-fill:** start from an SRD creature (e.g. "Warhorse", "Owl")? There is **no monsters / creatures table**
-   in the seeded SRD data yet (`lib/db/schema.ts`), so this means a new seed for both rule sets.
-2. **Rule set:** support both 2014 and 2024 statblock styles (5.2), or one style for now?
-3. **Link to a character:** later, should a companion be attachable to a character (e.g. ranger's Primal Companion
-   whose AC / HP / attack scale with the owner's level and PB)? Out of scope now, but it affects whether we want
-   formulas like "5 × ranger level" in the data model.
-4. **Scope beyond companions:** should this tool also cover NPCs / monsters for the DM (bigger statblocks, legendary
-   actions), or stay strictly companions?
-5. **Storage:** `companion_cards` next to `item_cards`, or one generic `cards` table with `kind` after the refactor?
-6. **Dashboards:** separate item and companion dashboards, or one "Cards" dashboard with a filter per kind?
-7. **Large statblocks:** when traits / actions don't fit on the back, is a third side (an extra card) acceptable, or
-   is fitting on two sides always the user's job (overflow warning + font size)?
+| Topic               | Decision                                                                       |
+| ------------------- | ------------------------------------------------------------------------------ |
+| SRD pre-fill        | Not needed. Companions are entered by hand.                                    |
+| Statblock style     | One style for all: six ability scores as total + modifier. No 2014 / 2024 variants (5.2). |
+| Character link      | None. Companions stay standalone, like items.                                  |
+| Scope               | Companions only, no NPC / monster sheets.                                      |
+| Dashboard           | Own companion tab / dashboard, like items (2).                                 |
+| Long feature lists  | Stays two sides. Fitting is the user's job via overflow warning, font size and "Fit text". |
+| Fonts, themes, frames | Decided in the item tool sessions and taken over via the shared spec.        |
+
+### 9.3 Still Open
+
+- Nothing companion-specific. Storage follows the item tool (7).
