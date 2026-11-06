@@ -27,8 +27,11 @@ notes) is printed as an empty field to fill in with a pencil.
 - **Dashboard:** next to the existing "Create character" button there is a **"Create item"** button. The list shows
   characters and items (as separate sections or a filter, see open questions).
 - **Item cards are standalone:** they belong to a user, not to a character.
-- **New pages** under `app/(app)/` (names provisional, follow the existing `forge/[id]` and `canvas/[id]` pattern):
-  - `items/[id]` - the card editor (data + layout on one page, see section 5).
+- **Two pages per item**, mirroring the character Forge / Canvas split (names provisional, follow the existing
+  `forge/[id]` and `canvas/[id]` pattern under `app/(app)/`):
+  - **Item Forge** (e.g. `item-forge/[id]`) - full data-entry page for everything about the item (section 4).
+  - **Item Canvas** (e.g. `item-canvas/[id]`) - the drag-and-drop card editor (section 5).
+  - A switch in the header moves between the two, as for characters.
 - Read `node_modules/next/dist/docs/` before building the route, per `AGENTS.md`.
 
 ---
@@ -66,6 +69,9 @@ The user toggles between two print modes. The physical card size is the same in 
 Each item card is one record owned by a user. Like characters, the item is stored as a relational row with a JSON
 blob for the item data and the layout (see section 8).
 
+All fields are edited on the **Item Forge** page, a full data-entry page like the character Forge, built from the
+same section / field components in `components/forge` where possible.
+
 ### 4.1 Core Fields
 
 | Field                | Type        | Notes                                                                       |
@@ -80,6 +86,7 @@ blob for the item data and the layout (see section 8).
 | `statLine`           | string?     | E.g. "AC 12 + Dex", "1d8 slashing (1d10 versatile)".                        |
 | `charges`            | object?     | `{ max: number, recharge?: string }`, e.g. `{ max: 3, recharge: "1d3 at dawn" }`. |
 | `description`        | rich text   | Main rules and flavour text. Basic formatting (bold, italic, paragraphs).   |
+| `textBlocks`         | list        | Extra named free-text blocks: `{ id, label, content }`. Shown on the card via Text Boxes. |
 | `source`             | string?     | E.g. "BMT, page 67".                                                        |
 | `itemImage`          | image ref?  | Uploaded picture of the item.                                               |
 | `background`         | object      | `{ kind: "color", value }` or `{ kind: "image", ref }`.                     |
@@ -104,11 +111,24 @@ blob for the item data and the layout (see section 8).
 ## 5. The Card Editor
 
 The editor follows the Canvas idea from the character printer: a **grid per card side** on which the user drags boxes
-from a palette. Data entry and layout live on the same page, because a card is small enough to edit in one view.
+from a palette. All item data lives in the Item Forge (section 4); the Canvas only decides where it goes.
+
+### 5.0 Centralised Data Principle
+
+- **The Item Forge is the single source of truth.** Every piece of content (name, description, stats, and also
+  free-text blocks) is stored in the item data, never only inside a box.
+- **Boxes are views.** A box references a field or a text block by id. Removing a box from the card never deletes the
+  content: it stays in the Forge and can be dragged back on.
+- **Free-text blocks:** the Forge has a list of named text blocks (e.g. "Flavour", "Active: Calm Emotions"). The
+  Canvas palette lists them, and a Text Box is bound to one of them. Unused blocks are visibly marked as "not on card".
+- **Inline editing:** the Canvas may allow editing text directly in a box for convenience, but the edit writes back to
+  the Forge field. There is no box-local content.
+- **Undo / redo:** Ctrl+Z / Ctrl+Shift+Z on both pages for layout and data changes. A persistent edit history is a
+  later improvement (open question).
 
 ### 5.1 Layout
 
-- **Left:** box palette (section 6) and the item data form (section 4), e.g. as two tabs.
+- **Left:** box palette (section 6), with a section listing the item's fields and text blocks to drag on.
 - **Center:** the card, front and back shown next to each other at real aspect ratio.
 - **Top bar:** print mode toggle (A5 / A4), print / export button, save state.
 
@@ -122,8 +142,8 @@ from a palette. Data entry and layout live on the same page, because a card is s
 
 ### 5.3 Data Binding
 
-- Boxes are bound to the item's fields: editing the name in the form updates the Name box, and the other way around
-  if inline editing is added.
+- Boxes are bound to the item's fields: editing the name in the Item Forge updates the Name box, and inline edits on
+  the Canvas write back to the Forge (see 5.0).
 - A field can appear on either side. The user decides how much text goes on the front.
 
 ### 5.4 Overflow Warning
@@ -155,7 +175,7 @@ As with the character printer, there should be many box types. Each is a ready-t
 | Properties         | `properties`                     | Comma-separated list or chips.                                         |
 | Stat Line          | `statLine`                       | E.g. "AC 12 + Dex".                                                    |
 | Item Image         | `itemImage`                      | Framed picture.                                                        |
-| Text Box           | free text (per box)              | Open text, for anything.                                               |
+| Text Box           | one Forge text block (`textBlocks[id]`) | Open text, for anything. Content lives in the Forge.           |
 | Description        | `description`                    | Rich text.                                                             |
 | Charges Counter    | `charges`                        | `____ / 3` plus recharge text. The used number is **always blank**.    |
 | Charge Pips        | `charges`                        | Optional alternative: a row of empty circles to tick off.              |
@@ -199,7 +219,8 @@ pencil during play. This matches the `Blank` print state of the character canvas
 {
   "item": { "name": "...", "type": "...", "rarity": "rare", "requiresAttunement": true, "weight": 13,
             "properties": [], "statLine": "AC 12 + Dex", "charges": { "max": 3, "recharge": "1d3 at dawn" },
-            "description": "...", "source": "BMT, page 67", "itemImage": "<ref>",
+            "description": "...", "textBlocks": [{ "id": "tb1", "label": "Flavour", "content": "..." }],
+            "source": "BMT, page 67", "itemImage": "<ref>",
             "background": { "kind": "image", "ref": "<ref>" } },
   "layout": {
     "cols": 12,
@@ -231,15 +252,16 @@ pencil during play. This matches the `Blank` print state of the character canvas
 8. **Background per side:** one background for the whole card, or separately for front and back?
 9. **Dashboard:** one combined list with a filter, or separate sections for characters and items?
 10. **Card grid:** how many columns per side? Is rotation of boxes needed?
-11. **Future:** add a card to a character's inventory (and generate modifiers), share items with the party, NPC sheets.
+11. **Edit history:** is undo / redo within a session enough, or should there be a persistent version history?
+12. **Future:** add a card to a character's inventory (and generate modifiers), share items with the party, NPC sheets.
 
 ---
 
 ## 10. Suggested Implementation Phases
 
 1. **Data & routing:** `item_cards` table + migration, server actions, store, dashboard "Create item" button, empty
-   editor page.
-2. **Item form:** core fields, properties tag field, image uploads, background.
+   Item Forge and Item Canvas pages.
+2. **Item Forge:** core fields, text blocks, properties tag field, image uploads, background.
 3. **Card editor:** front/back grids reusing the canvas engine, default template, core boxes (Name, Type Line,
    Image, Description, Stat Line, Charges Counter, Text Box).
 4. **Print:** A5 and A4 modes with fold and cut lines.
